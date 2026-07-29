@@ -701,6 +701,154 @@ body,button,input,select{font-size:15px!important;}
   .mode-chip{top:114px!important;}
 }
 
+
+
+/* ===== Balanced readable mode: keep original phone shape, enlarge text without stretching layout ===== */
+.phone{
+  width:min(100%,420px)!important;
+  height:960px!important;
+  border:8px solid #242321!important;
+  border-radius:40px!important;
+  overflow:hidden!important;
+}
+.notch{display:block!important;}
+.header{
+  height:136px!important;
+  padding:24px 14px 8px!important;
+}
+.pages{height:calc(100% - 136px)!important;}
+body{
+  padding:8px!important;
+  align-items:flex-start!important;
+}
+body,button,input,select{
+  font-size:13px!important;
+  word-break:keep-all;
+}
+.brand{font-size:11px!important;letter-spacing:1.2px!important;}
+.app-title{font-size:29px!important;line-height:1.08!important;}
+.coin-pill{font-size:14px!important;padding:9px 13px!important;}
+.nav{margin-top:11px!important;gap:8px!important;}
+.nav-btn{font-size:12px!important;min-height:36px!important;padding:8px 4px!important;border-radius:16px!important;}
+#homePage .room{
+  flex:0 0 330px!important;
+  height:330px!important;
+  min-height:330px!important;
+}
+#homePage .home-dashboard{
+  padding:10px 8px 24px!important;
+}
+.speech{width:218px!important;min-height:86px!important;font-size:14px!important;line-height:1.55!important;padding:15px 14px!important;}
+.speech strong{font-size:17px!important;}
+.mode-chip{font-size:11px!important;padding:8px 14px!important;top:111px!important;}
+.mission{width:98px!important;padding:9px 8px!important;}
+.mission-title{font-size:12px!important;}
+.mission-text{font-size:11px!important;line-height:1.45!important;}
+.reward-small{font-size:11px!important;}
+.quick{right:7px!important;top:86px!important;gap:7px!important;}
+.quick-btn{width:54px!important;min-height:53px!important;font-size:10px!important;line-height:1.2!important;}
+.quick-btn .icon{font-size:22px!important;}
+.actions{gap:4px!important;padding:8px 5px!important;}
+.action-btn{font-size:10px!important;line-height:1.15!important;}
+.action-icon{font-size:23px!important;}
+.plan-panel{padding:12px 10px!important;border-radius:16px!important;}
+.plan-head{margin-bottom:8px!important;gap:8px!important;}
+.plan-title{font-size:14px!important;line-height:1.25!important;}
+.plan-model{font-size:11px!important;padding:5px 8px!important;white-space:nowrap!important;flex:0 0 auto!important;}
+.learn-panel{padding:12px 10px!important;border-radius:15px!important;}
+.learn-top{align-items:flex-start!important;gap:8px!important;}
+.learn-title{font-size:14px!important;line-height:1.3!important;flex:1 1 auto!important;min-width:0!important;}
+.learn-pill{
+  font-size:11px!important;
+  line-height:1.15!important;
+  padding:6px 8px!important;
+  white-space:nowrap!important;
+  word-break:keep-all!important;
+  flex:0 0 auto!important;
+  min-width:58px!important;
+  text-align:center!important;
+}
+.learn-desc{font-size:12px!important;line-height:1.55!important;}
+.learn-status{font-size:12px!important;line-height:1.5!important;}
+.learn-step{font-size:11px!important;line-height:1.25!important;padding:7px 5px!important;word-break:keep-all!important;}
+.learn-btn{font-size:14px!important;min-height:45px!important;border-radius:13px!important;}
+.condition-panel{padding:12px 10px!important;border-radius:15px!important;}
+.condition-title{font-size:13px!important;line-height:1.45!important;margin-bottom:9px!important;}
+.condition-row,.predict-condition-grid{
+  grid-template-columns:76px 1fr 76px 1fr!important;
+  gap:8px!important;
+  align-items:center!important;
+}
+.condition-row label,.predict-condition-grid label{
+  font-size:12px!important;
+  white-space:nowrap!important;
+  line-height:1.2!important;
+}
+.condition-select{font-size:13px!important;min-height:42px!important;padding:0 9px!important;border-radius:11px!important;}
+.condition-help{font-size:12px!important;line-height:1.5!important;margin:8px 0 0!important;}
+.profile-chip{font-size:11px!important;padding:5px 8px!important;white-space:nowrap!important;}
+.first-learn-note{font-size:12px!important;line-height:1.55!important;padding:9px 10px!important;}
+.predict-btn{font-size:14px!important;min-height:44px!important;border-radius:13px!important;}
+.predict-loading{font-size:12px!important;line-height:1.5!important;min-height:24px!important;}
+.scope-buttons{grid-template-columns:1.05fr repeat(5,1fr)!important;gap:5px!important;}
+.scope-btn{font-size:10.5px!important;min-height:42px!important;padding:6px 3px!important;line-height:1.2!important;}
+.selected-plan{grid-template-columns:1fr .82fr!important;gap:8px!important;}
+.plan-summary{font-size:12px!important;line-height:1.55!important;padding:11px!important;}
+.plan-soc{padding:11px 8px!important;}
+.plan-soc-label{font-size:11px!important;}
+.plan-soc-value{font-size:30px!important;}
+.plan-soc-sub{font-size:11px!important;line-height:1.45!important;}
+.start-clean-primary{font-size:15px!important;min-height:54px!important;border-radius:15px!important;}
+.start-clean-primary small{font-size:11px!important;}
+.home-cards{grid-template-columns:1.1fr 1fr .78fr!important;gap:7px!important;}
+.mini-card{padding:11px 9px!important;}
+.mini-title{font-size:13px!important;}
+.battery-info{font-size:11.5px!important;line-height:1.55!important;}
+.battery-message{font-size:11px!important;line-height:1.45!important;}
+.time-number{font-size:35px!important;}
+.time-number small{font-size:14px!important;}
+.time-sub{font-size:10.5px!important;}
+.time-tip{font-size:11px!important;line-height:1.45!important;}
+.food-title,.food-count{font-size:11.5px!important;}
+.gauge-label{font-size:12px!important;}
+.gauge-value{font-size:28px!important;}
+.gauge-desc{font-size:12px!important;line-height:1.5!important;}
+.control-head{font-size:13px!important;}
+.control-caption{font-size:11px!important;}
+.primary-btn{font-size:14px!important;min-height:45px!important;}
+.panel-title{font-size:16px!important;}
+.badge{font-size:11px!important;}
+.legend{font-size:12px!important;}
+.insight-row{font-size:12.5px!important;line-height:1.6!important;}
+.record-label,.event-time{font-size:11.5px!important;}
+.record-value{font-size:27px!important;}
+.event-content strong{font-size:12.5px!important;}
+.event-content span{font-size:11.5px!important;line-height:1.5!important;}
+.reward-title{font-size:13px!important;}
+.reward-desc{font-size:11.5px!important;line-height:1.5!important;}
+.reward-btn{font-size:12px!important;}
+.modal-title{font-size:22px!important;}
+.modal-body{font-size:15px!important;line-height:1.7!important;}
+.modal-btn{font-size:15px!important;padding:13px!important;}
+.toast{font-size:13px!important;line-height:1.5!important;}
+@media(max-width:440px){
+  body{padding:8px!important;}
+  .phone{
+    width:min(calc(100% - 16px),420px)!important;
+    height:960px!important;
+    border:8px solid #242321!important;
+    border-radius:40px!important;
+  }
+  .notch{display:block!important;}
+  .header{height:136px!important;}
+  .pages{height:calc(100% - 136px)!important;}
+  .condition-row,.predict-condition-grid{grid-template-columns:72px 1fr 72px 1fr!important;gap:7px!important;}
+  .condition-row label,.predict-condition-grid label{font-size:11.5px!important;}
+  .condition-select{font-size:12.5px!important;padding:0 7px!important;}
+}
+@media(max-height:820px){
+  #homePage .room{flex-basis:315px!important;height:315px!important;min-height:315px!important;}
+}
 </style>
 </head>
 
@@ -1872,4 +2020,4 @@ render();
 
 APP_HTML = APP_HTML.replace("__UI_PREDICTION_DATA__", UI_PREDICTION_JSON)
 
-components.html(APP_HTML, height=1080, scrolling=False)
+components.html(APP_HTML, height=1010, scrolling=False)
