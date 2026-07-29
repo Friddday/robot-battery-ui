@@ -46,7 +46,7 @@ DATA_DIR = BASE_DIR / "data"
 HOME_PRED_PATH = DATA_DIR / "home_model_predictions.csv"
 ZONE_PRED_PATH = DATA_DIR / "zone_model_predictions.csv"
 
-CURRENT_SOC = 20  # 데모용 현재 SOC. 실제 제품에서는 로봇/앱에서 받은 현재 SOC로 교체
+CURRENT_SOC = 35  # 데모용 현재 SOC. 실제 제품에서는 로봇/앱에서 받은 현재 SOC로 교체
 
 
 def _is_valid(value):
