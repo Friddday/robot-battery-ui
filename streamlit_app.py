@@ -70,6 +70,12 @@ st.markdown(
 .condition-row{grid-template-columns:.55fr 1fr .55fr 1fr;gap:7px;}
 .condition-row label{font-size:10px;}
 .condition-select{font-size:11px;min-height:38px;padding:0 9px;}
+
+.predict-condition-grid{display:grid;grid-template-columns:.7fr 1fr .7fr 1fr;gap:8px;align-items:center;margin-top:8px;}
+.predict-condition-grid label{font-size:10.5px;font-weight:900;color:#6c4a2f;white-space:nowrap;}
+.condition-help{font-size:10.3px;line-height:1.55;color:#8a6a45;margin:8px 0 0;}
+.profile-chip{display:inline-block;background:#edf8df;color:#2f8b3a;border:1px solid #d5ecc3;border-radius:999px;padding:5px 9px;font-size:9.5px;font-weight:900;margin-left:4px;}
+@media(max-width:440px){.predict-condition-grid{grid-template-columns:.8fr 1fr;gap:7px}.predict-condition-grid label{font-size:10px}}
 .predict-btn{font-size:12px;min-height:40px;}
 .predict-loading{font-size:10px;line-height:1.5;min-height:22px;}
 .scope-btn{font-size:10px;min-height:42px;padding:6px 3px;}
@@ -400,7 +406,7 @@ APP_HTML = r"""
 html,body{margin:0;min-height:100%;font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;color:var(--brown);background:transparent}
 body{display:flex;justify-content:center;align-items:flex-start;padding:8px}
 button,input{font-family:inherit} button{cursor:pointer}
-.phone{position:relative;width:min(100%,420px);height:900px;overflow:hidden;border:8px solid #242321;border-radius:40px;background:#dfb46b;box-shadow:0 30px 80px rgba(50,33,18,.28),0 8px 20px rgba(50,33,18,.16)}
+.phone{position:relative;width:min(100%,420px);height:960px;overflow:hidden;border:8px solid #242321;border-radius:40px;background:#dfb46b;box-shadow:0 30px 80px rgba(50,33,18,.28),0 8px 20px rgba(50,33,18,.16)}
 .notch{position:absolute;z-index:100;top:0;left:50%;width:126px;height:25px;transform:translateX(-50%);border-radius:0 0 18px 18px;background:#242321}
 .screen{position:relative;width:100%;height:100%;overflow:hidden;background:linear-gradient(180deg,#d2ab7b 0%,#e8c793 44%,#e1b36c 100%)}
 
@@ -484,8 +490,8 @@ button,input{font-family:inherit} button{cursor:pointer}
 .scope-btn{min-height:37px;padding:5px 2px;border:1px solid rgba(124,83,43,.16);border-radius:12px;background:#f3e2be;color:#5a412e;font-size:8px;font-weight:900;line-height:1.2;box-shadow:0 3px 7px rgba(69,43,20,.09)}
 .scope-btn.active{background:linear-gradient(180deg,#65ae4b,#368e3d);color:#fff;border-color:transparent;box-shadow:0 5px 12px rgba(47,139,58,.25)}
 .learn-panel{margin-bottom:8px;padding:9px;border-radius:13px;background:linear-gradient(145deg,#fff8df,#f3dfb2);border:1px solid rgba(124,83,43,.13)}.learn-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.learn-title{font-size:10px;font-weight:900}.learn-pill{padding:4px 7px;border-radius:11px;background:#fff;color:#8b6139;font-size:8px;font-weight:900}.learn-desc{margin-top:5px;color:#6f4f38;font-size:8px;line-height:1.45;font-weight:800}.learn-progress{height:8px;margin-top:7px;overflow:hidden;border-radius:12px;background:#dcc79f}.learn-fill{width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#62aa49,#ffd44f);transition:width .25s}.learn-status{margin-top:6px;font-size:8px;line-height:1.45;font-weight:900;color:#4b3324}.learn-steps{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:7px}.learn-step{padding:5px 4px;border-radius:9px;background:rgba(255,255,255,.58);color:#806047;font-size:7px;font-weight:900;text-align:center}.learn-step.done{background:#e7f4d9;color:#2f8b3a}.learn-step.active{background:#fff;color:#ef8c32;box-shadow:0 2px 6px rgba(89,56,26,.12)}.learn-btn{width:100%;min-height:34px;margin-top:7px;border:0;border-radius:11px;background:linear-gradient(90deg,#ef8c32,#ffb24b);color:#fff;font-size:10px;font-weight:900;box-shadow:0 5px 10px rgba(239,140,50,.22)}.learn-btn.ready{background:linear-gradient(90deg,#4a9b42,#75b84e)}.locked-area{opacity:.45;filter:grayscale(.15)}.condition-panel{margin-bottom:8px;padding:8px;border-radius:13px;background:#fff2cf;border:1px solid rgba(124,83,43,.12)}
-.condition-title{margin-bottom:6px;font-size:9px;font-weight:900;color:#6f4f38}
-.condition-row{display:grid;grid-template-columns:.7fr 1fr .7fr 1fr;gap:5px;align-items:center}.condition-row label{font-size:8px;font-weight:900}.condition-select{width:100%;min-height:32px;border:1px solid rgba(124,83,43,.22);border-radius:10px;background:#fffaf0;color:#4b3324;font-size:9px;font-weight:900;padding:0 6px}.predict-btn{width:100%;min-height:34px;margin-top:6px;border:0;border-radius:11px;background:linear-gradient(90deg,#4a9b42,#75b84e);color:#fff;font-size:10px;font-weight:900;box-shadow:0 5px 10px rgba(47,139,58,.2)}.predict-loading{margin-top:6px;min-height:18px;font-size:8px;line-height:1.45;color:#745431;font-weight:800}.predict-loading.active{color:#2f8b3a}
+.condition-title{margin-bottom:7px;font-size:10px;font-weight:900;color:#6f4f38;line-height:1.4}
+.condition-row{display:grid;grid-template-columns:.7fr 1fr .7fr 1fr;gap:6px;align-items:center}.condition-row label{font-size:9px;font-weight:900;color:#6c4a2f}.condition-select{width:100%;min-height:34px;border:1px solid rgba(124,83,43,.22);border-radius:10px;background:#fffaf0;color:#4b3324;font-size:10px;font-weight:900;padding:0 7px}.predict-condition-grid{display:grid;grid-template-columns:.72fr 1fr .72fr 1fr;gap:6px;align-items:center;margin-top:8px}.predict-condition-grid label{font-size:9px;font-weight:900;color:#6c4a2f;white-space:nowrap}.condition-help{font-size:9px;line-height:1.5;color:#8a6a45;margin:7px 0 0;font-weight:800}.predict-btn{width:100%;min-height:36px;margin-top:8px;border:0;border-radius:11px;background:linear-gradient(90deg,#4a9b42,#75b84e);color:#fff;font-size:11px;font-weight:900;box-shadow:0 5px 10px rgba(47,139,58,.2)}.predict-loading{margin-top:6px;min-height:18px;font-size:9px;line-height:1.45;color:#745431;font-weight:800}.predict-loading.active{color:#2f8b3a}
 .selected-plan{display:grid;grid-template-columns:1fr .9fr;gap:7px;align-items:stretch}.plan-summary{padding:9px;border-radius:12px;background:#fff4d5;font-size:9px;line-height:1.55;font-weight:800}.plan-summary strong{color:#2f8b3a}.plan-soc{padding:9px;border-radius:12px;background:#f0e0be;text-align:center;font-weight:900}.plan-soc-label{font-size:8px;color:#79583e}.plan-soc-value{margin-top:2px;color:#ef573f;font-size:22px;line-height:1}.plan-soc-sub{margin-top:4px;font-size:8px;color:#76553e;line-height:1.35}
 
 /* Battery */
@@ -609,15 +615,54 @@ button,input{font-family:inherit} button{cursor:pointer}
             </div>
             <div class="condition-panel" id="conditionPanel">
               <div class="condition-title" id="conditionTitle">평수와 물걸레 사용 여부를 선택해 1회차 학습 청소를 시작하세요</div>
-              <div class="condition-row">
-                <label for="areaSelect">평수</label>
-                <select class="condition-select" id="areaSelect"></select>
-                <label for="mopSelect">방식</label>
-                <select class="condition-select" id="mopSelect">
-                  <option value="dry">건식</option>
-                  <option value="mop">물걸레</option>
-                </select>
+
+              <div id="firstLearnInputs">
+                <div class="condition-row">
+                  <label for="areaSelect">평수</label>
+                  <select class="condition-select" id="areaSelect"></select>
+                  <label for="mopSelect">학습 방식</label>
+                  <select class="condition-select" id="mopSelect">
+                    <option value="dry">건식</option>
+                    <option value="mop">물걸레</option>
+                  </select>
+                </div>
+                <div class="condition-help">처음 1회만 선택해요. 학습 청소가 끝나면 로보킹이 집 구조와 구역별 면적을 기억합니다.</div>
               </div>
+
+              <div id="predictionInputs" style="display:none;">
+                <div class="condition-help">저장된 우리 집 프로필을 기준으로, 오늘 청소 조건만 선택해 주세요.</div>
+                <div class="predict-condition-grid">
+                  <label for="scopeSelect">청소 범위</label>
+                  <select class="condition-select" id="scopeSelect">
+                    <option value="home">집 전체</option>
+                    <option value="1">1구역</option>
+                    <option value="2">2구역</option>
+                    <option value="3">3구역</option>
+                    <option value="4">4구역</option>
+                    <option value="5">5구역</option>
+                  </select>
+                  <label for="cleanModeSelect">청소 방식</label>
+                  <select class="condition-select" id="cleanModeSelect">
+                    <option value="dry">건식</option>
+                    <option value="mop">물걸레</option>
+                    <option value="both">건식+물걸레</option>
+                  </select>
+                  <label for="intensitySelect">청소 강도</label>
+                  <select class="condition-select" id="intensitySelect">
+                    <option value="fast">빠른</option>
+                    <option value="standard" selected>표준</option>
+                    <option value="careful">꼼꼼</option>
+                  </select>
+                  <label for="todayStateSelect">오늘 상태</label>
+                  <select class="condition-select" id="todayStateSelect">
+                    <option value="normal">평소와 같음</option>
+                    <option value="dust">먼지 많음</option>
+                    <option value="pet">반려동물 털 많음</option>
+                    <option value="obstacle">바닥 물건 많음</option>
+                  </select>
+                </div>
+              </div>
+
               <button class="predict-btn" id="predictBtn" data-action="predictSoc">🤖 AI 예측하기</button>
               <div class="predict-loading" id="predictLoading">1회차 학습 청소가 끝나면 AI 예측을 실행할 수 있어요.</div>
             </div>
@@ -813,6 +858,14 @@ const $=(id)=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.min(Math.max(v,min),max);
 const fmtSoc=(v)=>Number(v || 0).toFixed(1).replace(/\.0$/,"");
 const cleanMinutes=()=>Math.max(0,Math.round(state.soc*.56));
+const targetFromRequired=(required)=>clamp(Math.round(Number(required||0)+15),15,90);
+
+const cleanModeLabels={dry:"건식",mop:"물걸레",both:"건식+물걸레"};
+const intensityLabels={fast:"빠른",standard:"표준",careful:"꼼꼼"};
+const todayStateLabels={normal:"평소와 같음",dust:"먼지 많음",pet:"반려동물 털 많음",obstacle:"바닥 물건 많음"};
+const cleanModeMultipliers={dry:1.00,mop:1.08,both:1.15};
+const intensityMultipliers={fast:0.90,standard:1.00,careful:1.12};
+const todayStateMultipliers={normal:1.00,dust:1.05,pet:1.08,obstacle:1.06};
 
 function findRun(areaPyung, mopEnabled){
   const area = Number(areaPyung);
@@ -844,6 +897,13 @@ const state={
   floorType:activeRun.home.floorType,
   dirtLevel:activeRun.home.dirtLevel,
   suctionMode:activeRun.home.suctionMode,
+  cleanModeChoice:activeRun.home.mopEnabled?'mop':'dry',
+  cleanModeLabel:activeRun.home.cleaningType,
+  intensityChoice:'standard',
+  intensityLabel:'표준',
+  todayStateChoice:'normal',
+  todayStateLabel:'평소와 같음',
+  adjustmentMultiplier:1,
   pendingCleanAfterCharge:false,
   chargeComplete:false,
   predicting:false,
@@ -862,15 +922,25 @@ const state={
 function populateConditionSelectors(){
   const areaSelect=$('areaSelect');
   const mopSelect=$('mopSelect');
-  if(!areaSelect || !mopSelect)return;
-  areaSelect.innerHTML='';
-  predictionData.areaOptions.forEach(area=>{
-    const opt=document.createElement('option');
-    opt.value=area; opt.textContent=area+'평';
-    areaSelect.appendChild(opt);
-  });
-  areaSelect.value=String(activeRun.areaPyung);
-  mopSelect.value=activeRun.mopEnabled?'mop':'dry';
+  if(areaSelect){
+    areaSelect.innerHTML='';
+    predictionData.areaOptions.forEach(area=>{
+      const opt=document.createElement('option');
+      opt.value=area; opt.textContent=area+'평';
+      areaSelect.appendChild(opt);
+    });
+    areaSelect.value=String(activeRun.areaPyung);
+  }
+  if(mopSelect)mopSelect.value=activeRun.mopEnabled?'mop':'dry';
+
+  const cleanModeSelect=$('cleanModeSelect');
+  if(cleanModeSelect)cleanModeSelect.value=activeRun.mopEnabled?'mop':'dry';
+  const scopeSelect=$('scopeSelect');
+  if(scopeSelect)scopeSelect.value='home';
+  const intensitySelect=$('intensitySelect');
+  if(intensitySelect)intensitySelect.value='standard';
+  const todayStateSelect=$('todayStateSelect');
+  if(todayStateSelect)todayStateSelect.value='normal';
 }
 
 function switchPage(pageId){
@@ -902,6 +972,51 @@ function getScenario(scope,zoneNumber=null){
   return activeRun.zones.find(z=>Number(z.zone)===Number(zoneNumber)) || activeRun.zones[zoneNumber-1] || activeRun.home;
 }
 
+function getPredictionChoices(scopeOverride=null,zoneOverride=null){
+  const scopeSelect=$('scopeSelect');
+  const cleanModeSelect=$('cleanModeSelect');
+  const intensitySelect=$('intensitySelect');
+  const todayStateSelect=$('todayStateSelect');
+  const scopeValue=scopeOverride? (scopeOverride==="home"?"home":String(zoneOverride||1)) : (scopeSelect?scopeSelect.value:"home");
+  return {
+    scopeValue,
+    scope:scopeValue==="home"?"home":"zone",
+    zoneNumber:scopeValue==="home"?null:Number(scopeValue),
+    cleanMode:cleanModeSelect?cleanModeSelect.value:(activeRun.home.mopEnabled?'mop':'dry'),
+    intensity:intensitySelect?intensitySelect.value:'standard',
+    todayState:todayStateSelect?todayStateSelect.value:'normal'
+  };
+}
+
+function getBaseScenarioFromChoices(choices){
+  if(choices.scope==="home")return activeRun.home;
+  return getScenario("zone",choices.zoneNumber);
+}
+
+function makeAdjustedScenario(baseScenario,choices){
+  const mClean=cleanModeMultipliers[choices.cleanMode]||1;
+  const mIntensity=intensityMultipliers[choices.intensity]||1;
+  const mToday=todayStateMultipliers[choices.todayState]||1;
+  const multiplier=mClean*mIntensity*mToday;
+  const required=Math.max(1,Number(baseScenario.requiredSoc||0)*multiplier);
+  const scenario=Object.assign({},baseScenario);
+  scenario.requiredSoc=Math.round(required*10)/10;
+  scenario.targetSoc=targetFromRequired(scenario.requiredSoc);
+  scenario.cleaningType=cleanModeLabels[choices.cleanMode]||baseScenario.cleaningType;
+  scenario.mopEnabled=choices.cleanMode!=="dry";
+  scenario.cleanModeChoice=choices.cleanMode;
+  scenario.cleanModeLabel=cleanModeLabels[choices.cleanMode]||baseScenario.cleaningType;
+  scenario.intensityChoice=choices.intensity;
+  scenario.intensityLabel=intensityLabels[choices.intensity]||"표준";
+  scenario.todayStateChoice=choices.todayState;
+  scenario.todayStateLabel=todayStateLabels[choices.todayState]||"평소와 같음";
+  scenario.adjustmentMultiplier=Math.round(multiplier*100)/100;
+  if(choices.todayState==="dust")scenario.dirtLevel=(baseScenario.dirtLevel||"보통")+" + 먼지 보정";
+  if(choices.todayState==="pet")scenario.dirtLevel=(baseScenario.dirtLevel||"보통")+" + 털 보정";
+  if(choices.todayState==="obstacle")scenario.obstacleLevel="높음 보정";
+  return scenario;
+}
+
 function syncScenarioToState(scenario){
   state.selectedScenario=scenario;
   state.selectedScope=scenario.scope;
@@ -919,6 +1034,13 @@ function syncScenarioToState(scenario){
   state.floorType=scenario.floorType;
   state.dirtLevel=scenario.dirtLevel;
   state.suctionMode=scenario.suctionMode;
+  state.cleanModeChoice=scenario.cleanModeChoice||state.cleanModeChoice;
+  state.cleanModeLabel=scenario.cleanModeLabel||scenario.cleaningType||state.cleaningType;
+  state.intensityChoice=scenario.intensityChoice||state.intensityChoice;
+  state.intensityLabel=scenario.intensityLabel||state.intensityLabel;
+  state.todayStateChoice=scenario.todayStateChoice||state.todayStateChoice;
+  state.todayStateLabel=scenario.todayStateLabel||state.todayStateLabel;
+  state.adjustmentMultiplier=scenario.adjustmentMultiplier||1;
   state.area=scenario.cleaningAreaM2||state.area;
 }
 
@@ -928,26 +1050,33 @@ function predictSocFromConditions(){
     openModal("1회차 학습이 먼저예요","아직 로보킹이 우리 집 구조를 배우지 못했어요.<br><br>먼저 <b>1회차 학습 청소</b>를 실행하면 집 구조, 구역별 면적, 바닥 타입, 오염도, 장애물 수준, 실제 SOC 소모 기록을 저장합니다.<br><br>그 다음부터 AI가 다음 청소에 필요한 SOC를 예측할 수 있어요.");
     return;
   }
-  const area=Number($('areaSelect').value);
-  const mop=$('mopSelect').value==='mop';
+  const choices=getPredictionChoices();
+  const baseScenario=getBaseScenarioFromChoices(choices);
+  const adjustedScenario=makeAdjustedScenario(baseScenario,choices);
   const loading=$('predictLoading');
   state.predicting=true;
-  if(loading){loading.textContent="1회차 청소 기록과 선택 조건을 비교해 다음 청소 SOC를 계산 중이에요...";loading.classList.add('active');}
-  $("speech").innerHTML="<strong style='color:#2f8b3a'>잠깐만요!</strong><br>우리 집 기록으로 SOC를 계산하고 있어요.";
+  if(loading){loading.textContent="저장된 우리 집 프로필에 오늘 청소 조건을 반영해 SOC를 계산 중이에요...";loading.classList.add('active');}
+  $("speech").innerHTML="<strong style='color:#2f8b3a'>잠깐만요!</strong><br>오늘 조건을 반영해 SOC를 계산하고 있어요.";
   $("modeChip").textContent="🤖 우리 집 기록 기반 AI 예측 중";
-  showToast("우리 집 학습 기록으로 AI 예측을 시작합니다.");
+  showToast("우리 집 프로필에 오늘 청소 조건을 반영합니다.");
 
   setTimeout(()=>{
-    activeRun=findRun(area,mop);
-    syncScenarioToState(activeRun.home);
+    syncScenarioToState(adjustedScenario);
     state.predicted=true;
     state.predicting=false;
     if(loading){
-      loading.textContent=activeRun.areaPyung+"평 · "+activeRun.cleaningType+" 조건 예측 완료. 아래에서 집 전체 또는 구역을 선택해 주세요.";
+      loading.textContent=state.selectedLabel+" · "+state.cleanModeLabel+" · "+state.intensityLabel+" · "+state.todayStateLabel+" 조건 예측 완료";
       loading.classList.remove('active');
     }
     render();
-    const body="1회차 청소로 저장한 우리 집 프로필을 기준으로 예측했어요.<br><br>선택 조건: <b>"+activeRun.areaPyung+"평 · "+activeRun.cleaningType+"</b><br>집 전체 기준 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>안전 마진 15%를 더해서 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.<br><br>이제 집 전체 또는 1~5구역 중 원하는 청소 범위를 선택해 주세요.";
+    const scopeText=state.selectedScope==="home"?"집 전체":state.selectedLabel;
+    const body="1회차 학습 청소로 저장한 우리 집 프로필을 기준으로 예측했어요.<br><br>"
+      +"선택 범위: <b>"+scopeText+"</b><br>"
+      +"청소 방식: <b>"+state.cleanModeLabel+"</b><br>"
+      +"청소 강도: <b>"+state.intensityLabel+"</b><br>"
+      +"오늘 상태: <b>"+state.todayStateLabel+"</b><br><br>"
+      +"기준 예측값에 오늘 조건 보정값을 반영한 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>"
+      +"안전 마진 15%를 더해서 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.";
     openModal("AI 예측 완료!",body);
   },900);
 }
@@ -1005,6 +1134,10 @@ function startFirstMapping(){
       state.profileReady=true;
       state.predicted=false;
       state.progress=100;
+      const scopeSelect=$('scopeSelect'); if(scopeSelect)scopeSelect.value='home';
+      const cleanModeSelect=$('cleanModeSelect'); if(cleanModeSelect)cleanModeSelect.value=activeRun.home.mopEnabled?'mop':'dry';
+      const intensitySelect=$('intensitySelect'); if(intensitySelect)intensitySelect.value='standard';
+      const todayStateSelect=$('todayStateSelect'); if(todayStateSelect)todayStateSelect.value='normal';
       state.temperature=29;
       addEvent("1회차 학습 청소 완료","집 구조, 바닥 타입, 오염도, 장애물 수준, SOC 소모 기록을 저장했습니다.");
       spawnEffect("🏠",8);spawnEffect("✨",9);
@@ -1018,8 +1151,12 @@ function selectScenario(scope,zoneNumber=null){
   if(state.cleaning||state.charging||state.mapping){showToast("학습/청소/충전이 끝난 뒤 변경할 수 있어요.");return}
   if(!state.profileReady){openModal("우리 집 학습이 먼저예요","구역별 바닥 타입과 오염도는 1회차 학습 청소 후 확인할 수 있어요.<br><br>먼저 <b>1회차 학습 청소 시작</b>을 눌러 로보킹에게 우리 집을 알려주세요.");return}
   if(!state.predicted){showToast("AI 예측하기를 먼저 눌러주세요.");return}
-  const scenario=getScenario(scope,zoneNumber);
-  syncScenarioToState(scenario);
+  const scopeSelect=$('scopeSelect');
+  if(scopeSelect)scopeSelect.value=scope==="home"?"home":String(zoneNumber||1);
+  const choices=getPredictionChoices(scope,zoneNumber);
+  const baseScenario=getBaseScenarioFromChoices(choices);
+  const adjustedScenario=makeAdjustedScenario(baseScenario,choices);
+  syncScenarioToState(adjustedScenario);
   render();
   openScenarioModal();
 }
@@ -1028,13 +1165,18 @@ function openScenarioModal(){
   const enough=state.soc>=state.targetSoc;
   const title=enough?"배가 든든해요!":"아직 배고파요!";
   const scopeText=state.selectedScope==="home"?"집 전체 청소":state.selectedLabel+" 청소";
+  const conditionLine="청소 방식 <b>"+state.cleanModeLabel+"</b> · 청소 강도 <b>"+state.intensityLabel+"</b> · 오늘 상태 <b>"+state.todayStateLabel+"</b><br><br>";
   const zoneLine=state.selectedScope==="zone"
     ? "1회차 학습 결과, "+state.selectedLabel+"의 바닥 타입은 <b>"+(state.floorType||"정보 없음")+"</b>입니다.<br>오염도는 <b>"+(state.dirtLevel||"정보 없음")+"</b>, 흡입 모드는 <b>"+(state.suctionMode||"AI 자동")+"</b>로 기록됐어요.<br><br>"
     : "1회차 학습으로 저장한 5개 구역 기록을 모두 합산해서 예측했어요.<br><br>";
   const body=enough
-    ? scopeText+"를 선택했어요.<br><br>"+zoneLine+"예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>이고, 목표 SOC는 <b>"+state.targetSoc+"%</b>예요.<br>지금 SOC가 <b>"+state.soc+"%</b>라서 바로 청소를 시작할 수 있어요!"
-    : scopeText+"를 선택했어요.<br><br>"+zoneLine+"예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>안전 마진 15%를 더해서 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.<br><br><b>목표 SOC까지만 충전하고 청소를 시작할게요.</b> 과충전은 줄이고 배터리는 오래 지켜볼게요!";
-  openModal(title,body);
+    ? scopeText+"를 선택했어요.<br><br>"+conditionLine+zoneLine+"예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>이고, 목표 SOC는 <b>"+state.targetSoc+"%</b>예요.<br>지금 SOC가 <b>"+state.soc+"%</b>라서 바로 청소를 시작할 수 있어요!"
+    : scopeText+"를 선택했어요.<br><br>"+conditionLine+zoneLine+"예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>안전 마진 15%를 더해서 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.<br><br><b>목표 SOC까지만 충전하고 청소를 시작할게요.</b> 과충전은 줄이고 배터리는 오래 지켜볼게요!";
+  if(enough){
+    openModal(title,body);
+  }else{
+    openModal(title,body,{showCancel:true,cancelText:"취소",confirmText:"충전하기",onConfirm:()=>chargeRobot(false)});
+  }
 }
 
 function renderPlan(){
@@ -1047,6 +1189,8 @@ function renderPlan(){
   const learnStatus=$('learnStatus');
   const learnFill=$('learnFill');
   const learnSteps=$('learnSteps');
+  const firstLearnInputs=$('firstLearnInputs');
+  const predictionInputs=$('predictionInputs');
 
   if(learnSteps){
     learnSteps.innerHTML=mappingSteps.map((s,i)=>{
@@ -1070,10 +1214,13 @@ function renderPlan(){
     if(conditionPanel)conditionPanel.classList.remove('locked-area');
   }else{
     if(learnPill)learnPill.textContent="초기 학습";
-    if(learnStatus)learnStatus.textContent="평수와 청소 방식을 선택한 뒤 1회차 학습 청소를 시작해 주세요.";
+    if(learnStatus)learnStatus.textContent="평수와 학습 청소 방식을 선택한 뒤 1회차 학습 청소를 시작해 주세요.";
     if(learnBtn){learnBtn.textContent="🏠 1회차 학습 청소 시작";learnBtn.disabled=false;learnBtn.classList.remove('ready');}
     if(conditionPanel)conditionPanel.classList.remove('locked-area');
   }
+
+  if(firstLearnInputs)firstLearnInputs.style.display=state.profileReady?'none':'block';
+  if(predictionInputs)predictionInputs.style.display=state.profileReady?'block':'none';
 
   if(predictBtn){
     predictBtn.disabled=!state.profileReady || state.mapping;
@@ -1081,7 +1228,7 @@ function renderPlan(){
     predictBtn.textContent=state.profileReady?'🤖 AI 예측하기':'🤖 학습 후 AI 예측 가능';
   }
   if(conditionTitle){
-    conditionTitle.textContent=state.profileReady?'저장된 우리 집 프로필을 기준으로 다음 청소 SOC를 예측해요':'평수와 물걸레 사용 여부를 선택해 1회차 학습 청소를 시작하세요';
+    conditionTitle.textContent=state.profileReady?'저장된 우리 집 프로필 기준으로 오늘 청소 조건을 선택하세요':'평수와 학습 청소 방식을 선택해 1회차 학습 청소를 시작하세요';
   }
 
   document.querySelectorAll('.scope-btn').forEach(btn=>{
@@ -1110,9 +1257,10 @@ function renderPlan(){
   $('planTargetSoc').textContent=state.targetSoc;
   const scopeText=state.selectedScope==="home"?"집 전체":state.selectedLabel;
   const detail=state.selectedScope==="home"
-    ? state.areaPyung+"평 · "+state.cleaningType+" · "+state.cleaningAreaM2+"㎡"
+    ? state.areaPyung+"평 프로필 · "+state.cleaningAreaM2+"㎡"
     : (state.floorType||"바닥재질")+" · 오염도 "+(state.dirtLevel||"-")+" · "+state.cleaningAreaM2+"㎡";
-  $('planSummary').innerHTML="<strong>"+scopeText+"</strong> 선택됨<br>"+detail+"<br>예상 SOC 소모량 <strong>"+fmtSoc(state.requiredSoc)+"%</strong> → 목표 SOC <strong>"+state.targetSoc+"%</strong>";
+  const conditionDetail="청소 방식 "+state.cleanModeLabel+" · 강도 "+state.intensityLabel+" · 오늘 상태 "+state.todayStateLabel;
+  $('planSummary').innerHTML="<strong>"+scopeText+"</strong> 선택됨<br>"+detail+"<br>"+conditionDetail+"<br>예상 SOC 소모량 <strong>"+fmtSoc(state.requiredSoc)+"%</strong> → 목표 SOC <strong>"+state.targetSoc+"%</strong>";
   $('planSocSub').textContent="예상 "+fmtSoc(state.requiredSoc)+"% + 안전마진 15%";
 }
 
@@ -1214,7 +1362,7 @@ function renderBattery(){
   }else if(!state.predicted){
     $("insightText").innerHTML="우리 집 프로필이 저장되었습니다. AI 예측하기를 누르면 1회차 청소 기록을 기준으로 다음 청소 목표 SOC를 계산합니다.";
   }else{
-    $("insightText").innerHTML=state.areaPyung+"평 · "+state.cleaningType+" · "+state.selectedLabel+" 조건을 분석한 결과, 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>입니다. 안전 마진 15%를 반영하여 SOC <b>"+state.targetSoc+"%</b>까지만 충전하면 청소를 완료할 수 있습니다.";
+    $("insightText").innerHTML="우리 집 "+state.areaPyung+"평 프로필에서 <b>"+state.selectedLabel+"</b> 범위를 선택했어요. "+state.cleanModeLabel+" · "+state.intensityLabel+" · "+state.todayStateLabel+" 조건을 반영한 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>입니다. 안전 마진 15%를 반영하여 SOC <b>"+state.targetSoc+"%</b>까지만 충전하면 청소를 완료할 수 있습니다.";
   }
 
   const y=132-(state.targetSoc-15)/75*104;
@@ -1287,7 +1435,7 @@ function showStatus(){
   if(!state.predicted){openModal("우리 집 프로필","1회차 학습 청소 기록이 저장됐어요.<br><br>"+profileResultBody()+"<br><br>다음 단계로 AI 예측하기를 눌러주세요.");return}
   const scopeText=state.selectedScope==="home"?"집 전체 청소":state.selectedLabel+" 청소";
   const zoneInfo=state.selectedScope==="zone"?"<br>바닥 타입 <b>"+(state.floorType||"정보 없음")+"</b><br>오염도 <b>"+(state.dirtLevel||"정보 없음")+"</b>":"";
-  openModal("AI SOC 예측 결과","선택 조건 <b>"+state.areaPyung+"평 · "+state.cleaningType+"</b><br>선택 범위 <b>"+scopeText+"</b>"+zoneInfo+"<br>현재 SOC <b>"+state.soc+"%</b><br>예상 SOC 소모량 <b>"+fmtSoc(state.requiredSoc)+"%</b><br>AI 목표 SOC <b>"+state.targetSoc+"%</b><br><br>사용 모델: <b>"+state.modelName+"</b>");
+  openModal("AI SOC 예측 결과","저장된 프로필 <b>"+state.areaPyung+"평</b><br>선택 범위 <b>"+scopeText+"</b>"+zoneInfo+"<br>청소 방식 <b>"+state.cleanModeLabel+"</b><br>청소 강도 <b>"+state.intensityLabel+"</b><br>오늘 상태 <b>"+state.todayStateLabel+"</b><br>현재 SOC <b>"+state.soc+"%</b><br>예상 SOC 소모량 <b>"+fmtSoc(state.requiredSoc)+"%</b><br>AI 목표 SOC <b>"+state.targetSoc+"%</b><br><br>사용 모델: <b>"+state.modelName+"</b>");
 }
 
 function showChargeChoiceModal(autoStartAfterCharge=false){
@@ -1381,6 +1529,17 @@ document.addEventListener("click",(event)=>{const nav=event.target.closest("[dat
 $("modalCancel").addEventListener("click",closeModal);$("modalConfirm").addEventListener("click",()=>modalConfirmHandler());$("modal").addEventListener("click",(event)=>{if(event.target===$("modal"))closeModal()});
 $("targetSlider").addEventListener("input",(event)=>{state.targetSoc=Number(event.target.value);render()});
 $("tempSlider").addEventListener("input",(event)=>{state.temperature=Number(event.target.value);render()});
+["scopeSelect","cleanModeSelect","intensitySelect","todayStateSelect"].forEach(id=>{
+  const el=$(id);
+  if(el)el.addEventListener("change",()=>{
+    if(state.profileReady && state.predicted){
+      state.predicted=false;
+      const loading=$('predictLoading');
+      if(loading)loading.textContent="조건이 바뀌었어요. AI 예측하기를 다시 눌러주세요.";
+      render();
+    }
+  });
+});
 
 setInterval(()=>{if(state.cleaning||state.charging||state.celebrating)return;const robot=$("robot");robot.classList.remove("look-left","look-right");const d=Math.random();if(d<.33)robot.classList.add("look-left");else if(d<.66)robot.classList.add("look-right");setTimeout(()=>robot.classList.remove("look-left","look-right"),1100)},2800);
 populateConditionSelectors();
@@ -1392,4 +1551,4 @@ render();
 
 APP_HTML = APP_HTML.replace("__UI_PREDICTION_DATA__", UI_PREDICTION_JSON)
 
-components.html(APP_HTML, height=1000, scrolling=False)
+components.html(APP_HTML, height=1060, scrolling=False)
