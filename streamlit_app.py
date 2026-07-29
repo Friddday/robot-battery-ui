@@ -867,6 +867,81 @@ body,button,input,select{
 .summary-val.green{color:#2f8b3a;}
 .plan-summary{line-height:1.35!important;}
 .plan-soc-sub{white-space:normal!important;}
+
+
+/* ===== Room status cleanup: avoid speech overlap + show current robot SOC ===== */
+#homePage .room .mode-chip{
+  top:125px!important;
+  left:12px!important;
+  right:auto!important;
+  bottom:auto!important;
+  transform:none!important;
+  width:142px!important;
+  max-width:142px!important;
+  min-height:34px!important;
+  padding:7px 9px!important;
+  border-radius:15px!important;
+  background:rgba(255,248,229,.96)!important;
+  box-shadow:0 5px 12px rgba(72,46,23,.18)!important;
+  color:#5b3f2d!important;
+  font-size:10.5px!important;
+  line-height:1.25!important;
+  font-weight:950!important;
+  text-align:center!important;
+  white-space:normal!important;
+  word-break:keep-all!important;
+}
+#homePage .room.cleaning .mode-chip{color:#fff!important;background:rgba(57,143,82,.94)!important;}
+#homePage .room.charging .mode-chip{color:#fff!important;background:rgba(242,145,35,.94)!important;}
+.robot-soc-badge{
+  position:absolute;
+  z-index:24;
+  right:64px;
+  bottom:114px;
+  width:98px;
+  min-height:44px;
+  padding:7px 8px 6px;
+  border:2px solid rgba(255,255,255,.82);
+  border-radius:16px;
+  background:rgba(255,255,255,.95);
+  box-shadow:0 7px 16px rgba(60,38,20,.22);
+  text-align:center;
+  pointer-events:none;
+}
+.robot-soc-badge span{
+  display:block;
+  color:#7a5a3c;
+  font-size:9.5px;
+  line-height:1.05;
+  font-weight:950;
+  white-space:nowrap;
+}
+.robot-soc-badge b{
+  display:block;
+  margin-top:2px;
+  color:#2f8b3a;
+  font-size:19px;
+  line-height:1;
+  font-weight:1000;
+  letter-spacing:-.5px;
+}
+.robot-soc-badge.need b{color:#ef8c32;}
+.robot-soc-badge.low b{color:#ef4e45;}
+.robot-soc-badge.ok b{color:#2f8b3a;}
+.robot-soc-badge:after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-8px;
+  transform:translateX(-50%);
+  border-width:8px 6px 0;
+  border-style:solid;
+  border-color:rgba(255,255,255,.95) transparent transparent;
+}
+@media(max-height:820px){
+  #homePage .room .mode-chip{top:118px!important;}
+  .robot-soc-badge{right:60px;bottom:105px;}
+}
 </style>
 </head>
 
@@ -912,6 +987,7 @@ body,button,input,select{
             </div>
             <div class="slot"></div>
           </div>
+          <div class="robot-soc-badge" id="robotSocBadge"><span>🔋 현재 SOC</span><b>20%</b></div>
 
           <div class="mission">
             <div class="mission-title">오늘의 미션</div>
@@ -1318,6 +1394,12 @@ function render(){
   $("pointer").style.left=state.soc+"%";
   $("cleanFill").style.width=state.progress+"%";
   $("missionFill").style.width=state.missionDone?"100%":state.progress+"%";
+  const robotSocBadge=$("robotSocBadge");
+  if(robotSocBadge){
+    const socState=state.soc<15?"low":(state.soc<state.targetSoc?"need":"ok");
+    robotSocBadge.className="robot-soc-badge "+socState;
+    robotSocBadge.innerHTML="<span>🔋 현재 SOC</span><b>"+state.soc+"%</b>";
+  }
 
   renderPlan();renderHome();renderBattery();renderRecord();renderReward();
 }
@@ -1835,7 +1917,7 @@ function renderHome(){
     $("timeTip").textContent="충전 후 청소를 시작해 주세요.";
     $("spark").textContent="💦";
   }else{
-    $("modeChip").textContent="✨ "+state.selectedLabel+" AI 권장 SOC "+state.targetSoc+"%";
+    $("modeChip").textContent="✨ AI 목표 SOC "+state.targetSoc+"%";
     $("batteryFace").textContent=state.soc>90?"😮":"😊";
     $("spark").textContent="✨";
 
