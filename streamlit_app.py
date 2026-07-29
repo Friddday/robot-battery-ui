@@ -33,7 +33,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
 # ============================================================
 # ML SOC 예측 결과 CSV 연결부
 # GitHub에는 아래 구조로 CSV를 올리면 됩니다.
@@ -46,7 +45,8 @@ DATA_DIR = BASE_DIR / "data"
 HOME_PRED_PATH = DATA_DIR / "home_model_predictions.csv"
 ZONE_PRED_PATH = DATA_DIR / "zone_model_predictions.csv"
 
-CURRENT_SOC = 20  # 데모용 현재 SOC. 실제 제품에서는 로봇/앱에서 받은 현재 SOC로 교체
+# 데모용 현재 SOC. 실제 제품에서는 로봇/앱에서 받은 현재 SOC로 교체하면 됩니다.
+CURRENT_SOC = 20
 
 
 def _is_valid(value):
@@ -54,6 +54,8 @@ def _is_valid(value):
 
 
 def _safe_text(row, candidates, default=""):
+    if row is None:
+        return default
     for col in candidates:
         if col in row.index and _is_valid(row[col]):
             return str(row[col])
@@ -61,6 +63,8 @@ def _safe_text(row, candidates, default=""):
 
 
 def _safe_float(row, candidates, default=0.0):
+    if row is None:
+        return float(default)
     for col in candidates:
         if col in row.index and _is_valid(row[col]):
             try:
@@ -74,6 +78,29 @@ def _soc_target(required_soc):
     return int(round(max(15, min(float(required_soc) + 15, 90))))
 
 
+def _infer_mop(row, prefix=""):
+    """cleaning_type 또는 cleaning_type_code 기반으로 물걸레 여부를 추정합니다."""
+    text_candidates = [
+        f"{prefix}cleaning_type" if prefix else "cleaning_type",
+        "cleaning_type_first",
+        "cleaning_type",
+    ]
+    code_candidates = [
+        f"{prefix}cleaning_type_code" if prefix else "cleaning_type_code",
+        "cleaning_type_code_first",
+        "cleaning_type_code",
+    ]
+
+    txt = _safe_text(row, text_candidates, "").lower()
+    if any(k in txt for k in ["물", "걸레", "mop", "wet"]):
+        return True
+    if any(k in txt for k in ["건식", "dry"]):
+        return False
+
+    code = _safe_float(row, code_candidates, 0)
+    return int(round(code)) == 1
+
+
 @st.cache_data
 def load_prediction_csv(path: str):
     p = Path(path)
@@ -85,159 +112,198 @@ def load_prediction_csv(path: str):
     return df
 
 
-def make_demo_payload():
-    zones = []
-    demo_zone_values = [4.8, 5.6, 3.9, 6.2, 4.5]
-    floor_types = ["마루/타일", "저파일 러그", "장판/PVC", "현관매트", "고파일 카펫"]
-    dirt_levels = ["낮음", "중간", "낮음", "높음", "중간"]
-    for i, required in enumerate(demo_zone_values, start=1):
-        zones.append({
-            "scope": "zone",
-            "zone": i,
-            "label": f"{i}구역",
-            "globalRunId": "demo_001",
-            "areaPyung": 18,
-            "cleaningAreaM2": 9.8,
-            "requiredSoc": round(required, 1),
-            "targetSoc": _soc_target(required),
-            "modelName": "RandomForest",
-            "cleaningType": "건식",
-            "obstacleLevel": "중간",
-            "floorType": floor_types[i-1],
-            "dirtLevel": dirt_levels[i-1],
-            "suctionMode": "중"
-        })
-    home_required = round(sum(demo_zone_values), 1)
+def _make_demo_runs():
+    runs = []
+    for area in [18, 24, 33, 40, 48, 54, 60, 72]:
+        for mop_enabled in [False, True]:
+            base = area * 0.75 + (7 if mop_enabled else 0)
+            zones = []
+            floor_types = ["마루/타일", "저파일 러그", "장판/PVC", "현관매트", "고파일 카펫"]
+            dirt_levels = ["낮음", "중간", "낮음", "높음", "중간"]
+            weights = [0.18, 0.21, 0.17, 0.24, 0.20]
+            for i, w in enumerate(weights, start=1):
+                required = max(1.2, base * w)
+                zones.append({
+                    "scope": "zone",
+                    "zone": i,
+                    "label": f"{i}구역",
+                    "globalRunId": f"demo_{area}_{'mop' if mop_enabled else 'dry'}",
+                    "areaPyung": area,
+                    "cleaningAreaM2": round(area * 3.3058 * 0.82 * w, 1),
+                    "requiredSoc": round(required, 1),
+                    "targetSoc": _soc_target(required),
+                    "modelName": "RandomForest",
+                    "cleaningType": "물걸레" if mop_enabled else "건식",
+                    "mopEnabled": mop_enabled,
+                    "obstacleLevel": "중간",
+                    "floorType": floor_types[i-1],
+                    "dirtLevel": dirt_levels[i-1],
+                    "suctionMode": "AI 자동",
+                })
+            home_required = round(sum(z["requiredSoc"] for z in zones), 1)
+            home = {
+                "scope": "home",
+                "label": "집 전체",
+                "globalRunId": f"demo_{area}_{'mop' if mop_enabled else 'dry'}",
+                "areaPyung": area,
+                "cleaningAreaM2": int(round(area * 3.3058 * 0.82)),
+                "requiredSoc": home_required,
+                "targetSoc": _soc_target(home_required),
+                "modelName": "XGBoost",
+                "cleaningType": "물걸레" if mop_enabled else "건식",
+                "mopEnabled": mop_enabled,
+                "obstacleLevel": "중간",
+                "floorType": "혼합",
+                "dirtLevel": "평균",
+                "suctionMode": "AI 자동",
+            }
+            runs.append({
+                "globalRunId": home["globalRunId"],
+                "areaPyung": area,
+                "mopEnabled": mop_enabled,
+                "cleaningType": home["cleaningType"],
+                "home": home,
+                "zones": zones,
+            })
+    return runs
+
+
+def _build_home_scenario(home_row):
+    required = _safe_float(
+        home_row,
+        ["best_pred_required_soc_pct", "pred_XGBoost", "pred_RandomForest", "home_required_soc_pct"],
+        25,
+    )
+    target = _safe_float(
+        home_row,
+        ["best_pred_target_soc_pct", "home_target_soc_pct"],
+        _soc_target(required),
+    )
+    mop_enabled = _infer_mop(home_row)
+    cleaning_type = _safe_text(home_row, ["cleaning_type_first", "cleaning_type"], "물걸레" if mop_enabled else "건식")
     return {
-        "currentSoc": CURRENT_SOC,
-        "home": {
-            "scope": "home",
-            "label": "집 전체",
-            "globalRunId": "demo_001",
-            "areaPyung": 18,
-            "cleaningAreaM2": 49,
-            "requiredSoc": home_required,
-            "targetSoc": _soc_target(home_required),
-            "modelName": "XGBoost",
-            "cleaningType": "건식",
-            "obstacleLevel": "중간",
-            "floorType": "혼합",
-            "dirtLevel": "평균",
-            "suctionMode": "AI 자동"
-        },
-        "zones": zones,
-        "selectedScope": "home",
-        "selectedZone": None,
-        "dataStatus": "demo"
+        "scope": "home",
+        "label": "집 전체",
+        "globalRunId": _safe_text(home_row, ["global_run_id"], ""),
+        "areaPyung": int(round(_safe_float(home_row, ["area_pyung_first", "area_pyung"], 0))),
+        "cleaningAreaM2": int(round(_safe_float(home_row, ["zone_area_m2_sum", "cleaning_area_m2"], 0))),
+        "requiredSoc": round(float(required), 1),
+        "targetSoc": int(round(max(15, min(float(target), 90)))),
+        "modelName": _safe_text(home_row, ["best_model"], "XGBoost"),
+        "cleaningType": cleaning_type,
+        "mopEnabled": mop_enabled,
+        "obstacleLevel": _safe_text(home_row, ["obstacle_level_first", "obstacle_level"], ""),
+        "floorType": "혼합",
+        "dirtLevel": "평균",
+        "suctionMode": "AI 자동",
+    }
+
+
+def _build_zone_scenario(zrow, idx, home):
+    zone_no = int(round(_safe_float(zrow, ["zone"], idx)))
+    required = _safe_float(
+        zrow,
+        ["best_pred_required_soc_pct", "pred_RandomForest", "pred_XGBoost", "zone_required_soc_pct"],
+        max(home["requiredSoc"] / 5, 1),
+    )
+    mop_enabled = _infer_mop(zrow)
+    cleaning_type = _safe_text(zrow, ["cleaning_type"], home.get("cleaningType", ""))
+    return {
+        "scope": "zone",
+        "zone": zone_no,
+        "label": f"{zone_no}구역",
+        "globalRunId": _safe_text(zrow, ["global_run_id"], home["globalRunId"]),
+        "areaPyung": int(round(_safe_float(zrow, ["area_pyung", "area_pyung_first"], home["areaPyung"]))),
+        "cleaningAreaM2": round(_safe_float(zrow, ["zone_area_m2"], 0), 1),
+        "requiredSoc": round(float(required), 1),
+        "targetSoc": _soc_target(required),
+        "modelName": _safe_text(zrow, ["best_model"], "RandomForest"),
+        "cleaningType": cleaning_type,
+        "mopEnabled": mop_enabled,
+        "obstacleLevel": _safe_text(zrow, ["obstacle_level"], home.get("obstacleLevel", "")),
+        "floorType": _safe_text(zrow, ["floor_type"], ""),
+        "dirtLevel": _safe_text(zrow, ["dirt_level"], ""),
+        "suctionMode": _safe_text(zrow, ["effective_suction_mode"], ""),
     }
 
 
 def make_prediction_payload(home_df, zone_df):
-    if home_df is None and zone_df is None:
-        return make_demo_payload()
+    runs = []
 
-    # home과 zone이 같은 global_run_id를 바라보도록 우선 공통 run_id 선택
-    selected_run_id = None
-    if home_df is not None and zone_df is not None and "global_run_id" in home_df.columns and "global_run_id" in zone_df.columns:
-        zone_counts = zone_df.groupby("global_run_id").size()
-        valid_zone_ids = set(zone_counts[zone_counts >= 5].index.astype(str))
-        for gid in home_df["global_run_id"].astype(str).tolist():
-            if gid in valid_zone_ids:
-                selected_run_id = gid
-                break
-
-    if selected_run_id is None and home_df is not None and "global_run_id" in home_df.columns and len(home_df) > 0:
-        selected_run_id = str(home_df.iloc[0]["global_run_id"])
-    elif selected_run_id is None and zone_df is not None and "global_run_id" in zone_df.columns and len(zone_df) > 0:
-        selected_run_id = str(zone_df.iloc[0]["global_run_id"])
-
-    # Home 시나리오
     if home_df is not None and len(home_df) > 0:
-        if "global_run_id" in home_df.columns and selected_run_id in home_df["global_run_id"].astype(str).values:
-            home_row = home_df[home_df["global_run_id"].astype(str) == selected_run_id].iloc[0]
-        else:
-            home_row = home_df.iloc[0]
+        for _, hrow in home_df.iterrows():
+            home = _build_home_scenario(hrow)
+            gid = home["globalRunId"]
+            zones = []
 
-        home_required = _safe_float(
-            home_row,
-            ["best_pred_required_soc_pct", "pred_XGBoost", "pred_RandomForest", "home_required_soc_pct"],
-            25,
-        )
-        home_target = _safe_float(
-            home_row,
-            ["best_pred_target_soc_pct", "home_target_soc_pct"],
-            _soc_target(home_required),
-        )
-        home = {
-            "scope": "home",
-            "label": "집 전체",
-            "globalRunId": _safe_text(home_row, ["global_run_id"], selected_run_id or ""),
-            "areaPyung": int(round(_safe_float(home_row, ["area_pyung_first", "area_pyung"], 0))),
-            "cleaningAreaM2": int(round(_safe_float(home_row, ["zone_area_m2_sum", "cleaning_area_m2"], 0))),
-            "requiredSoc": round(float(home_required), 1),
-            "targetSoc": int(round(max(15, min(float(home_target), 90)))),
-            "modelName": _safe_text(home_row, ["best_model"], "XGBoost"),
-            "cleaningType": _safe_text(home_row, ["cleaning_type_first", "cleaning_type"], ""),
-            "obstacleLevel": _safe_text(home_row, ["obstacle_level_first", "obstacle_level"], ""),
-            "floorType": "혼합",
-            "dirtLevel": "평균",
-            "suctionMode": "AI 자동",
-        }
-    else:
-        home = make_demo_payload()["home"]
-        home["globalRunId"] = selected_run_id or "demo_001"
+            if zone_df is not None and "global_run_id" in zone_df.columns and gid:
+                zdf = zone_df[zone_df["global_run_id"].astype(str) == str(gid)].copy()
+                if "zone" in zdf.columns:
+                    zdf = zdf.sort_values("zone")
+                for idx, (_, zrow) in enumerate(zdf.head(5).iterrows(), start=1):
+                    zone = _build_zone_scenario(zrow, idx, home)
+                    # home의 청소방식과 일관되게 표시
+                    zone["cleaningType"] = home["cleaningType"]
+                    zone["mopEnabled"] = home["mopEnabled"]
+                    zones.append(zone)
 
-    # Zone 시나리오 5개
-    zones = []
-    if zone_df is not None and len(zone_df) > 0:
-        if "global_run_id" in zone_df.columns and selected_run_id in zone_df["global_run_id"].astype(str).values:
-            zdf = zone_df[zone_df["global_run_id"].astype(str) == selected_run_id].copy()
-        else:
-            first_gid = str(zone_df.iloc[0]["global_run_id"]) if "global_run_id" in zone_df.columns else None
-            zdf = zone_df[zone_df["global_run_id"].astype(str) == first_gid].copy() if first_gid else zone_df.head(5).copy()
+            if len(zones) >= 5:
+                runs.append({
+                    "globalRunId": gid,
+                    "areaPyung": home["areaPyung"],
+                    "mopEnabled": home["mopEnabled"],
+                    "cleaningType": home["cleaningType"],
+                    "home": home,
+                    "zones": zones[:5],
+                })
 
-        if "zone" in zdf.columns:
-            zdf = zdf.sort_values("zone")
-        zdf = zdf.head(5)
-
-        for idx, (_, zrow) in enumerate(zdf.iterrows(), start=1):
-            zone_no = int(round(_safe_float(zrow, ["zone"], idx)))
-            required = _safe_float(
-                zrow,
-                ["best_pred_required_soc_pct", "pred_RandomForest", "pred_XGBoost", "zone_required_soc_pct"],
-                max(home["requiredSoc"] / 5, 1),
-            )
-            zones.append({
-                "scope": "zone",
-                "zone": zone_no,
-                "label": f"{zone_no}구역",
-                "globalRunId": _safe_text(zrow, ["global_run_id"], selected_run_id or home["globalRunId"]),
-                "areaPyung": int(round(_safe_float(zrow, ["area_pyung", "area_pyung_first"], home["areaPyung"]))),
-                "cleaningAreaM2": round(_safe_float(zrow, ["zone_area_m2"], 0), 1),
-                "requiredSoc": round(float(required), 1),
-                "targetSoc": _soc_target(required),
-                "modelName": _safe_text(zrow, ["best_model"], "RandomForest"),
-                "cleaningType": _safe_text(zrow, ["cleaning_type"], home["cleaningType"]),
-                "obstacleLevel": _safe_text(zrow, ["obstacle_level"], home["obstacleLevel"]),
-                "floorType": _safe_text(zrow, ["floor_type"], ""),
-                "dirtLevel": _safe_text(zrow, ["dirt_level"], ""),
-                "suctionMode": _safe_text(zrow, ["effective_suction_mode"], ""),
+    # home CSV가 없고 zone CSV만 있을 때도 최소 동작하도록 처리
+    if not runs and zone_df is not None and len(zone_df) > 0 and "global_run_id" in zone_df.columns:
+        for gid, zdf in zone_df.groupby("global_run_id"):
+            if len(zdf) < 5:
+                continue
+            if "zone" in zdf.columns:
+                zdf = zdf.sort_values("zone")
+            first = zdf.iloc[0]
+            area = int(round(_safe_float(first, ["area_pyung"], 18)))
+            mop_enabled = _infer_mop(first)
+            dummy_required = 0
+            dummy_home = {
+                "scope": "home", "label": "집 전체", "globalRunId": str(gid), "areaPyung": area,
+                "cleaningAreaM2": int(round(zdf["zone_area_m2"].sum())) if "zone_area_m2" in zdf.columns else 0,
+                "requiredSoc": 0, "targetSoc": 15, "modelName": "XGBoost",
+                "cleaningType": "물걸레" if mop_enabled else "건식", "mopEnabled": mop_enabled,
+                "obstacleLevel": _safe_text(first, ["obstacle_level"], ""), "floorType": "혼합",
+                "dirtLevel": "평균", "suctionMode": "AI 자동"
+            }
+            zones = []
+            for idx, (_, zrow) in enumerate(zdf.head(5).iterrows(), start=1):
+                zone = _build_zone_scenario(zrow, idx, dummy_home)
+                dummy_required += zone["requiredSoc"]
+                zones.append(zone)
+            dummy_home["requiredSoc"] = round(dummy_required, 1)
+            dummy_home["targetSoc"] = _soc_target(dummy_required)
+            runs.append({
+                "globalRunId": str(gid), "areaPyung": area, "mopEnabled": mop_enabled,
+                "cleaningType": dummy_home["cleaningType"], "home": dummy_home, "zones": zones
             })
 
-    if len(zones) < 5:
-        demo_zones = make_demo_payload()["zones"]
-        for z in demo_zones[len(zones):]:
-            z["globalRunId"] = home["globalRunId"]
-            z["areaPyung"] = home["areaPyung"]
-            zones.append(z)
+    data_status = "csv" if runs else "demo"
+    if not runs:
+        runs = _make_demo_runs()
+
+    area_options = sorted({r["areaPyung"] for r in runs if r.get("areaPyung")})
+    mop_values = sorted({bool(r["mopEnabled"]) for r in runs})
+    default_run = runs[0]
 
     return {
         "currentSoc": int(CURRENT_SOC),
-        "home": home,
-        "zones": zones[:5],
-        "selectedScope": "home",
-        "selectedZone": None,
-        "dataStatus": "csv" if home_df is not None or zone_df is not None else "demo",
+        "runs": runs,
+        "areaOptions": area_options,
+        "mopOptions": mop_values,
+        "defaultAreaPyung": default_run["areaPyung"],
+        "defaultMopEnabled": bool(default_run["mopEnabled"]),
+        "dataStatus": data_status,
     }
 
 
@@ -345,6 +411,9 @@ button,input{font-family:inherit} button{cursor:pointer}
 .scope-buttons{display:grid;grid-template-columns:1.05fr repeat(5,1fr);gap:5px;margin-bottom:8px}
 .scope-btn{min-height:37px;padding:5px 2px;border:1px solid rgba(124,83,43,.16);border-radius:12px;background:#f3e2be;color:#5a412e;font-size:8px;font-weight:900;line-height:1.2;box-shadow:0 3px 7px rgba(69,43,20,.09)}
 .scope-btn.active{background:linear-gradient(180deg,#65ae4b,#368e3d);color:#fff;border-color:transparent;box-shadow:0 5px 12px rgba(47,139,58,.25)}
+.condition-panel{margin-bottom:8px;padding:8px;border-radius:13px;background:#fff2cf;border:1px solid rgba(124,83,43,.12)}
+.condition-title{margin-bottom:6px;font-size:9px;font-weight:900;color:#6f4f38}
+.condition-row{display:grid;grid-template-columns:.7fr 1fr .7fr 1fr;gap:5px;align-items:center}.condition-row label{font-size:8px;font-weight:900}.condition-select{width:100%;min-height:32px;border:1px solid rgba(124,83,43,.22);border-radius:10px;background:#fffaf0;color:#4b3324;font-size:9px;font-weight:900;padding:0 6px}.predict-btn{width:100%;min-height:34px;margin-top:6px;border:0;border-radius:11px;background:linear-gradient(90deg,#4a9b42,#75b84e);color:#fff;font-size:10px;font-weight:900;box-shadow:0 5px 10px rgba(47,139,58,.2)}.predict-loading{margin-top:6px;min-height:18px;font-size:8px;line-height:1.45;color:#745431;font-weight:800}.predict-loading.active{color:#2f8b3a}
 .selected-plan{display:grid;grid-template-columns:1fr .9fr;gap:7px;align-items:stretch}.plan-summary{padding:9px;border-radius:12px;background:#fff4d5;font-size:9px;line-height:1.55;font-weight:800}.plan-summary strong{color:#2f8b3a}.plan-soc{padding:9px;border-radius:12px;background:#f0e0be;text-align:center;font-weight:900}.plan-soc-label{font-size:8px;color:#79583e}.plan-soc-value{margin-top:2px;color:#ef573f;font-size:22px;line-height:1}.plan-soc-sub{margin-top:4px;font-size:8px;color:#76553e;line-height:1.35}
 
 /* Battery */
@@ -452,8 +521,22 @@ button,input{font-family:inherit} button{cursor:pointer}
 
           <div class="panel plan-panel">
             <div class="plan-head">
-              <div class="plan-title">오늘 청소 범위 선택</div>
+              <div class="plan-title">오늘 청소 조건 입력</div>
               <div class="plan-model" id="planModel">AI SOC 예측</div>
+            </div>
+            <div class="condition-panel">
+              <div class="condition-title">평수와 물걸레 사용 여부를 선택하면 AI가 필요한 SOC를 계산해요</div>
+              <div class="condition-row">
+                <label for="areaSelect">평수</label>
+                <select class="condition-select" id="areaSelect"></select>
+                <label for="mopSelect">방식</label>
+                <select class="condition-select" id="mopSelect">
+                  <option value="dry">건식</option>
+                  <option value="mop">물걸레</option>
+                </select>
+              </div>
+              <button class="predict-btn" data-action="predictSoc">🤖 AI 예측하기</button>
+              <div class="predict-loading" id="predictLoading">조건을 선택한 뒤 AI 예측하기를 눌러주세요.</div>
             </div>
             <div class="scope-buttons">
               <button class="scope-btn active" id="scopeHome" data-action="selectHome">집 전체</button>
@@ -630,36 +713,65 @@ button,input{font-family:inherit} button{cursor:pointer}
 "use strict";
 
 const predictionData = __UI_PREDICTION_DATA__;
+let activeRun = null;
+
+const $=(id)=>document.getElementById(id);
+const clamp=(v,min,max)=>Math.min(Math.max(v,min),max);
+const fmtSoc=(v)=>Number(v || 0).toFixed(1).replace(/\.0$/,"");
+const cleanMinutes=()=>Math.max(0,Math.round(state.soc*.56));
+
+function findRun(areaPyung, mopEnabled){
+  const area = Number(areaPyung);
+  const mop = Boolean(mopEnabled);
+  let run = predictionData.runs.find(r=>Number(r.areaPyung)===area && Boolean(r.mopEnabled)===mop);
+  if(!run) run = predictionData.runs.find(r=>Number(r.areaPyung)===area);
+  if(!run) run = predictionData.runs[0];
+  return run;
+}
+
+activeRun = findRun(predictionData.defaultAreaPyung, predictionData.defaultMopEnabled);
 
 const state={
   page:"homePage",
   soc:predictionData.currentSoc,
-  targetSoc:predictionData.home.targetSoc,
-  requiredSoc:predictionData.home.requiredSoc,
+  targetSoc:activeRun.home.targetSoc,
+  requiredSoc:activeRun.home.requiredSoc,
   selectedScope:"home",
   selectedZone:null,
-  selectedLabel:predictionData.home.label,
-  selectedScenario:predictionData.home,
-  modelName:predictionData.home.modelName,
-  globalRunId:predictionData.home.globalRunId,
-  areaPyung:predictionData.home.areaPyung,
-  cleaningAreaM2:predictionData.home.cleaningAreaM2,
-  cleaningType:predictionData.home.cleaningType,
-  obstacleLevel:predictionData.home.obstacleLevel,
-  floorType:predictionData.home.floorType,
-  dirtLevel:predictionData.home.dirtLevel,
-  suctionMode:predictionData.home.suctionMode,
+  selectedLabel:activeRun.home.label,
+  selectedScenario:activeRun.home,
+  modelName:activeRun.home.modelName,
+  globalRunId:activeRun.home.globalRunId,
+  areaPyung:activeRun.home.areaPyung,
+  cleaningAreaM2:activeRun.home.cleaningAreaM2,
+  cleaningType:activeRun.home.cleaningType,
+  mopEnabled:activeRun.home.mopEnabled,
+  obstacleLevel:activeRun.home.obstacleLevel,
+  floorType:activeRun.home.floorType,
+  dirtLevel:activeRun.home.dirtLevel,
+  suctionMode:activeRun.home.suctionMode,
   pendingCleanAfterCharge:false,
+  predicting:false,
+  predicted:false,
   temperature:29,health:100,heart:100,
   level:13,exp:55,coins:50,food:1,cleaning:false,charging:false,
   celebrating:false,progress:0,missionDone:false,cleanCount:0,
-  acceptCount:4,area:predictionData.home.cleaningAreaM2||72,average:38
+  acceptCount:4,area:activeRun.home.cleaningAreaM2||72,average:38
 };
 
-const $=(id)=>document.getElementById(id);
-const clamp=(v,min,max)=>Math.min(Math.max(v,min),max);
-const cleanMinutes=()=>Math.max(0,Math.round(state.soc*.56));
-const fmtSoc=(v)=>Number(v).toFixed(1).replace(/\.0$/,"");
+function populateConditionSelectors(){
+  const areaSelect=$('areaSelect');
+  const mopSelect=$('mopSelect');
+  if(!areaSelect || !mopSelect)return;
+  areaSelect.innerHTML='';
+  predictionData.areaOptions.forEach(area=>{
+    const opt=document.createElement('option');
+    opt.value=area; opt.textContent=area+'평';
+    areaSelect.appendChild(opt);
+  });
+  areaSelect.value=String(activeRun.areaPyung);
+  mopSelect.value=activeRun.mopEnabled?'mop':'dry';
+}
 
 function switchPage(pageId){
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
@@ -685,10 +797,9 @@ function render(){
   renderPlan();renderHome();renderBattery();renderRecord();renderReward();
 }
 
-
 function getScenario(scope,zoneNumber=null){
-  if(scope==="home")return predictionData.home;
-  return predictionData.zones.find(z=>Number(z.zone)===Number(zoneNumber)) || predictionData.zones[zoneNumber-1] || predictionData.home;
+  if(scope==="home")return activeRun.home;
+  return activeRun.zones.find(z=>Number(z.zone)===Number(zoneNumber)) || activeRun.zones[zoneNumber-1] || activeRun.home;
 }
 
 function syncScenarioToState(scenario){
@@ -703,6 +814,7 @@ function syncScenarioToState(scenario){
   state.areaPyung=scenario.areaPyung;
   state.cleaningAreaM2=scenario.cleaningAreaM2;
   state.cleaningType=scenario.cleaningType;
+  state.mopEnabled=Boolean(scenario.mopEnabled);
   state.obstacleLevel=scenario.obstacleLevel;
   state.floorType=scenario.floorType;
   state.dirtLevel=scenario.dirtLevel;
@@ -710,10 +822,37 @@ function syncScenarioToState(scenario){
   state.area=scenario.cleaningAreaM2||state.area;
 }
 
+function predictSocFromConditions(){
+  if(state.cleaning||state.charging){showToast("청소 또는 충전이 끝난 뒤 다시 예측할 수 있어요.");return}
+  const area=Number($('areaSelect').value);
+  const mop=$('mopSelect').value==='mop';
+  const loading=$('predictLoading');
+  state.predicting=true;
+  if(loading){loading.textContent="AI가 평수, 물걸레 여부, 바닥재질, 오염도를 분석 중이에요...";loading.classList.add('active');}
+  $("speech").innerHTML="<strong style='color:#2f8b3a'>잠깐만요!</strong><br>청소 조건을 먹어보고 있어요.";
+  $("modeChip").textContent="🤖 AI SOC 예측 중";
+  showToast("AI SOC 예측을 시작합니다.");
+
+  setTimeout(()=>{
+    activeRun=findRun(area,mop);
+    syncScenarioToState(activeRun.home);
+    state.predicted=true;
+    state.predicting=false;
+    if(loading){
+      loading.textContent=activeRun.areaPyung+"평 · "+activeRun.cleaningType+" 조건 예측 완료. 아래에서 집 전체 또는 구역을 선택해 주세요.";
+      loading.classList.remove('active');
+    }
+    render();
+    const body="선택 조건: <b>"+activeRun.areaPyung+"평 · "+activeRun.cleaningType+"</b><br><br>집 전체 기준 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>안전 마진 15%를 더해서 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.<br><br>이제 집 전체 또는 1~5구역 중 원하는 청소 범위를 선택해 주세요.";
+    openModal("AI 예측 완료!",body);
+  },900);
+}
+
 function selectScenario(scope,zoneNumber=null){
   if(state.cleaning||state.charging){showToast("청소 또는 충전이 끝난 뒤 변경할 수 있어요.");return}
   const scenario=getScenario(scope,zoneNumber);
   syncScenarioToState(scenario);
+  state.predicted=true;
   render();
   openScenarioModal();
 }
@@ -722,12 +861,12 @@ function openScenarioModal(){
   const enough=state.soc>=state.targetSoc;
   const title=enough?"배가 든든해요!":"아직 배고파요!";
   const scopeText=state.selectedScope==="home"?"집 전체 청소":state.selectedLabel+" 청소";
-  const detail=state.selectedScope==="home"
-    ? "집 전체 "+state.cleaningAreaM2+"㎡"
-    : state.floorType+" · 오염도 "+state.dirtLevel+" · "+state.cleaningAreaM2+"㎡";
+  const zoneLine=state.selectedScope==="zone"
+    ? state.selectedLabel+"의 바닥 타입은 <b>"+(state.floorType||"정보 없음")+"</b>입니다.<br>오염도는 <b>"+(state.dirtLevel||"정보 없음")+"</b>, 흡입 모드는 <b>"+(state.suctionMode||"AI 자동")+"</b>이에요.<br><br>"
+    : "집 전체는 5개 구역을 모두 합산해서 예측했어요.<br><br>";
   const body=enough
-    ? scopeText+"를 선택했어요.<br><br>예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>이고, 목표 SOC는 <b>"+state.targetSoc+"%</b>예요.<br>지금 SOC가 <b>"+state.soc+"%</b>라서 바로 청소를 시작할 수 있어요!"
-    : scopeText+"를 선택했어요.<br><br>"+detail+" 조건 기준 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>안전 마진 15%를 더해서 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.<br><br><b>목표 SOC까지만 충전하고 청소를 시작할게요.</b> 과충전은 줄이고 배터리는 오래 지켜볼게요!";
+    ? scopeText+"를 선택했어요.<br><br>"+zoneLine+"예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>이고, 목표 SOC는 <b>"+state.targetSoc+"%</b>예요.<br>지금 SOC가 <b>"+state.soc+"%</b>라서 바로 청소를 시작할 수 있어요!"
+    : scopeText+"를 선택했어요.<br><br>"+zoneLine+"예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>안전 마진 15%를 더해서 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.<br><br><b>목표 SOC까지만 충전하고 청소를 시작할게요.</b> 과충전은 줄이고 배터리는 오래 지켜볼게요!";
   openModal(title,body);
 }
 
@@ -738,10 +877,10 @@ function renderPlan(){
   else if($('scopeZone'+state.selectedZone))$('scopeZone'+state.selectedZone).classList.add('active');
 
   $('planTargetSoc').textContent=state.targetSoc;
-  $('planModel').textContent=state.modelName+" 기반";
+  $('planModel').textContent=(predictionData.dataStatus==="csv"?state.modelName:"DEMO")+" 기반";
   const scopeText=state.selectedScope==="home"?"집 전체":state.selectedLabel;
   const detail=state.selectedScope==="home"
-    ? state.areaPyung+"평 · "+state.cleaningAreaM2+"㎡ · "+(state.cleaningType||"AI 청소")
+    ? state.areaPyung+"평 · "+state.cleaningType+" · "+state.cleaningAreaM2+"㎡"
     : (state.floorType||"바닥재질")+" · 오염도 "+(state.dirtLevel||"-")+" · "+state.cleaningAreaM2+"㎡";
   $('planSummary').innerHTML="<strong>"+scopeText+"</strong> 선택됨<br>"+detail+"<br>예상 SOC 소모량 <strong>"+fmtSoc(state.requiredSoc)+"%</strong> → 목표 SOC <strong>"+state.targetSoc+"%</strong>";
   $('planSocSub').textContent="예상 "+fmtSoc(state.requiredSoc)+"% + 안전마진 15%";
@@ -755,6 +894,10 @@ function renderHome(){
     $("speech").innerHTML="<strong>청소 완료!</strong><br>보상을 받았어요!";
     $("modeChip").textContent="🏆 미션 완료 · +50 코인";
     $("batteryFace").textContent="🥳";$("spark").textContent="🎉";
+  }else if(state.predicting){
+    $("speech").innerHTML="<strong style='color:#2f8b3a'>분석 중이에요!</strong><br>필요한 SOC를 계산하고 있어요.";
+    $("modeChip").textContent="🤖 AI 예측 중";
+    $("batteryFace").textContent="🤔";$("spark").textContent="✨";
   }else if(state.cleaning){
     room.classList.add("cleaning");
     $("speech").innerHTML="<strong>열심히 청소 중이에요!</strong><br>진행률 "+state.progress+"%";
@@ -788,24 +931,12 @@ function renderHome(){
       $("speech").innerHTML=
         "<strong style='color:#ef8c32'>아직 배고파요!</strong><br>"
         + "목표 SOC "+state.targetSoc+"%까지만<br>충전하고 청소할게요.";
-
-      $("batteryMessage").innerHTML=
-        state.selectedLabel+" 청소에는<br>"
-        + "약 "+fmtSoc(state.requiredSoc)+"% SOC가 필요해요.";
-
-      $("timeTip").textContent=
-        "현재 SOC "+state.soc+"% → 목표 SOC "+state.targetSoc+"%까지 충전 필요";
+      $("batteryMessage").innerHTML=state.selectedLabel+" 청소에는<br>약 "+fmtSoc(state.requiredSoc)+"% SOC가 필요해요.";
+      $("timeTip").textContent="현재 SOC "+state.soc+"% → 목표 SOC "+state.targetSoc+"%까지 충전 필요";
     }else{
-      $("speech").innerHTML=
-        "<strong>배가 든든해요!</strong><br>"
-        + state.selectedLabel+" 청소를 준비할게요!";
-
-      $("batteryMessage").innerHTML=
-        "현재 SOC로 충분해요.<br>"
-        + "목표 SOC "+state.targetSoc+"% 이상입니다.";
-
-      $("timeTip").textContent=
-        "현재 배터리로 "+state.selectedLabel+" 청소가 가능합니다.";
+      $("speech").innerHTML="<strong>배가 든든해요!</strong><br>"+state.selectedLabel+" 청소를 준비할게요!";
+      $("batteryMessage").innerHTML="현재 SOC로 충분해요.<br>목표 SOC "+state.targetSoc+"% 이상입니다.";
+      $("timeTip").textContent="현재 배터리로 "+state.selectedLabel+" 청소가 가능합니다.";
     }
   }
 }
@@ -821,7 +952,7 @@ function renderBattery(){
   $("targetSlider").value=state.targetSoc;
   $("tempLabel").textContent=state.temperature+"℃";
   $("tempSlider").value=state.temperature;
-  $("insightText").innerHTML=state.selectedLabel+" 조건을 분석한 결과, 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>입니다. 안전 마진 15%를 반영하여 SOC <b>"+state.targetSoc+"%</b>까지만 충전하면 청소를 완료할 수 있습니다.";
+  $("insightText").innerHTML=state.areaPyung+"평 · "+state.cleaningType+" · "+state.selectedLabel+" 조건을 분석한 결과, 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>입니다. 안전 마진 15%를 반영하여 SOC <b>"+state.targetSoc+"%</b>까지만 충전하면 청소를 완료할 수 있습니다.";
 
   const y=132-(state.targetSoc-15)/75*104;
   const middleY=Math.round((82+y)/2);
@@ -833,7 +964,6 @@ function renderRecord(){
   $("recordAvgText").textContent=state.average;
   $("areaText").textContent=state.area;
   $("acceptText").textContent=state.acceptCount;
-
   const sunday=34+state.cleanCount*8;
   $("sunValue").textContent=sunday;
   $("sunBar").style.height=Math.min(96,56+state.cleanCount*10)+"%";
@@ -850,10 +980,7 @@ function showToast(message){
   clearTimeout(window.toastTimer);
   window.toastTimer=setTimeout(()=>toast.classList.remove("show"),1800);
 }
-
-function openModal(title,body){
-  $("modalTitle").textContent=title;$("modalBody").innerHTML=body;$("modal").classList.add("show");
-}
+function openModal(title,body){$("modalTitle").textContent=title;$("modalBody").innerHTML=body;$("modal").classList.add("show")}
 function closeModal(){$("modal").classList.remove("show")}
 
 function spawnEffect(symbol,count=7){
@@ -868,110 +995,40 @@ function spawnEffect(symbol,count=7){
     layer.appendChild(p);setTimeout(()=>p.remove(),1500);
   }
 }
+function pulseRobot(){const robot=$("robot");robot.classList.remove("tap");void robot.offsetWidth;robot.classList.add("tap");setTimeout(()=>robot.classList.remove("tap"),650)}
+function levelCheck(){if(state.exp>=100){state.exp-=100;state.level+=1;spawnEffect("⭐",10);showToast("레벨 업! Lv."+state.level)}}
+function addEvent(title,description){const row=document.createElement("div");row.className="event-item";row.innerHTML='<div class="event-time">지금</div><div class="event-content"><strong>'+title+'</strong><span>'+description+'</span></div>';$("eventList").prepend(row)}
 
-function pulseRobot(){
-  const robot=$("robot");robot.classList.remove("tap");void robot.offsetWidth;robot.classList.add("tap");
-  setTimeout(()=>robot.classList.remove("tap"),650);
-}
-
-function levelCheck(){
-  if(state.exp>=100){
-    state.exp-=100;state.level+=1;spawnEffect("⭐",10);showToast("레벨 업! Lv."+state.level);
-  }
-}
-
-function addEvent(title,description){
-  const row=document.createElement("div");row.className="event-item";
-  row.innerHTML='<div class="event-time">지금</div><div class="event-content"><strong>'+title+'</strong><span>'+description+'</span></div>';
-  $("eventList").prepend(row);
-}
-
-function petRobot(){
-  if(state.cleaning){showToast("청소가 끝난 후 로보킹을 쓰다듬어 주세요.");return}
-  state.heart=Math.min(100,state.heart+2);state.exp+=1;
-  pulseRobot();spawnEffect("💖",7);levelCheck();render();showToast("로보킹의 기분이 좋아졌어요.");
-}
-
-function feedRobot(){
-  if(state.food<=0){showToast("음식이 부족해요. 리워드에서 구매해 주세요.");return}
-  state.food-=1;state.soc+=12;state.exp+=8;
-  pulseRobot();spawnEffect("⚡",8);levelCheck();render();showToast("SOC가 12% 회복되었습니다.");
-}
-
-function playRobot(){
-  if(state.soc<5){showToast("배터리가 부족해서 놀 수 없어요.");return}
-  state.soc-=3;state.exp+=5;
-  pulseRobot();spawnEffect("💖",8);levelCheck();render();showToast("로보킹의 친밀도와 경험치가 올랐어요.");
-}
-
-function trainRobot(){
-  if(state.soc<8){showToast("훈련 전에 충전이 필요해요.");return}
-  state.soc-=6;state.health=Math.min(100,state.health+3);state.exp+=12;
-  pulseRobot();spawnEffect("✨",8);levelCheck();render();showToast("로보킹이 훈련을 완료했습니다.");
-}
-
-function takePhoto(){
-  pulseRobot();spawnEffect("📸",5);
-  openModal("오늘의 사진","왕관을 쓴 로보킹의 사진을 촬영했습니다.<br><br>향후 장식 아이템과 청소 완료 장면을 사진첩에 저장할 수 있습니다.");
-}
-
-function decorateRobot(){
-  spawnEffect("🎀",9);
-  openModal("로보킹 꾸미기","현재 장착 아이템은 <b>황금 왕관</b>입니다.<br><br>리본, 탐험가 모자, 표정 스킨 등을 리워드 화면에서 확인할 수 있습니다.");
-}
+function petRobot(){if(state.cleaning){showToast("청소가 끝난 후 로보킹을 쓰다듬어 주세요.");return}state.heart=Math.min(100,state.heart+2);state.exp+=1;pulseRobot();spawnEffect("💖",7);levelCheck();render();showToast("로보킹의 기분이 좋아졌어요.")}
+function feedRobot(){if(state.food<=0){showToast("음식이 부족해요. 리워드에서 구매해 주세요.");return}state.food-=1;state.soc+=12;state.exp+=8;pulseRobot();spawnEffect("⚡",8);levelCheck();render();showToast("SOC가 12% 회복되었습니다.")}
+function playRobot(){if(state.soc<5){showToast("배터리가 부족해서 놀 수 없어요.");return}state.soc-=3;state.exp+=5;pulseRobot();spawnEffect("💖",8);levelCheck();render();showToast("로보킹의 친밀도와 경험치가 올랐어요.")}
+function trainRobot(){if(state.soc<8){showToast("훈련 전에 충전이 필요해요.");return}state.soc-=6;state.health=Math.min(100,state.health+3);state.exp+=12;pulseRobot();spawnEffect("✨",8);levelCheck();render();showToast("로보킹이 훈련을 완료했습니다.")}
+function takePhoto(){pulseRobot();spawnEffect("📸",5);openModal("오늘의 사진","왕관을 쓴 로보킹의 사진을 촬영했습니다.<br><br>향후 장식 아이템과 청소 완료 장면을 사진첩에 저장할 수 있습니다.")}
+function decorateRobot(){spawnEffect("🎀",9);openModal("로보킹 꾸미기","현재 장착 아이템은 <b>황금 왕관</b>입니다.<br><br>리본, 탐험가 모자, 표정 스킨 등을 리워드 화면에서 확인할 수 있습니다.")}
 
 function showStatus(){
   const scopeText=state.selectedScope==="home"?"집 전체 청소":state.selectedLabel+" 청소";
-  openModal(
-    "AI SOC 예측 결과",
-    "선택 범위 <b>"+scopeText+"</b><br>"
-    + "시나리오 ID <b>"+state.globalRunId+"</b><br>"
-    + "현재 SOC <b>"+state.soc+"%</b><br>"
-    + "예상 SOC 소모량 <b>"+fmtSoc(state.requiredSoc)+"%</b><br>"
-    + "AI 목표 SOC <b>"+state.targetSoc+"%</b><br><br>"
-    + "사용 모델: <b>"+state.modelName+"</b>"
-  );
+  const zoneInfo=state.selectedScope==="zone"?"<br>바닥 타입 <b>"+(state.floorType||"정보 없음")+"</b><br>오염도 <b>"+(state.dirtLevel||"정보 없음")+"</b>":"";
+  openModal("AI SOC 예측 결과","선택 조건 <b>"+state.areaPyung+"평 · "+state.cleaningType+"</b><br>선택 범위 <b>"+scopeText+"</b>"+zoneInfo+"<br>현재 SOC <b>"+state.soc+"%</b><br>예상 SOC 소모량 <b>"+fmtSoc(state.requiredSoc)+"%</b><br>AI 목표 SOC <b>"+state.targetSoc+"%</b><br><br>사용 모델: <b>"+state.modelName+"</b>");
 }
 
 function startCleaning(){
   if(state.cleaning){showToast("이미 청소 중이에요.");return}
   if(state.charging){showToast("충전이 끝난 후 청소할게요.");return}
-
   if(state.soc<state.targetSoc){
     state.pendingCleanAfterCharge=true;
-    openModal(
-      "아직 배고파요!",
-      state.selectedLabel+" 청소에는 목표 SOC <b>"+state.targetSoc+"%</b>가 필요해요.<br><br>"
-      + "지금은 <b>"+state.soc+"%</b>라서, 목표 SOC까지만 충전하고 바로 청소를 시작할게요."
-    );
-    chargeRobot(true);
-    return;
+    openModal("아직 배고파요!",state.selectedLabel+" 청소에는 목표 SOC <b>"+state.targetSoc+"%</b>가 필요해요.<br><br>지금은 <b>"+state.soc+"%</b>라서, 목표 SOC까지만 충전하고 바로 청소를 시작할게요.");
+    chargeRobot(true);return;
   }
-
   if(state.soc<15){showToast("SOC가 부족합니다. 먼저 충전해 주세요.");return}
-
   state.cleaning=true;state.progress=0;
-  const startSoc=state.soc;
-  const plannedUse=Math.min(state.requiredSoc,state.soc);
-  render();showToast(state.selectedLabel+" 청소를 시작합니다!");
+  const startSoc=state.soc;const plannedUse=Math.min(state.requiredSoc,state.soc);render();showToast(state.selectedLabel+" 청소를 시작합니다!");
   let step=0;const totalSteps=20;
-
   const timer=setInterval(()=>{
-    step+=1;state.progress=Math.round(step/totalSteps*100);
-    state.soc=Math.max(0,startSoc-plannedUse*(step/totalSteps));
-    state.temperature=Math.min(36,state.temperature+.25);
-    render();
-
+    step+=1;state.progress=Math.round(step/totalSteps*100);state.soc=Math.max(0,startSoc-plannedUse*(step/totalSteps));state.temperature=Math.min(36,state.temperature+.25);render();
     if(step>=totalSteps||state.soc<=10){
-      clearInterval(timer);
-      state.cleaning=false;state.progress=100;state.temperature=29;
-      state.missionDone=true;state.celebrating=true;state.cleanCount+=1;
-      state.coins+=50;state.exp+=20;state.area=Math.round((state.area||0)+(state.cleaningAreaM2||0));
-      state.average=Math.round((state.average+Math.max(15,Math.round(state.requiredSoc*1.4)))/2);
-      levelCheck();
-      addEvent(state.selectedLabel+" 청소 완료","AI 예측 SOC "+fmtSoc(state.requiredSoc)+"%를 기준으로 청소를 완료했습니다.");
-      spawnEffect("🎉",15);spawnEffect("⭐",9);render();
-
+      clearInterval(timer);state.cleaning=false;state.progress=100;state.temperature=29;state.missionDone=true;state.celebrating=true;state.cleanCount+=1;state.coins+=50;state.exp+=20;state.area=Math.round((state.area||0)+(state.cleaningAreaM2||0));state.average=Math.round((state.average+Math.max(15,Math.round(state.requiredSoc*1.4)))/2);levelCheck();
+      addEvent(state.selectedLabel+" 청소 완료","AI 예측 SOC "+fmtSoc(state.requiredSoc)+"%를 기준으로 청소를 완료했습니다.");spawnEffect("🎉",15);spawnEffect("⭐",9);render();
       setTimeout(()=>{state.celebrating=false;render()},2200);
       setTimeout(()=>openModal("청소 완료!",state.selectedLabel+" 청소를 완료했습니다.<br><br>예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>였고, 보상으로 <b>50코인</b>과 경험치 20을 획득했습니다."),550);
     }
@@ -981,75 +1038,29 @@ function startCleaning(){
 function chargeRobot(autoStart=false){
   if(state.cleaning){showToast("청소가 끝난 후 충전할 수 있어요.");return}
   if(state.charging){showToast("이미 충전 중이에요.");return}
-  if(state.soc>=state.targetSoc){
-    openModal("맞춤 충전 안내","현재 SOC가 목표 SOC <b>"+state.targetSoc+"%</b>에 이미 도달했습니다.<br><br>"+state.selectedLabel+" 청소를 바로 시작할 수 있어요.");
-    if(autoStart||state.pendingCleanAfterCharge){
-      state.pendingCleanAfterCharge=false;
-      setTimeout(startCleaning,450);
-    }
-    return;
-  }
-
+  if(state.soc>=state.targetSoc){openModal("맞춤 충전 안내","현재 SOC가 목표 SOC <b>"+state.targetSoc+"%</b>에 이미 도달했습니다.<br><br>"+state.selectedLabel+" 청소를 바로 시작할 수 있어요.");if(autoStart||state.pendingCleanAfterCharge){state.pendingCleanAfterCharge=false;setTimeout(startCleaning,450)}return}
   state.charging=true;render();showToast("AI 맞춤 충전을 시작합니다.");
-  const timer=setInterval(()=>{
-    state.soc=Math.min(state.targetSoc,state.soc+2);
-    state.temperature=Math.min(32,state.temperature+.1);
-    spawnEffect("⚡",2);render();
-
-    if(state.soc>=state.targetSoc){
-      clearInterval(timer);state.charging=false;state.temperature=29;state.acceptCount+=1;
-      addEvent("맞춤 충전 완료",state.selectedLabel+" 목표 SOC "+state.targetSoc+"%에서 자동 충전을 종료했습니다.");
-      spawnEffect("✨",10);render();
-      const shouldStart=autoStart||state.pendingCleanAfterCharge;
-      state.pendingCleanAfterCharge=false;
-      setTimeout(()=>openModal("맞춤 충전 완료","필요한 만큼만 충전했습니다.<br><br>"+state.selectedLabel+" 목표 SOC <b>"+state.targetSoc+"%</b>에서 충전을 종료하여 고SOC 유지 시간을 줄였습니다."+(shouldStart?"<br><br>이제 청소를 시작할게요!":"")),400);
-      if(shouldStart){setTimeout(startCleaning,1200)}
-    }
+  const timer=setInterval(()=>{state.soc=Math.min(state.targetSoc,state.soc+2);state.temperature=Math.min(32,state.temperature+.1);spawnEffect("⚡",2);render();
+    if(state.soc>=state.targetSoc){clearInterval(timer);state.charging=false;state.temperature=29;state.acceptCount+=1;addEvent("맞춤 충전 완료",state.selectedLabel+" 목표 SOC "+state.targetSoc+"%에서 자동 충전을 종료했습니다.");spawnEffect("✨",10);render();const shouldStart=autoStart||state.pendingCleanAfterCharge;state.pendingCleanAfterCharge=false;setTimeout(()=>openModal("맞춤 충전 완료","필요한 만큼만 충전했습니다.<br><br>"+state.selectedLabel+" 목표 SOC <b>"+state.targetSoc+"%</b>에서 충전을 종료하여 고SOC 유지 시간을 줄였습니다."+(shouldStart?"<br><br>이제 청소를 시작할게요!":"")),400);if(shouldStart){setTimeout(startCleaning,1200)}}
   },150);
 }
-
-function buyFood(){
-  if(state.coins<50){showToast("코인이 부족해요.");return}
-  state.coins-=50;state.food+=1;render();showToast("배터리 음식 1개를 구매했습니다.");
-}
+function buyFood(){if(state.coins<50){showToast("코인이 부족해요.");return}state.coins-=50;state.food+=1;render();showToast("배터리 음식 1개를 구매했습니다.")}
 
 const actions={
-  selectHome:()=>selectScenario("home"),
-  selectZone1:()=>selectScenario("zone",1),
-  selectZone2:()=>selectScenario("zone",2),
-  selectZone3:()=>selectScenario("zone",3),
-  selectZone4:()=>selectScenario("zone",4),
-  selectZone5:()=>selectScenario("zone",5),
-  pet:petRobot,feed:feedRobot,play:playRobot,train:trainRobot,photo:takePhoto,
-  clean:startCleaning,charge:chargeRobot,status:showStatus,
-  record:()=>switchPage("recordPage"),decorate:decorateRobot,shop:()=>switchPage("rewardPage"),
-  chargeFromBattery:()=>{switchPage("homePage");setTimeout(chargeRobot,220)},
-  buyFood:buyFood,
-  ribbon:()=>{switchPage("homePage");setTimeout(()=>spawnEffect("🎀",10),220)},
-  sparkle:()=>{switchPage("homePage");setTimeout(()=>spawnEffect("✨",10),220)},
-  hat:()=>showToast("탐험가 모자는 120코인이 필요해요.")
+  predictSoc:predictSocFromConditions,
+  selectHome:()=>selectScenario("home"),selectZone1:()=>selectScenario("zone",1),selectZone2:()=>selectScenario("zone",2),selectZone3:()=>selectScenario("zone",3),selectZone4:()=>selectScenario("zone",4),selectZone5:()=>selectScenario("zone",5),
+  pet:petRobot,feed:feedRobot,play:playRobot,train:trainRobot,photo:takePhoto,clean:startCleaning,charge:chargeRobot,status:showStatus,
+  record:()=>switchPage("recordPage"),decorate:decorateRobot,shop:()=>switchPage("rewardPage"),chargeFromBattery:()=>{switchPage("homePage");setTimeout(chargeRobot,220)},buyFood:buyFood,
+  ribbon:()=>{switchPage("homePage");setTimeout(()=>spawnEffect("🎀",10),220)},sparkle:()=>{switchPage("homePage");setTimeout(()=>spawnEffect("✨",10),220)},hat:()=>showToast("탐험가 모자는 120코인이 필요해요.")
 };
 
-document.addEventListener("click",(event)=>{
-  const nav=event.target.closest("[data-page]");
-  if(nav){switchPage(nav.dataset.page);return}
-  const action=event.target.closest("[data-action]");
-  if(action&&typeof actions[action.dataset.action]==="function"){actions[action.dataset.action]()}
-});
-
-$("modalClose").addEventListener("click",closeModal);
-$("modal").addEventListener("click",(event)=>{if(event.target===$("modal"))closeModal()});
+document.addEventListener("click",(event)=>{const nav=event.target.closest("[data-page]");if(nav){switchPage(nav.dataset.page);return}const action=event.target.closest("[data-action]");if(action&&typeof actions[action.dataset.action]==="function"){actions[action.dataset.action]()}});
+$("modalClose").addEventListener("click",closeModal);$("modal").addEventListener("click",(event)=>{if(event.target===$("modal"))closeModal()});
 $("targetSlider").addEventListener("input",(event)=>{state.targetSoc=Number(event.target.value);render()});
 $("tempSlider").addEventListener("input",(event)=>{state.temperature=Number(event.target.value);render()});
 
-setInterval(()=>{
-  if(state.cleaning||state.charging||state.celebrating)return;
-  const robot=$("robot");robot.classList.remove("look-left","look-right");
-  const d=Math.random();
-  if(d<.33)robot.classList.add("look-left");else if(d<.66)robot.classList.add("look-right");
-  setTimeout(()=>robot.classList.remove("look-left","look-right"),1100);
-},2800);
-
+setInterval(()=>{if(state.cleaning||state.charging||state.celebrating)return;const robot=$("robot");robot.classList.remove("look-left","look-right");const d=Math.random();if(d<.33)robot.classList.add("look-left");else if(d<.66)robot.classList.add("look-right");setTimeout(()=>robot.classList.remove("look-left","look-right"),1100)},2800);
+populateConditionSelectors();
 render();
 </script>
 </body>
