@@ -531,6 +531,44 @@ button,input{font-family:inherit} button{cursor:pointer}
 @keyframes barGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @keyframes popup{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
 @media(max-width:440px){body{padding:0}.phone{width:100%;height:100vh;border:0;border-radius:0}.notch{display:none}}
+
+
+/* ===== Sticky robot room: only the lower control panel scrolls ===== */
+#homePage.page{
+  display:none;
+  height:100%;
+  padding:0;
+  overflow:hidden;
+  background:linear-gradient(180deg,#cfaa7d 0%,#e0c39a 39%,#d29c58 40%,#d09850 100%);
+}
+#homePage.page.active{
+  display:flex;
+  flex-direction:column;
+}
+#homePage .room{
+  flex:0 0 355px;
+  height:355px;
+  min-height:355px;
+  position:relative;
+  z-index:12;
+  overflow:hidden;
+  box-shadow:0 8px 18px rgba(87,54,25,.14);
+}
+#homePage .home-dashboard{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:10px 8px 24px;
+  background:linear-gradient(180deg,rgba(239,205,151,.99),rgba(227,181,110,.99));
+  border-top:2px solid rgba(120,76,38,.10);
+}
+#homePage .home-dashboard::-webkit-scrollbar{width:0;height:0}
+#homePage .home-dashboard{scrollbar-width:none;}
+@media(max-height:820px){
+  #homePage .room{flex-basis:330px;height:330px;min-height:330px;}
+}
+
 </style>
 </head>
 
