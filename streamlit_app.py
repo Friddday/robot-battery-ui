@@ -849,6 +849,24 @@ body,button,input,select{
 @media(max-height:820px){
   #homePage .room{flex-basis:315px!important;height:315px!important;min-height:315px!important;}
 }
+
+
+/* ===== Compact learning/profile summary cards ===== */
+.compact-note{padding:9px 10px!important;line-height:1.35!important;}
+.note-title{font-size:12px;font-weight:950;color:#6f4f38;margin-bottom:7px;}
+.profile-mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0 7px;}
+.profile-mini-grid span{display:flex;align-items:center;justify-content:center;min-height:28px;border-radius:9px;background:rgba(255,255,255,.72);font-size:11px;font-weight:950;color:#6f4f38;white-space:nowrap;}
+.note-caption{font-size:11px;font-weight:850;color:#8a6a45;line-height:1.35;}
+.summary-card{display:flex;flex-direction:column;gap:6px;}
+.summary-title{font-size:12px;font-weight:950;color:#2f8b3a;margin-bottom:1px;}
+.summary-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed rgba(124,83,43,.16);}
+.summary-row:last-child{border-bottom:0;}
+.summary-key{color:#7c5c3d;font-size:11px;font-weight:900;white-space:nowrap;}
+.summary-val{color:#4b3324;font-size:11px;font-weight:950;text-align:right;line-height:1.25;}
+.summary-val.em{color:#ef573f;font-size:15px;}
+.summary-val.green{color:#2f8b3a;}
+.plan-summary{line-height:1.35!important;}
+.plan-soc-sub{white-space:normal!important;}
 </style>
 </head>
 
@@ -925,7 +943,7 @@ body,button,input,select{
                 <div class="learn-title">처음 사용할 때는 로보킹이 집을 먼저 배워요</div>
                 <div class="learn-pill" id="learnPill">초기 학습</div>
               </div>
-              <div class="learn-desc">1회차 청소로 집 구조, 구역 면적, 바닥 타입, 오염도, 장애물 수준, 실제 SOC 소모 기록을 저장한 뒤 AI 예측을 시작합니다.</div>
+              <div class="learn-desc">1회차 학습으로 AI 예측에 필요한 집 프로필을 저장해요.</div>
               <div class="learn-progress"><div class="learn-fill" id="learnFill"></div></div>
               <div class="learn-status" id="learnStatus">1회차 학습 청소를 시작하면 로보킹이 집 구조와 구역 정보를 자동으로 기록해요.</div>
               <div class="learn-steps" id="learnSteps"></div>
@@ -935,14 +953,18 @@ body,button,input,select{
               <div class="condition-title" id="conditionTitle">1회차 학습 청소로 우리 집 프로필을 먼저 만들어요</div>
 
               <div id="firstLearnInputs">
-                <div class="condition-help first-learn-note">
-                  평수, 구역별 면적, 바닥 타입, 오염도, 장애물 수준은 1회차 학습 청소에서 자동으로 기록돼요.<br>
-                  프로토타입에서는 CSV에 저장된 여러 집 프로필 중 하나를 랜덤으로 불러와 학습 과정을 보여줍니다.
+                <div class="condition-help first-learn-note compact-note">
+                  <div class="note-title">저장 항목</div>
+                  <div class="profile-mini-grid">
+                    <span>집 크기</span><span>5개 구역</span><span>면적</span>
+                    <span>바닥 타입</span><span>오염도</span><span>SOC 기록</span>
+                  </div>
+                  <div class="note-caption">CSV 집 프로필 중 하나를 랜덤 학습합니다.</div>
                 </div>
               </div>
 
               <div id="predictionInputs" style="display:none;">
-                <div class="condition-help">저장된 우리 집 프로필을 기준으로, 오늘 청소 조건만 선택해 주세요.</div>
+                <div class="condition-help">오늘 조건만 선택하면 CSV 예측값을 매칭해요.</div>
                 <div class="predict-condition-grid">
                   <label for="scopeSelect">청소 범위</label>
                   <select class="condition-select" id="scopeSelect">
@@ -1523,14 +1545,10 @@ function predictSocFromConditions(){
     }
     render();
     const scopeText=state.selectedScope==="home"?"집 전체":state.selectedLabel;
-    const body="1회차 학습 청소로 저장한 우리 집 프로필을 기준으로 예측했어요.<br><br>"
-      +"선택 범위: <b>"+scopeText+"</b><br>"
-      +"청소 방식: <b>"+state.cleanModeLabel+"</b><br>"
-      +"청소 강도: <b>"+state.intensityLabel+"</b><br>"
-      +"오늘 상태: <b>"+state.todayStateLabel+"</b><br>" 
-      +"예측 방식: <b>"+state.matchNote+"</b><br><br>"
-      +"선택 조건과 가장 가까운 머신러닝 예측값 기준 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>"
-      +"안전 마진 15%를 더해서 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.";
+    const body="<b>"+scopeText+"</b> · "+state.cleanModeLabel+" · "+state.intensityLabel+" · "+state.todayStateLabel+"<br><br>"
+      +"예상 SOC: <b>"+fmtSoc(state.requiredSoc)+"%</b><br>"
+      +"목표 SOC: <b>"+state.targetSoc+"%</b> <small>(+안전마진 15%)</small><br>"
+      +"방식: <b>"+state.matchNote+"</b>";
     openModal("AI 예측 완료!",body);
   },900);
 }
@@ -1541,6 +1559,20 @@ function floorSummary(){
   activeRun.zones.forEach(z=>{const k=z.floorType||"정보 없음";counts[k]=(counts[k]||0)+1;});
   return Object.keys(counts).map(k=>k+" "+counts[k]+"구역").join(", ");
 }
+function floorKindCount(){
+  if(!activeRun || !activeRun.zones)return 0;
+  const kinds={};
+  activeRun.zones.forEach(z=>{kinds[z.floorType||"정보 없음"]=true;});
+  return Object.keys(kinds).length;
+}
+function dirtSummaryShort(){
+  if(!activeRun || !activeRun.zones)return "정보 없음";
+  const high=activeRun.zones.filter(z=>String(z.dirtLevel||"").includes("높")).length;
+  const mid=activeRun.zones.filter(z=>String(z.dirtLevel||"").includes("중") || String(z.dirtLevel||"").includes("보통")).length;
+  if(high>0)return "높음 "+high+"구역"+(mid>0?" · 보통 "+mid+"구역":"");
+  if(mid>0)return "보통 "+mid+"구역";
+  return dirtSummary();
+}
 function dirtSummary(){
   if(!activeRun || !activeRun.zones)return "정보 없음";
   const counts={};
@@ -1549,14 +1581,14 @@ function dirtSummary(){
 }
 function obstacleSummary(){return activeRun && activeRun.home ? (activeRun.home.obstacleLevel||"중간") : "중간";}
 function profileResultBody(){
-  return "1회차 청소를 통해 우리 집 프로필을 만들었어요.<br><br>"
-    +"✅ 집 구조 매핑: <b>"+activeRun.areaPyung+"평, 5개 구역</b><br>"
-    +"✅ 구역별 면적 저장: <b>총 "+activeRun.home.cleaningAreaM2+"㎡</b><br>"
-    +"✅ 바닥 타입 인식: <b>"+floorSummary()+"</b><br>"
-    +"✅ 오염도 기록: <b>"+dirtSummary()+"</b><br>"
-    +"✅ 장애물 수준 기록: <b>"+obstacleSummary()+"</b><br>"
-    +"✅ 실제 SOC 소모 기록: <b>"+fmtSoc(state.firstRunSocUsed)+"%</b><br><br>"
-    +"이제부터는 이 기록을 기준으로 다음 청소에 필요한 SOC만 예측할 수 있어요.";
+  return "<b>우리 집 프로필 저장 완료</b><br><br>"
+    +"집 크기: <b>"+activeRun.areaPyung+"평 · "+activeRun.home.cleaningAreaM2+"㎡</b><br>"
+    +"구역: <b>5개</b><br>"
+    +"바닥: <b>"+floorKindCount()+"종 혼합</b><br>"
+    +"오염도: <b>"+dirtSummaryShort()+"</b><br>"
+    +"장애물: <b>"+obstacleSummary()+"</b><br>"
+    +"SOC 기록: <b>"+fmtSoc(state.firstRunSocUsed)+"%</b><br><br>"
+    +"다음 단계: <b>AI 예측하기</b>";
 }
 function startFirstMapping(){
   if(state.cleaning||state.charging||state.mapping){showToast("진행 중인 작업이 끝난 뒤 다시 시도해 주세요.");return}
@@ -1661,12 +1693,12 @@ function renderPlan(){
     if(conditionPanel)conditionPanel.classList.add('locked-area');
   }else if(state.profileReady){
     if(learnPill)learnPill.textContent="프로필 저장됨";
-    if(learnStatus)learnStatus.innerHTML="우리 집 프로필 저장 완료 · 총 "+activeRun.home.cleaningAreaM2+"㎡ · 바닥 타입 "+floorSummary();
+    if(learnStatus)learnStatus.innerHTML="프로필 저장 완료 · "+activeRun.home.cleaningAreaM2+"㎡ · "+floorSummary();
     if(learnBtn){learnBtn.textContent="🔄 1회차 학습 다시 실행";learnBtn.disabled=false;learnBtn.classList.add('ready');}
     if(conditionPanel)conditionPanel.classList.remove('locked-area');
   }else{
     if(learnPill)learnPill.textContent="초기 학습";
-    if(learnStatus)learnStatus.textContent="평수와 학습 청소 방식을 선택한 뒤 1회차 학습 청소를 시작해 주세요.";
+    if(learnStatus)learnStatus.textContent="시작 버튼을 누르면 집 프로필을 저장해요.";
     if(learnBtn){learnBtn.textContent="🏠 1회차 학습 청소 시작";learnBtn.disabled=false;learnBtn.classList.remove('ready');}
     if(conditionPanel)conditionPanel.classList.remove('locked-area');
   }
@@ -1680,7 +1712,7 @@ function renderPlan(){
     predictBtn.textContent=state.profileReady?'🤖 AI 예측하기':'🤖 학습 후 AI 예측 가능';
   }
   if(conditionTitle){
-    conditionTitle.textContent=state.profileReady?'저장된 우리 집 프로필 기준으로 오늘 청소 조건을 선택하세요':'평수와 학습 청소 방식을 선택해 1회차 학습 청소를 시작하세요';
+    conditionTitle.textContent=state.profileReady?'오늘 청소 조건 선택':'1회차 학습 준비';
   }
 
   document.querySelectorAll('.scope-btn').forEach(btn=>{
@@ -1712,14 +1744,14 @@ function renderPlan(){
 
   if(!state.profileReady){
     $('planTargetSoc').textContent='--';
-    $('planSummary').innerHTML="<strong>1회차 학습 전</strong><br>아직 우리 집의 구역 면적, 바닥 타입, 오염도, 장애물 수준을 모릅니다.<br>먼저 로보킹에게 집 구조를 알려주세요.";
-    $('planSocSub').textContent="학습 완료 후 AI 목표 SOC 표시";
+    $('planSummary').innerHTML="<div class='summary-card'><div class='summary-title'>학습 대기</div><div class='summary-row'><span class='summary-key'>상태</span><span class='summary-val'>집 프로필 없음</span></div><div class='summary-row'><span class='summary-key'>다음 단계</span><span class='summary-val green'>1회차 학습 시작</span></div></div>";
+    $('planSocSub').textContent="학습 후 표시";
     return;
   }
   if(!state.predicted){
     $('planTargetSoc').textContent='--';
-    $('planSummary').innerHTML="<strong>우리 집 프로필 저장됨</strong><br>구역 면적, 바닥 타입, 오염도, 장애물 수준, SOC 소모 기록을 저장했어요.<br>이제 AI 예측하기를 눌러주세요.";
-    $('planSocSub').textContent="1회차 기록 기반 예측 대기";
+    $('planSummary').innerHTML="<div class='summary-card'><div class='summary-title'>프로필 저장 완료</div><div class='summary-row'><span class='summary-key'>집 크기</span><span class='summary-val'>"+state.areaPyung+"평 · "+state.cleaningAreaM2+"㎡</span></div><div class='summary-row'><span class='summary-key'>다음 단계</span><span class='summary-val green'>AI 예측하기</span></div></div>";
+    $('planSocSub').textContent="예측 대기";
     return;
   }
 
@@ -1728,9 +1760,15 @@ function renderPlan(){
   const detail=state.selectedScope==="home"
     ? state.areaPyung+"평 프로필 · "+state.cleaningAreaM2+"㎡"
     : (state.floorType||"바닥재질")+" · 오염도 "+(state.dirtLevel||"-")+" · "+state.cleaningAreaM2+"㎡";
-  const conditionDetail="청소 방식 "+state.cleanModeLabel+" · 강도 "+state.intensityLabel+" · 오늘 상태 "+state.todayStateLabel;
-  $('planSummary').innerHTML="<strong>"+scopeText+"</strong> 선택됨<br>"+detail+"<br>"+conditionDetail+"<br><span style='color:#2f8b3a;font-weight:900'>"+state.matchNote+"</span><br>예상 SOC 소모량 <strong>"+fmtSoc(state.requiredSoc)+"%</strong> → 목표 SOC <strong>"+state.targetSoc+"%</strong>";
-  $('planSocSub').textContent="예상 "+fmtSoc(state.requiredSoc)+"% + 안전마진 15%";
+  const conditionDetail=state.cleanModeLabel+" · "+state.intensityLabel+" · "+state.todayStateLabel;
+  $('planSummary').innerHTML="<div class='summary-card'>"
+    +"<div class='summary-title'>"+scopeText+"</div>"
+    +"<div class='summary-row'><span class='summary-key'>조건</span><span class='summary-val'>"+conditionDetail+"</span></div>"
+    +"<div class='summary-row'><span class='summary-key'>프로필</span><span class='summary-val'>"+detail+"</span></div>"
+    +"<div class='summary-row'><span class='summary-key'>예상 SOC</span><span class='summary-val em'>"+fmtSoc(state.requiredSoc)+"%</span></div>"
+    +"<div class='summary-row'><span class='summary-key'>예측 방식</span><span class='summary-val green'>"+state.matchNote+"</span></div>"
+    +"</div>";
+  $('planSocSub').textContent="예상 "+fmtSoc(state.requiredSoc)+"% + 마진 15%";
 }
 
 function renderHome(){
@@ -1831,7 +1869,7 @@ function renderBattery(){
   }else if(!state.predicted){
     $("insightText").innerHTML="우리 집 프로필이 저장되었습니다. AI 예측하기를 누르면 1회차 청소 기록을 기준으로 다음 청소 목표 SOC를 계산합니다.";
   }else{
-    $("insightText").innerHTML="우리 집 "+state.areaPyung+"평 프로필에서 <b>"+state.selectedLabel+"</b> 범위를 선택했어요. "+state.cleanModeLabel+" · "+state.intensityLabel+" · "+state.todayStateLabel+" 조건과 가장 가까운 <b>머신러닝 예측값</b>을 사용했으며, 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>입니다. 안전 마진 15%를 반영하여 SOC <b>"+state.targetSoc+"%</b>까지만 충전하면 청소를 완료할 수 있습니다.";
+    $("insightText").innerHTML="<b>"+state.selectedLabel+"</b> · "+state.cleanModeLabel+" · "+state.intensityLabel+" · "+state.todayStateLabel+"<br>예상 SOC: <b>"+fmtSoc(state.requiredSoc)+"%</b> · 목표 SOC: <b>"+state.targetSoc+"%</b><br><b>"+state.matchNote+"</b> 기준입니다.";
   }
 
   const y=132-(state.targetSoc-15)/75*104;
