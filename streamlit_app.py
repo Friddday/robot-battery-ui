@@ -780,12 +780,33 @@ function renderHome(){
     $("timeTip").textContent="충전 후 청소를 시작해 주세요.";
     $("spark").textContent="💦";
   }else{
-    $("speech").innerHTML="<strong>배가 든든해요!</strong><br>청소를 준비할게요!";
     $("modeChip").textContent="✨ "+state.selectedLabel+" AI 권장 SOC "+state.targetSoc+"%";
     $("batteryFace").textContent=state.soc>90?"😮":"😊";
-    $("batteryMessage").innerHTML=state.soc>90?"권장 SOC를 넘었어요.<br>90% 이하 사용을 권장합니다.":"배터리 상태가 좋아요.<br>수명 보호 범위 안입니다.";
-    $("timeTip").textContent=state.soc>=state.targetSoc?"현재 배터리로 청소가 가능합니다.":"목표 SOC "+state.targetSoc+"%까지 충전이 필요해요.";
     $("spark").textContent="✨";
+
+    if(state.soc < state.targetSoc){
+      $("speech").innerHTML=
+        "<strong style='color:#ef8c32'>아직 배고파요!</strong><br>"
+        + "목표 SOC "+state.targetSoc+"%까지만<br>충전하고 청소할게요.";
+
+      $("batteryMessage").innerHTML=
+        state.selectedLabel+" 청소에는<br>"
+        + "약 "+fmtSoc(state.requiredSoc)+"% SOC가 필요해요.";
+
+      $("timeTip").textContent=
+        "현재 SOC "+state.soc+"% → 목표 SOC "+state.targetSoc+"%까지 충전 필요";
+    }else{
+      $("speech").innerHTML=
+        "<strong>배가 든든해요!</strong><br>"
+        + state.selectedLabel+" 청소를 준비할게요!";
+
+      $("batteryMessage").innerHTML=
+        "현재 SOC로 충분해요.<br>"
+        + "목표 SOC "+state.targetSoc+"% 이상입니다.";
+
+      $("timeTip").textContent=
+        "현재 배터리로 "+state.selectedLabel+" 청소가 가능합니다.";
+    }
   }
 }
 
