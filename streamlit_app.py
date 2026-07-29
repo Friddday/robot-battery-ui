@@ -28,7 +28,79 @@ st.markdown(
       }
       .block-container{max-width:100%;padding:8px 4px 18px;}
       iframe{border:0!important;border-radius:28px;}
-    </style>
+    
+/* ===== Readability upgrade: larger text for mobile demo ===== */
+.phone{height:960px;}
+.header{height:136px;padding:26px 16px 10px;}
+.pages{height:calc(100% - 136px);}
+.brand{font-size:10px;}
+.app-title{font-size:26px;}
+.coin-pill{font-size:13px;padding:9px 13px;}
+.nav-btn{font-size:11px;padding:9px 4px;}
+.speech{width:206px;min-height:84px;font-size:14px;line-height:1.55;padding:15px 14px;}
+.speech strong{font-size:16px;}
+.mode-chip{font-size:10px;padding:8px 14px;}
+.mission{width:102px;padding:10px 8px;}
+.mission-title{font-size:11px;}
+.mission-text{font-size:10px;line-height:1.45;}
+.reward-small{font-size:10px;}
+.quick-btn{width:56px;min-height:55px;font-size:9px;}
+.quick-btn .icon{font-size:23px;}
+.action-btn{font-size:9px;}
+.action-icon{font-size:25px;}
+.mini-title{font-size:12px;}
+.battery-info{font-size:10.5px;line-height:1.55;}
+.battery-message{font-size:10px;line-height:1.5;padding:8px;}
+.time-sub{font-size:9.5px;}
+.time-tip{font-size:10px;line-height:1.5;padding:8px 6px;}
+.food-title,.food-count{font-size:11px;}
+.plan-panel{padding:12px;}
+.plan-title{font-size:13px;}
+.plan-model{font-size:9.5px;padding:5px 8px;}
+.learn-panel{padding:12px;border-radius:15px;}
+.learn-title{font-size:12px;}
+.learn-pill{font-size:9.5px;padding:5px 8px;}
+.learn-desc{font-size:10px;line-height:1.55;}
+.learn-status{font-size:10px;line-height:1.5;}
+.learn-steps{gap:6px;}
+.learn-step{font-size:9.5px;padding:6px 5px;}
+.learn-btn{font-size:12px;min-height:39px;}
+.condition-panel{padding:11px;border-radius:15px;}
+.condition-title{font-size:11px;line-height:1.45;margin-bottom:8px;}
+.condition-row{grid-template-columns:.55fr 1fr .55fr 1fr;gap:7px;}
+.condition-row label{font-size:10px;}
+.condition-select{font-size:11px;min-height:38px;padding:0 9px;}
+.predict-btn{font-size:12px;min-height:40px;}
+.predict-loading{font-size:10px;line-height:1.5;min-height:22px;}
+.scope-btn{font-size:10px;min-height:42px;padding:6px 3px;}
+.selected-plan{gap:8px;}
+.plan-summary{font-size:10.5px;line-height:1.6;padding:11px;}
+.plan-soc{padding:11px;}
+.plan-soc-label{font-size:10px;}
+.plan-soc-value{font-size:26px;}
+.plan-soc-sub{font-size:10px;line-height:1.45;}
+.gauge-label{font-size:11px;}
+.gauge-desc{font-size:10px;}
+.control-head{font-size:12px;}
+.control-caption{font-size:9.5px;}
+.panel-title{font-size:14px;}
+.badge{font-size:9.5px;}
+.legend{font-size:10px;}
+.insight-row{font-size:11px;line-height:1.6;}
+.record-label,.event-time{font-size:10px;}
+.event-content strong{font-size:11px;}
+.event-content span{font-size:10px;line-height:1.45;}
+.reward-title{font-size:12px;}
+.reward-desc{font-size:10px;line-height:1.45;}
+.reward-btn{font-size:10px;}
+.modal-card{padding:22px;border-radius:22px;}
+.modal-title{font-size:20px;}
+.modal-body{font-size:14px;line-height:1.7;}
+.modal-btn{font-size:13px;padding:13px;}
+.toast{font-size:12px;}
+@media(max-width:440px){.phone{height:100vh;}.pages{height:calc(100% - 136px);}}
+
+</style>
     """,
     unsafe_allow_html=True,
 )
@@ -1320,4 +1392,4 @@ render();
 
 APP_HTML = APP_HTML.replace("__UI_PREDICTION_DATA__", UI_PREDICTION_JSON)
 
-components.html(APP_HTML, height=930, scrolling=False)
+components.html(APP_HTML, height=1000, scrolling=False)
