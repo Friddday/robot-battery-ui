@@ -434,7 +434,7 @@ button,input{font-family:inherit} button{cursor:pointer}
 .reward-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.reward-card{min-height:125px;padding:14px;border:1px solid rgba(136,87,40,.14);border-radius:16px;background:rgba(255,248,231,.97);box-shadow:var(--shadow);text-align:center}.reward-icon{font-size:38px}.reward-title{margin-top:7px;font-size:11px;font-weight:900}.reward-desc{margin-top:4px;color:#775943;font-size:8px;line-height:1.4;font-weight:800}.reward-btn{width:100%;margin-top:9px;padding:8px;border:0;border-radius:10px;background:#f0dfbc;color:#5c422f;font-size:9px;font-weight:900}
 
 /* Modal */
-.modal{position:absolute;z-index:200;inset:0;display:none;align-items:center;justify-content:center;padding:30px;background:rgba(45,33,23,.62);backdrop-filter:blur(4px)}.modal.show{display:flex}.modal-card{width:100%;padding:19px;border-radius:20px;background:#fff8e8;box-shadow:0 18px 45px rgba(28,19,12,.38);animation:popup .18s ease-out}.modal-title{font-size:18px;font-weight:900}.modal-body{margin:13px 0 17px;color:#6c513c;font-size:12px;line-height:1.65;font-weight:700}.modal-close{width:100%;padding:11px;border:0;border-radius:12px;background:#ef8c32;color:#fff;font-weight:900}
+.modal{position:absolute;z-index:200;inset:0;display:none;align-items:center;justify-content:center;padding:30px;background:rgba(45,33,23,.62);backdrop-filter:blur(4px)}.modal.show{display:flex}.modal-card{width:100%;padding:19px;border-radius:20px;background:#fff8e8;box-shadow:0 18px 45px rgba(28,19,12,.38);animation:popup .18s ease-out}.modal-title{font-size:18px;font-weight:900}.modal-body{margin:13px 0 17px;color:#6c513c;font-size:12px;line-height:1.65;font-weight:700}.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.modal-btn{width:100%;padding:11px;border:0;border-radius:12px;font-weight:900}.modal-secondary{background:#efe1c8;color:#5c422f}.modal-primary{background:#ef8c32;color:#fff}.modal-actions.single{grid-template-columns:1fr}.modal-actions.single .modal-secondary{display:none}
 .toast{position:absolute;z-index:220;left:50%;bottom:25px;width:max-content;max-width:84%;padding:11px 17px;transform:translateX(-50%) translateY(30px);border-radius:18px;background:rgba(44,37,31,.95);color:#fff;font-size:11px;font-weight:800;opacity:0;pointer-events:none;transition:.25s}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* Animations */
@@ -702,7 +702,10 @@ button,input{font-family:inherit} button{cursor:pointer}
       <div class="modal-card">
         <div class="modal-title" id="modalTitle"></div>
         <div class="modal-body" id="modalBody"></div>
-        <button class="modal-close" id="modalClose">확인</button>
+        <div class="modal-actions single" id="modalActions">
+          <button class="modal-btn modal-secondary" id="modalCancel">취소</button>
+          <button class="modal-btn modal-primary" id="modalConfirm">확인</button>
+        </div>
       </div>
     </div>
     <div class="toast" id="toast"></div>
@@ -751,6 +754,7 @@ const state={
   dirtLevel:activeRun.home.dirtLevel,
   suctionMode:activeRun.home.suctionMode,
   pendingCleanAfterCharge:false,
+  chargeComplete:false,
   predicting:false,
   predicted:false,
   temperature:29,health:100,heart:100,
@@ -889,7 +893,14 @@ function renderPlan(){
 function renderHome(){
   const room=$("room");room.className="room";
 
-  if(state.celebrating){
+  if(state.chargeComplete){
+    room.classList.add("celebrate");
+    $("speech").innerHTML="<strong>배불러요!</strong><br>이제 청소 가능해요!";
+    $("modeChip").textContent="💖 맞춤 충전 완료 · SOC "+state.soc+"%";
+    $("batteryFace").textContent="😍";$("spark").textContent="💖";
+    $("batteryMessage").innerHTML="목표 SOC까지 채웠어요.<br>과충전 없이 준비 완료!";
+    $("timeTip").textContent=state.selectedLabel+" 청소를 시작할 수 있어요.";
+  }else if(state.celebrating){
     room.classList.add("celebrate");
     $("speech").innerHTML="<strong>청소 완료!</strong><br>보상을 받았어요!";
     $("modeChip").textContent="🏆 미션 완료 · +50 코인";
@@ -908,11 +919,11 @@ function renderHome(){
     $("spark").textContent="💨";
   }else if(state.charging){
     room.classList.add("charging");
-    $("speech").innerHTML="<strong style='color:#e48627'>에너지를 먹고 있어요!</strong><br>필요한 만큼 충전할게요.";
+    $("speech").innerHTML="<strong style='color:#e48627'>잠깐 쉬는 중이에요</strong><br>목표 SOC까지만 충전할게요.";
     $("modeChip").textContent="⚡ "+state.selectedLabel+" 맞춤 충전 · "+state.soc+" → "+state.targetSoc+"%";
-    $("batteryFace").textContent="⚡";
-    $("batteryMessage").innerHTML="AI 권장 SOC까지<br>맞춤 충전 중입니다.";
-    $("timeTip").textContent="현재 SOC "+state.soc+"%";
+    $("batteryFace").textContent="😌";
+    $("batteryMessage").innerHTML="충전 스테이션에서 쉬면서<br>필요한 만큼만 채우고 있어요.";
+    $("timeTip").textContent="현재 SOC "+state.soc+"% · 목표 "+state.targetSoc+"%";
     $("spark").textContent="⚡";
   }else if(state.soc<15){
     room.classList.add("low");
@@ -980,7 +991,20 @@ function showToast(message){
   clearTimeout(window.toastTimer);
   window.toastTimer=setTimeout(()=>toast.classList.remove("show"),1800);
 }
-function openModal(title,body){$("modalTitle").textContent=title;$("modalBody").innerHTML=body;$("modal").classList.add("show")}
+let modalConfirmHandler=closeModal;
+function openModal(title,body,options={}){
+  $("modalTitle").textContent=title;
+  $("modalBody").innerHTML=body;
+  const actions=$("modalActions");
+  const cancelBtn=$("modalCancel");
+  const confirmBtn=$("modalConfirm");
+  const showCancel=Boolean(options.showCancel);
+  actions.classList.toggle("single",!showCancel);
+  cancelBtn.textContent=options.cancelText||"취소";
+  confirmBtn.textContent=options.confirmText||"확인";
+  modalConfirmHandler=typeof options.onConfirm==="function"?options.onConfirm:closeModal;
+  $("modal").classList.add("show");
+}
 function closeModal(){$("modal").classList.remove("show")}
 
 function spawnEffect(symbol,count=7){
@@ -1012,13 +1036,29 @@ function showStatus(){
   openModal("AI SOC 예측 결과","선택 조건 <b>"+state.areaPyung+"평 · "+state.cleaningType+"</b><br>선택 범위 <b>"+scopeText+"</b>"+zoneInfo+"<br>현재 SOC <b>"+state.soc+"%</b><br>예상 SOC 소모량 <b>"+fmtSoc(state.requiredSoc)+"%</b><br>AI 목표 SOC <b>"+state.targetSoc+"%</b><br><br>사용 모델: <b>"+state.modelName+"</b>");
 }
 
+function showChargeChoiceModal(autoStartAfterCharge=false){
+  const body=state.selectedLabel+" 청소를 선택했어요.<br><br>"
+    +(state.selectedScope==="zone"?state.selectedLabel+"의 바닥 타입은 <b>"+(state.floorType||"정보 없음")+"</b>입니다.<br>오염도는 <b>"+(state.dirtLevel||"정보 없음")+"</b>, 흡입 모드는 <b>"+(state.suctionMode||"AI 자동")+"</b>예요.<br><br>":"")
+    +"예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>안전 마진 15%를 더해 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.<br><br>"
+    +"아직 배고파요. 목표 SOC까지만 충전할까요?";
+  openModal("아직 배고파요!",body,{
+    showCancel:true,
+    cancelText:"취소",
+    confirmText:"충전하기",
+    onConfirm:()=>{
+      closeModal();
+      switchPage("homePage");
+      chargeRobot(autoStartAfterCharge);
+    }
+  });
+}
+
 function startCleaning(){
   if(state.cleaning){showToast("이미 청소 중이에요.");return}
   if(state.charging){showToast("충전이 끝난 후 청소할게요.");return}
   if(state.soc<state.targetSoc){
-    state.pendingCleanAfterCharge=true;
-    openModal("아직 배고파요!",state.selectedLabel+" 청소에는 목표 SOC <b>"+state.targetSoc+"%</b>가 필요해요.<br><br>지금은 <b>"+state.soc+"%</b>라서, 목표 SOC까지만 충전하고 바로 청소를 시작할게요.");
-    chargeRobot(true);return;
+    showChargeChoiceModal(false);
+    return;
   }
   if(state.soc<15){showToast("SOC가 부족합니다. 먼저 충전해 주세요.");return}
   state.cleaning=true;state.progress=0;
@@ -1038,10 +1078,35 @@ function startCleaning(){
 function chargeRobot(autoStart=false){
   if(state.cleaning){showToast("청소가 끝난 후 충전할 수 있어요.");return}
   if(state.charging){showToast("이미 충전 중이에요.");return}
-  if(state.soc>=state.targetSoc){openModal("맞춤 충전 안내","현재 SOC가 목표 SOC <b>"+state.targetSoc+"%</b>에 이미 도달했습니다.<br><br>"+state.selectedLabel+" 청소를 바로 시작할 수 있어요.");if(autoStart||state.pendingCleanAfterCharge){state.pendingCleanAfterCharge=false;setTimeout(startCleaning,450)}return}
-  state.charging=true;render();showToast("AI 맞춤 충전을 시작합니다.");
-  const timer=setInterval(()=>{state.soc=Math.min(state.targetSoc,state.soc+2);state.temperature=Math.min(32,state.temperature+.1);spawnEffect("⚡",2);render();
-    if(state.soc>=state.targetSoc){clearInterval(timer);state.charging=false;state.temperature=29;state.acceptCount+=1;addEvent("맞춤 충전 완료",state.selectedLabel+" 목표 SOC "+state.targetSoc+"%에서 자동 충전을 종료했습니다.");spawnEffect("✨",10);render();const shouldStart=autoStart||state.pendingCleanAfterCharge;state.pendingCleanAfterCharge=false;setTimeout(()=>openModal("맞춤 충전 완료","필요한 만큼만 충전했습니다.<br><br>"+state.selectedLabel+" 목표 SOC <b>"+state.targetSoc+"%</b>에서 충전을 종료하여 고SOC 유지 시간을 줄였습니다."+(shouldStart?"<br><br>이제 청소를 시작할게요!":"")),400);if(shouldStart){setTimeout(startCleaning,1200)}}
+  if(state.soc>=state.targetSoc){
+    openModal("배불러요!","현재 SOC가 목표 SOC <b>"+state.targetSoc+"%</b>에 이미 도달했어요.<br><br>이제 "+state.selectedLabel+" 청소를 시작할 수 있어요.");
+    return;
+  }
+  closeModal();
+  switchPage("homePage");
+  state.charging=true;
+  state.chargeComplete=false;
+  render();
+  showToast("로보킹이 쉬면서 맞춤 충전을 시작합니다.");
+  const timer=setInterval(()=>{
+    state.soc=Math.min(state.targetSoc,state.soc+2);
+    state.temperature=Math.min(32,state.temperature+.1);
+    spawnEffect("⚡",2);
+    render();
+    if(state.soc>=state.targetSoc){
+      clearInterval(timer);
+      state.charging=false;
+      state.temperature=29;
+      state.acceptCount+=1;
+      state.chargeComplete=true;
+      addEvent("맞춤 충전 완료",state.selectedLabel+" 목표 SOC "+state.targetSoc+"%에서 자동 충전을 종료했습니다.");
+      spawnEffect("💖",12);
+      spawnEffect("✨",8);
+      render();
+      setTimeout(()=>openModal("배불러요!","목표 SOC <b>"+state.targetSoc+"%</b>까지 딱 맞게 충전했어요.<br><br>과충전은 줄이고, 배터리는 아껴둘게요.<br>이제 <b>"+state.selectedLabel+" 청소가 가능해요!</b>"),450);
+      setTimeout(()=>{state.chargeComplete=false;render()},3200);
+      if(autoStart){setTimeout(startCleaning,1300)}
+    }
   },150);
 }
 function buyFood(){if(state.coins<50){showToast("코인이 부족해요.");return}state.coins-=50;state.food+=1;render();showToast("배터리 음식 1개를 구매했습니다.")}
@@ -1055,7 +1120,7 @@ const actions={
 };
 
 document.addEventListener("click",(event)=>{const nav=event.target.closest("[data-page]");if(nav){switchPage(nav.dataset.page);return}const action=event.target.closest("[data-action]");if(action&&typeof actions[action.dataset.action]==="function"){actions[action.dataset.action]()}});
-$("modalClose").addEventListener("click",closeModal);$("modal").addEventListener("click",(event)=>{if(event.target===$("modal"))closeModal()});
+$("modalCancel").addEventListener("click",closeModal);$("modalConfirm").addEventListener("click",()=>modalConfirmHandler());$("modal").addEventListener("click",(event)=>{if(event.target===$("modal"))closeModal()});
 $("targetSlider").addEventListener("input",(event)=>{state.targetSoc=Number(event.target.value);render()});
 $("tempSlider").addEventListener("input",(event)=>{state.temperature=Number(event.target.value);render()});
 
