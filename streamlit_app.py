@@ -1272,13 +1272,23 @@ const $=(id)=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.min(Math.max(v,min),max);
 const fmtSoc=(v)=>Number(v || 0).toFixed(1).replace(/\.0$/,"");
 const cleanMinutes=()=>Math.max(0,Math.round(state.soc*.56));
-const targetFromRequired=(required)=>clamp(Math.round(Number(required||0)+15),15,90);
+
+// 배터리 보호 기준
+// - 청소 종료 후 최소 15%는 반드시 남긴다.
+// - 목표 충전 SOC는 배터리 수명 보호를 위해 최대 90%까지만 허용한다.
+// - 따라서 한 번에 안전하게 수행 가능한 최대 청소 소모량은 75%이다.
+const MIN_RESERVE_SOC=15;
+const MAX_CHARGE_SOC=90;
+const MAX_SINGLE_PASS_USE=MAX_CHARGE_SOC-MIN_RESERVE_SOC;
+const CRITICAL_DOCK_SOC=MIN_RESERVE_SOC;
+const targetFromRequired=(required)=>clamp(Math.ceil(Number(required||0)+MIN_RESERVE_SOC),MIN_RESERVE_SOC,MAX_CHARGE_SOC);
+const expectedEndSoc=(startSoc,required)=>Math.round((Number(startSoc||0)-Number(required||0))*10)/10;
 
 // 1회차 학습 청소는 전체 집을 완전 청소하는 단계가 아니라
 // 집 구조/구역/바닥/오염도 정보를 수집하는 시범 학습 주행으로 처리합니다.
 // 따라서 CSV의 전체 청소 예상 SOC를 그대로 차감하지 않고,
 // 학습 주행용 소비량으로 축소 계산하며 최소 잔량을 남깁니다.
-const MIN_SOC_AFTER_LEARNING=15;
+const MIN_SOC_AFTER_LEARNING=MIN_RESERVE_SOC;
 const MIN_LEARNING_SOC_USE=5;
 const MAX_LEARNING_SOC_USE=30;
 const LEARNING_SOC_RATIO=0.35;
@@ -1366,6 +1376,9 @@ const state={
   todayStateLabel:'평소와 같음',
   matchNote:"CSV 머신러닝 예측값 사용",
   matchBasis:"조건 매칭",
+  cleaningRemainingSoc:activeRun.home.requiredSoc,
+  cleaningSegmentIndex:0,
+  splitCleaning:false,
   pendingCleanAfterCharge:false,
   chargeComplete:false,
   predicting:false,
@@ -1622,6 +1635,11 @@ function syncScenarioToState(scenario){
   state.todayStateLabel=scenario.todayStateLabel||state.todayStateLabel;
   state.matchNote=scenario.matchNote||"CSV 머신러닝 예측값 사용";
   state.matchBasis=scenario.matchBasis||"조건 매칭";
+  state.cleaningRemainingSoc=Number(state.requiredSoc||0);
+  state.cleaningSegmentIndex=0;
+  state.splitCleaning=state.requiredSoc>MAX_SINGLE_PASS_USE;
+  state.progress=0;
+  state.missionDone=false;
   state.area=scenario.cleaningAreaM2||state.area;
 }
 
@@ -2090,11 +2108,81 @@ function showStatus(){
   openModal("AI SOC 예측 결과","저장된 프로필 <b>"+state.areaPyung+"평</b><br>선택 범위 <b>"+scopeText+"</b>"+zoneInfo+"<br>청소 방식 <b>"+state.cleanModeLabel+"</b><br>청소 강도 <b>"+state.intensityLabel+"</b><br>오늘 상태 <b>"+state.todayStateLabel+"</b><br>예측 방식 <b>"+state.matchNote+"</b><br>현재 SOC <b>"+state.soc+"%</b><br>예상 SOC 소모량 <b>"+fmtSoc(state.requiredSoc)+"%</b><br>AI 목표 SOC <b>"+state.targetSoc+"%</b><br><br>사용 모델: <b>"+state.modelName+"</b>");
 }
 
+function getRemainingCleaningSoc(){
+  const total=Math.max(0,Number(state.requiredSoc||0));
+  let remaining=Number(state.cleaningRemainingSoc);
+  if(!Number.isFinite(remaining) || remaining<=0 || state.progress>=100 || state.missionDone){
+    remaining=total;
+  }
+  return Math.round(Math.min(Math.max(remaining,0),total)*10)/10;
+}
+
+function resetCleaningMissionPlan(){
+  state.cleaningRemainingSoc=Math.max(0,Number(state.requiredSoc||0));
+  state.cleaningSegmentIndex=0;
+  state.splitCleaning=state.cleaningRemainingSoc>MAX_SINGLE_PASS_USE;
+  state.progress=0;
+  state.missionDone=false;
+}
+
+function showSplitCleaningModal(){
+  const remaining=getRemainingCleaningSoc();
+  const needAtStart=targetFromRequired(remaining);
+  const maxUseAt90=MAX_SINGLE_PASS_USE;
+  state.targetSoc=MAX_CHARGE_SOC;
+  state.splitCleaning=true;
+  render();
+  const body="예상 SOC 소모량이 <b>"+fmtSoc(remaining)+"%</b>라서 한 번에 청소하면 15% 잔량을 유지하기 어려워요.<br><br>"
+    +"배터리 보호 기준 때문에 최대 충전은 <b>"+MAX_CHARGE_SOC+"%</b>, 최소 잔량은 <b>"+MIN_RESERVE_SOC+"%</b>로 유지합니다.<br>"
+    +"따라서 1회 주행에서 안전하게 쓸 수 있는 SOC는 최대 <b>"+maxUseAt90+"%</b>입니다.<br><br>"
+    +"이번 청소는 <b>분할 청소 + 중간 충전</b>으로 진행할게요.";
+  openModal("분할 청소가 필요해요",body,{
+    showCancel:true,
+    cancelText:"취소",
+    confirmText:state.soc<MAX_CHARGE_SOC?"90%까지 충전":"분할 청소 시작",
+    onConfirm:()=>{
+      closeModal();
+      if(state.soc<MAX_CHARGE_SOC){
+        chargeRobot(true);
+      }else{
+        startCleaning();
+      }
+    }
+  });
+}
+
+function showReserveChargeModal(autoStartAfterCharge=false){
+  const remaining=getRemainingCleaningSoc();
+  const needed=targetFromRequired(remaining);
+  const endIfStartNow=expectedEndSoc(state.soc,remaining);
+  state.targetSoc=needed;
+  render();
+  const body=state.selectedLabel+" 청소를 지금 시작하면 종료 예상 SOC가 <b>"+fmtSoc(endIfStartNow)+"%</b>가 될 수 있어요.<br><br>"
+    +"배터리 보호를 위해 청소 후 최소 <b>"+MIN_RESERVE_SOC+"%</b>는 남겨야 합니다.<br>"
+    +"예상 소모 SOC <b>"+fmtSoc(remaining)+"%</b> + 최소 잔량 <b>"+MIN_RESERVE_SOC+"%</b> 기준으로 <b>"+needed+"%</b>까지 충전 후 시작할게요.";
+  openModal("충전이 먼저 필요해요",body,{
+    showCancel:true,
+    cancelText:"취소",
+    confirmText:"충전하기",
+    onConfirm:()=>{
+      closeModal();
+      switchPage("homePage");
+      chargeRobot(autoStartAfterCharge);
+    }
+  });
+}
+
 function showChargeChoiceModal(autoStartAfterCharge=false){
+  const remaining=getRemainingCleaningSoc();
+  const needed=targetFromRequired(remaining);
+  state.targetSoc=needed;
+  const endAfterCharge=expectedEndSoc(needed,remaining);
   const body=state.selectedLabel+" 청소를 선택했어요.<br><br>"
     +(state.selectedScope==="zone"?state.selectedLabel+"의 바닥 타입은 <b>"+(state.floorType||"정보 없음")+"</b>입니다.<br>오염도는 <b>"+(state.dirtLevel||"정보 없음")+"</b>, 흡입 모드는 <b>"+(state.suctionMode||"AI 자동")+"</b>예요.<br><br>":"")
-    +"예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>안전 마진 15%를 더해 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.<br><br>"
-    +"아직 배고파요. 목표 SOC까지만 충전할까요?";
+    +"예상 SOC 소모량은 <b>"+fmtSoc(remaining)+"%</b>입니다.<br>"
+    +"청소 후 최소 <b>"+MIN_RESERVE_SOC+"%</b>를 남기기 위해 목표 SOC는 <b>"+needed+"%</b>예요.<br>"
+    +"목표 SOC로 시작하면 종료 예상 SOC는 약 <b>"+fmtSoc(endAfterCharge)+"%</b>입니다.<br><br>"
+    +"목표 SOC까지만 충전할까요?";
   openModal("아직 배고파요!",body,{
     showCancel:true,
     cancelText:"취소",
@@ -2113,21 +2201,115 @@ function startCleaning(){
   if(state.mapping){showToast("1회차 학습이 끝난 뒤 청소할 수 있어요.");return}
   if(!state.profileReady){openModal("1회차 학습이 먼저예요","아직 우리 집 구조와 구역 정보가 저장되지 않았어요.<br><br>먼저 <b>1회차 학습 청소</b>를 실행해 주세요.");return}
   if(!state.predicted){openModal("AI 예측이 필요해요","우리 집 프로필은 저장됐어요.<br><br>청소를 시작하기 전에 <b>AI 예측하기</b>로 필요한 목표 SOC를 계산해 주세요.");return}
-  if(state.soc<state.targetSoc){
-    showChargeChoiceModal(false);
+
+  const totalRequired=Math.max(0,Number(state.requiredSoc||0));
+  if(totalRequired<=0){openModal("예측값 확인 필요","예상 SOC 소모량이 0으로 계산되었습니다.<br>AI 예측을 다시 실행해 주세요.");return}
+
+  if(state.missionDone || state.progress>=100){
+    resetCleaningMissionPlan();
+  }
+
+  let remaining=getRemainingCleaningSoc();
+
+  // 90% 상한과 15% 잔량 기준으로 한 번에 끝낼 수 없는 경우에는 분할 청소로 전환
+  if(remaining>MAX_SINGLE_PASS_USE && state.soc<MAX_CHARGE_SOC){
+    showSplitCleaningModal();
     return;
   }
-  if(state.soc<15){showToast("SOC가 부족합니다. 먼저 충전해 주세요.");return}
-  state.cleaning=true;state.progress=0;
-  const startSoc=state.soc;const plannedUse=Math.min(state.requiredSoc,state.soc);render();showToast(state.selectedLabel+" 청소를 시작합니다!");
-  let step=0;const totalSteps=20;
+
+  const neededStart=targetFromRequired(remaining);
+  state.targetSoc=neededStart;
+
+  // 청소 시작 전 Reserve SOC Guard
+  // 현재 SOC - 남은 예상 소모 SOC가 15% 미만이면 청소를 시작하지 않고 충전 안내
+  if(remaining<=MAX_SINGLE_PASS_USE && state.soc<neededStart){
+    showReserveChargeModal(true);
+    return;
+  }
+
+  if(state.soc<=MIN_RESERVE_SOC){
+    showReserveChargeModal(true);
+    return;
+  }
+
+  const availableUse=Math.max(0,Number(state.soc||0)-MIN_RESERVE_SOC);
+  let segmentUse=remaining;
+  let segmentWillComplete=true;
+
+  // 분할 청소 중 첫 구간: 현재 SOC에서 15%를 남길 수 있는 만큼만 청소
+  if(remaining>availableUse){
+    segmentUse=availableUse;
+    segmentWillComplete=false;
+  }
+
+  if(segmentUse<=0){
+    showReserveChargeModal(true);
+    return;
+  }
+
+  state.cleaning=true;
+  state.chargeComplete=false;
+  state.missionDone=false;
+  const startSoc=Number(state.soc||0);
+  const startProgress=Number(state.progress||0);
+  const progressGain=Math.max(1,Math.round(segmentUse/totalRequired*100));
+  const endProgress=segmentWillComplete?100:Math.min(99,startProgress+progressGain);
+  const endSoc=Math.max(MIN_RESERVE_SOC,Math.round((startSoc-segmentUse)*10)/10);
+  state.cleaningSegmentIndex+=1;
+  render();
+  showToast(state.selectedLabel+" 청소를 시작합니다. 종료 후 최소 "+MIN_RESERVE_SOC+"%는 남길게요.");
+
+  let step=0;
+  const totalSteps=20;
   const timer=setInterval(()=>{
-    step+=1;state.progress=Math.round(step/totalSteps*100);state.soc=Math.max(0,startSoc-plannedUse*(step/totalSteps));state.temperature=Math.min(36,state.temperature+.25);render();
-    if(step>=totalSteps||state.soc<=10){
-      clearInterval(timer);state.cleaning=false;state.progress=100;state.temperature=29;state.missionDone=true;state.celebrating=true;state.cleanCount+=1;state.coins+=50;state.exp+=20;state.area=Math.round((state.area||0)+(state.cleaningAreaM2||0));state.average=Math.round((state.average+Math.max(15,Math.round(state.requiredSoc*1.4)))/2);levelCheck();
-      addEvent(state.selectedLabel+" 청소 완료","AI 예측 SOC "+fmtSoc(state.requiredSoc)+"%를 기준으로 청소를 완료했습니다.");spawnEffect("🎉",15);spawnEffect("⭐",9);render();
+    step+=1;
+    const ratio=step/totalSteps;
+    state.progress=Math.round(startProgress+(endProgress-startProgress)*ratio);
+    state.soc=Math.max(MIN_RESERVE_SOC,Math.round((startSoc-segmentUse*ratio)*10)/10);
+    state.temperature=Math.min(36,state.temperature+.25);
+    render();
+
+    // 실시간 SOC Guard: 예상보다 빨리 닳는 상황을 가정해도 15% 이하로 내려가기 전 도킹 처리
+    if(state.soc<=CRITICAL_DOCK_SOC && !segmentWillComplete){
+      step=totalSteps;
+    }
+
+    if(step>=totalSteps){
+      clearInterval(timer);
+      state.cleaning=false;
+      state.temperature=29;
+      state.soc=endSoc;
+      const newRemaining=Math.max(0,Math.round((remaining-segmentUse)*10)/10);
+      state.cleaningRemainingSoc=newRemaining;
+
+      if(newRemaining>0.2){
+        state.progress=endProgress;
+        state.targetSoc=targetFromRequired(newRemaining);
+        addEvent("중간 충전 필요",state.selectedLabel+" 청소 중 15% 잔량 보호 기준에 도달하여 도킹했습니다. 남은 예상 SOC "+fmtSoc(newRemaining)+"%.");
+        render();
+        setTimeout(()=>openModal("중간 충전 후 이어서 청소해요","배터리를 <b>"+MIN_RESERVE_SOC+"%</b> 이상 남기기 위해 청소를 잠시 멈췄어요.<br><br>현재 SOC <b>"+fmtSoc(state.soc)+"%</b><br>남은 예상 SOC <b>"+fmtSoc(newRemaining)+"%</b><br>다음 목표 SOC <b>"+state.targetSoc+"%</b><br><br>충전 후 남은 구역을 이어서 청소할게요.",{
+          showCancel:true,
+          cancelText:"나중에",
+          confirmText:"충전하고 이어서",
+          onConfirm:()=>{closeModal();chargeRobot(true);}
+        }),450);
+        return;
+      }
+
+      state.cleaningRemainingSoc=0;
+      state.progress=100;
+      state.missionDone=true;
+      state.celebrating=true;
+      state.cleanCount+=1;
+      state.coins+=50;
+      state.exp+=20;
+      state.area=Math.round((state.area||0)+(state.cleaningAreaM2||0));
+      state.average=Math.round((state.average+Math.max(15,Math.round(state.requiredSoc*1.4)))/2);
+      levelCheck();
+      addEvent(state.selectedLabel+" 청소 완료","AI 예측 SOC "+fmtSoc(state.requiredSoc)+"%와 최소 잔량 "+MIN_RESERVE_SOC+"% 기준을 지키며 청소를 완료했습니다.");
+      spawnEffect("🎉",15);spawnEffect("⭐",9);render();
       setTimeout(()=>{state.celebrating=false;render()},2200);
-      setTimeout(()=>openModal("청소 완료!",state.selectedLabel+" 청소를 완료했습니다.<br><br>예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>였고, 보상으로 <b>50코인</b>과 경험치 20을 획득했습니다."),550);
+      setTimeout(()=>openModal("청소 완료!",state.selectedLabel+" 청소를 완료했습니다.<br><br>예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>였고, 종료 SOC는 <b>"+fmtSoc(state.soc)+"%</b>입니다.<br>최소 잔량 <b>"+MIN_RESERVE_SOC+"%</b> 기준을 지켰어요.<br><br>보상으로 <b>50코인</b>과 경험치 20을 획득했습니다."),550);
     }
   },320);
 }
@@ -2136,6 +2318,7 @@ function chargeRobot(autoStart=false){
   if(state.cleaning){showToast("청소가 끝난 후 충전할 수 있어요.");return}
   if(state.charging){showToast("이미 충전 중이에요.");return}
   if(state.soc>=state.targetSoc){
+    if(autoStart){setTimeout(startCleaning,250);return}
     openModal("배불러요!","현재 SOC가 목표 SOC <b>"+state.targetSoc+"%</b>에 이미 도달했어요.<br><br>이제 "+state.selectedLabel+" 청소를 시작할 수 있어요.");
     return;
   }
