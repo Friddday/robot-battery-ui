@@ -1274,6 +1274,24 @@ const fmtSoc=(v)=>Number(v || 0).toFixed(1).replace(/\.0$/,"");
 const cleanMinutes=()=>Math.max(0,Math.round(state.soc*.56));
 const targetFromRequired=(required)=>clamp(Math.round(Number(required||0)+15),15,90);
 
+// 1회차 학습 청소는 전체 집을 완전 청소하는 단계가 아니라
+// 집 구조/구역/바닥/오염도 정보를 수집하는 시범 학습 주행으로 처리합니다.
+// 따라서 CSV의 전체 청소 예상 SOC를 그대로 차감하지 않고,
+// 학습 주행용 소비량으로 축소 계산하며 최소 잔량을 남깁니다.
+const MIN_SOC_AFTER_LEARNING=15;
+const MIN_LEARNING_SOC_USE=5;
+const MAX_LEARNING_SOC_USE=30;
+const LEARNING_SOC_RATIO=0.35;
+function getLearningSocUse(run,startSoc){
+  const fullRequired=Math.max(0,Number(run&&run.home?run.home.requiredSoc:0));
+  const available=Math.max(0,Number(startSoc||0)-MIN_SOC_AFTER_LEARNING);
+  if(fullRequired<=0 || available<=0)return 0;
+  let mappedUse=fullRequired*LEARNING_SOC_RATIO;
+  mappedUse=Math.max(MIN_LEARNING_SOC_USE,mappedUse);
+  mappedUse=Math.min(mappedUse,MAX_LEARNING_SOC_USE,fullRequired,available);
+  return Math.round(mappedUse*10)/10;
+}
+
 const cleanModeLabels={dry:"건식",mop:"물걸레",both:"건식+물걸레"};
 const intensityLabels={fast:"빠른",standard:"표준",careful:"꼼꼼"};
 const todayStateLabels={normal:"평소와 같음",dust:"먼지 많음",pet:"반려동물 털 많음",obstacle:"바닥 물건 많음"};
@@ -1358,6 +1376,7 @@ const state={
   mappingStepIndex:-1,
   firstRunSocUsed:0,
   firstRunRequiredSoc:0,
+  firstRunFullRequiredSoc:0,
   firstRunStartSoc:predictionData.currentSoc,
   firstRunEndSoc:predictionData.currentSoc,
   firstRunSocEnough:true,
@@ -1669,7 +1688,7 @@ function obstacleSummary(){return activeRun && activeRun.home ? (activeRun.home.
 function profileResultBody(){
   const startSoc=Number(state.firstRunStartSoc||0);
   const endSoc=Number(state.firstRunEndSoc||state.soc||0);
-  const recorded=Number(state.firstRunRequiredSoc||state.firstRunSocUsed||0);
+  const recorded=Number(state.firstRunSocUsed||state.firstRunRequiredSoc||0);
   const used=Number(state.firstRunSocUsed||0);
   const socLine=state.firstRunSocEnough
     ? "SOC 변화: <b>"+Math.round(startSoc)+"% → "+Math.round(endSoc)+"%</b>"
@@ -1687,29 +1706,38 @@ function profileResultBody(){
 }
 function startFirstMapping(){
   if(state.cleaning||state.charging||state.mapping){showToast("진행 중인 작업이 끝난 뒤 다시 시도해 주세요.");return}
-  activeRun=pickRandomRun(predictionData.runs) || predictionData.runs[0];
-  syncScenarioToState(activeRun.home);
 
   const startSoc=clamp(Math.round(Number(state.soc||0)),0,100);
-  const requiredSoc=Number(activeRun.home.requiredSoc||0);
-  const actualUse=Math.min(requiredSoc,startSoc);
-  const expectedEndSoc=Math.max(0,startSoc-actualUse);
+  if(startSoc < MIN_SOC_AFTER_LEARNING + MIN_LEARNING_SOC_USE){
+    openModal("학습 전 충전이 필요해요","1회차 학습 청소 후에도 최소 <b>"+MIN_SOC_AFTER_LEARNING+"%</b>의 배터리를 남기도록 설정했어요.<br><br>현재 SOC가 <b>"+startSoc+"%</b>라서 먼저 충전한 뒤 학습 청소를 시작하는 것이 안전합니다.");
+    return;
+  }
+
+  // 현재 SOC 기준으로 학습 주행 후 최소 잔량을 남길 수 있는 CSV 시나리오를 우선 선택합니다.
+  const safeRuns=predictionData.runs.filter(r=>getLearningSocUse(r,startSoc)>0);
+  activeRun=pickRandomRun(safeRuns.length?safeRuns:predictionData.runs) || predictionData.runs[0];
+  syncScenarioToState(activeRun.home);
+
+  const fullRequiredSoc=Number(activeRun.home.requiredSoc||0);
+  const learningUse=getLearningSocUse(activeRun,startSoc);
+  const expectedEndSoc=Math.max(MIN_SOC_AFTER_LEARNING,startSoc-learningUse);
 
   state.profileReady=false;
   state.predicted=false;
   state.mapping=true;
   state.mappingProgress=0;
   state.mappingStepIndex=0;
-  state.firstRunRequiredSoc=requiredSoc;
-  state.firstRunSocUsed=actualUse;
+  state.firstRunFullRequiredSoc=fullRequiredSoc;
+  state.firstRunRequiredSoc=learningUse;
+  state.firstRunSocUsed=learningUse;
   state.firstRunStartSoc=startSoc;
   state.firstRunEndSoc=expectedEndSoc;
-  state.firstRunSocEnough=startSoc>=requiredSoc;
+  state.firstRunSocEnough=true;
   state.soc=startSoc;
   state.chargeComplete=false;
   state.celebrating=false;
   switchPage("homePage");
-  showToast("1회차 학습 청소를 시작합니다. 배터리 SOC가 실제로 감소해요.");
+  showToast("1회차 학습 청소를 시작합니다. 학습 주행 SOC만큼 배터리가 감소해요.");
   render();
 
   let tick=0;
@@ -1720,7 +1748,7 @@ function startFirstMapping(){
     state.mappingProgress=Math.min(100,Math.round(ratio*100));
     state.mappingStepIndex=Math.min(mappingSteps.length-1,Math.floor((tick-1)/4));
     state.progress=state.mappingProgress;
-    state.soc=Math.max(0,Math.round((startSoc-actualUse*ratio)*10)/10);
+    state.soc=Math.max(MIN_SOC_AFTER_LEARNING,Math.round((startSoc-learningUse*ratio)*10)/10);
     state.firstRunEndSoc=state.soc;
     state.temperature=Math.min(33,state.temperature+0.08);
     render();
@@ -1730,14 +1758,14 @@ function startFirstMapping(){
       state.profileReady=true;
       state.predicted=false;
       state.progress=100;
-      state.soc=Math.max(0,Math.round(expectedEndSoc));
+      state.soc=Math.max(MIN_SOC_AFTER_LEARNING,Math.round(expectedEndSoc));
       state.firstRunEndSoc=state.soc;
       const scopeSelect=$("scopeSelect"); if(scopeSelect)scopeSelect.value='home';
       const cleanModeSelect=$("cleanModeSelect"); if(cleanModeSelect)cleanModeSelect.value=activeRun.home.mopEnabled?'mop':'dry';
       const intensitySelect=$("intensitySelect"); if(intensitySelect)intensitySelect.value='standard';
       const todayStateSelect=$("todayStateSelect"); if(todayStateSelect)todayStateSelect.value='normal';
       state.temperature=29;
-      const eventMsg="시작 SOC "+Math.round(startSoc)+"% → 현재 SOC "+Math.round(state.soc)+"% · 학습 소모 "+fmtSoc(requiredSoc)+"%";
+      const eventMsg="시작 SOC "+Math.round(startSoc)+"% → 현재 SOC "+Math.round(state.soc)+"% · 학습 소모 "+fmtSoc(learningUse)+"%";
       addEvent("1회차 학습 청소 완료",eventMsg);
       spawnEffect("🏠",8);spawnEffect("✨",9);
       render();
