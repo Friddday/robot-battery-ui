@@ -212,11 +212,15 @@ def _make_demo_runs():
                     "targetSoc": _soc_target(required),
                     "modelName": "RandomForest",
                     "cleaningType": "물걸레" if mop_enabled else "건식",
+                    "cleaningTypeCode": 1 if mop_enabled else 0,
                     "mopEnabled": mop_enabled,
                     "obstacleLevel": "중간",
+                    "obstacleLevelCode": 2,
                     "floorType": floor_types[i-1],
                     "dirtLevel": dirt_levels[i-1],
+                    "dirtCode": 3 if dirt_levels[i-1] == "높음" else (2 if dirt_levels[i-1] == "중간" else 1),
                     "suctionMode": "AI 자동",
+                    "suctionCode": 2,
                 })
             home_required = round(sum(z["requiredSoc"] for z in zones), 1)
             home = {
@@ -229,11 +233,17 @@ def _make_demo_runs():
                 "targetSoc": _soc_target(home_required),
                 "modelName": "XGBoost",
                 "cleaningType": "물걸레" if mop_enabled else "건식",
+                "cleaningTypeCode": 1 if mop_enabled else 0,
                 "mopEnabled": mop_enabled,
                 "obstacleLevel": "중간",
+                "obstacleLevelCode": 2,
                 "floorType": "혼합",
                 "dirtLevel": "평균",
+                "dirtCode": 2,
+                "dirtMaxCode": 3,
                 "suctionMode": "AI 자동",
+                "suctionCode": 2,
+                "suctionMaxCode": 3,
             }
             runs.append({
                 "globalRunId": home["globalRunId"],
@@ -259,6 +269,12 @@ def _build_home_scenario(home_row):
     )
     mop_enabled = _infer_mop(home_row)
     cleaning_type = _safe_text(home_row, ["cleaning_type_first", "cleaning_type"], "물걸레" if mop_enabled else "건식")
+    cleaning_type_code = int(round(_safe_float(home_row, ["cleaning_type_code_first", "cleaning_type_code"], 1 if mop_enabled else 0)))
+    obstacle_code = _safe_float(home_row, ["obstacle_level_code_first", "obstacle_level_code"], 0)
+    dirt_mean_code = _safe_float(home_row, ["dirt_level_code_mean", "dirt_level_code"], 0)
+    dirt_max_code = _safe_float(home_row, ["dirt_level_code_max", "dirt_level_code"], dirt_mean_code)
+    suction_mean_code = _safe_float(home_row, ["suction_mode_code_mean", "suction_mode_code"], 0)
+    suction_max_code = _safe_float(home_row, ["suction_mode_code_max", "suction_mode_code"], suction_mean_code)
     return {
         "scope": "home",
         "label": "집 전체",
@@ -269,11 +285,17 @@ def _build_home_scenario(home_row):
         "targetSoc": int(round(max(15, min(float(target), 90)))),
         "modelName": _safe_text(home_row, ["best_model"], "XGBoost"),
         "cleaningType": cleaning_type,
+        "cleaningTypeCode": cleaning_type_code,
         "mopEnabled": mop_enabled,
         "obstacleLevel": _safe_text(home_row, ["obstacle_level_first", "obstacle_level"], ""),
+        "obstacleLevelCode": round(float(obstacle_code), 3),
         "floorType": "혼합",
         "dirtLevel": "평균",
+        "dirtCode": round(float(dirt_mean_code), 3),
+        "dirtMaxCode": round(float(dirt_max_code), 3),
         "suctionMode": "AI 자동",
+        "suctionCode": round(float(suction_mean_code), 3),
+        "suctionMaxCode": round(float(suction_max_code), 3),
     }
 
 
@@ -286,6 +308,10 @@ def _build_zone_scenario(zrow, idx, home):
     )
     mop_enabled = _infer_mop(zrow)
     cleaning_type = _safe_text(zrow, ["cleaning_type"], home.get("cleaningType", ""))
+    cleaning_type_code = int(round(_safe_float(zrow, ["cleaning_type_code"], 1 if mop_enabled else 0)))
+    obstacle_code = _safe_float(zrow, ["obstacle_level_code"], home.get("obstacleLevelCode", 0))
+    dirt_code = _safe_float(zrow, ["dirt_level_code"], 0)
+    suction_code = _safe_float(zrow, ["suction_mode_code"], 0)
     return {
         "scope": "zone",
         "zone": zone_no,
@@ -297,11 +323,15 @@ def _build_zone_scenario(zrow, idx, home):
         "targetSoc": _soc_target(required),
         "modelName": _safe_text(zrow, ["best_model"], "RandomForest"),
         "cleaningType": cleaning_type,
+        "cleaningTypeCode": cleaning_type_code,
         "mopEnabled": mop_enabled,
         "obstacleLevel": _safe_text(zrow, ["obstacle_level"], home.get("obstacleLevel", "")),
+        "obstacleLevelCode": round(float(obstacle_code), 3),
         "floorType": _safe_text(zrow, ["floor_type"], ""),
         "dirtLevel": _safe_text(zrow, ["dirt_level"], ""),
+        "dirtCode": round(float(dirt_code), 3),
         "suctionMode": _safe_text(zrow, ["effective_suction_mode"], ""),
+        "suctionCode": round(float(suction_code), 3),
     }
 
 
@@ -350,9 +380,9 @@ def make_prediction_payload(home_df, zone_df):
                 "scope": "home", "label": "집 전체", "globalRunId": str(gid), "areaPyung": area,
                 "cleaningAreaM2": int(round(zdf["zone_area_m2"].sum())) if "zone_area_m2" in zdf.columns else 0,
                 "requiredSoc": 0, "targetSoc": 15, "modelName": "XGBoost",
-                "cleaningType": "물걸레" if mop_enabled else "건식", "mopEnabled": mop_enabled,
-                "obstacleLevel": _safe_text(first, ["obstacle_level"], ""), "floorType": "혼합",
-                "dirtLevel": "평균", "suctionMode": "AI 자동"
+                "cleaningType": "물걸레" if mop_enabled else "건식", "cleaningTypeCode": 1 if mop_enabled else 0, "mopEnabled": mop_enabled,
+                "obstacleLevel": _safe_text(first, ["obstacle_level"], ""), "obstacleLevelCode": _safe_float(first, ["obstacle_level_code"], 0), "floorType": "혼합",
+                "dirtLevel": "평균", "dirtCode": 0, "dirtMaxCode": 0, "suctionMode": "AI 자동", "suctionCode": 0, "suctionMaxCode": 0
             }
             zones = []
             for idx, (_, zrow) in enumerate(zdf.head(5).iterrows(), start=1):
@@ -567,6 +597,108 @@ button,input{font-family:inherit} button{cursor:pointer}
 #homePage .home-dashboard{scrollbar-width:none;}
 @media(max-height:820px){
   #homePage .room{flex-basis:330px;height:330px;min-height:330px;}
+}
+
+
+/* ===== Large text mode: all readable UI text increased by 30%+ ===== */
+.phone{height:1040px!important;}
+.header{height:154px!important;padding:29px 16px 10px!important;}
+.pages{height:calc(100% - 154px)!important;}
+body,button,input,select{font-size:15px!important;}
+.brand{font-size:13px!important;}
+.app-title{font-size:32px!important;}
+.coin-pill{font-size:17px!important;padding:10px 14px!important;}
+.nav{gap:8px!important;margin-top:14px!important;}
+.nav-btn{font-size:14px!important;min-height:42px!important;padding:9px 4px!important;}
+.section-kicker{font-size:12px!important;}
+.section-title{font-size:30px!important;}
+.speech{width:238px!important;min-height:98px!important;font-size:16px!important;line-height:1.62!important;padding:17px 15px!important;}
+.speech strong{font-size:19px!important;}
+.mode-chip{font-size:13px!important;padding:9px 15px!important;}
+.mission-title{font-size:14px!important;}
+.mission-text{font-size:13px!important;line-height:1.55!important;}
+.reward-small{font-size:13px!important;}
+.quick-btn{font-size:12px!important;min-height:58px!important;}
+.action-btn{font-size:12px!important;}
+.mini-title{font-size:15px!important;}
+.battery-info{font-size:13px!important;line-height:1.6!important;}
+.battery-message{font-size:13px!important;line-height:1.55!important;padding:9px!important;}
+.time-number{font-size:39px!important;}
+.time-number small{font-size:16px!important;}
+.time-sub{font-size:12px!important;}
+.time-tip{font-size:13px!important;line-height:1.55!important;padding:9px 7px!important;}
+.food-title,.food-count{font-size:13px!important;}
+.plan-panel{padding:14px 12px!important;}
+.plan-title{font-size:15px!important;}
+.plan-model{font-size:12px!important;padding:6px 9px!important;}
+.learn-panel{padding:14px 12px!important;border-radius:16px!important;}
+.learn-title{font-size:15px!important;}
+.learn-pill{font-size:12px!important;padding:6px 9px!important;}
+.learn-desc{font-size:13px!important;line-height:1.6!important;}
+.learn-status{font-size:13px!important;line-height:1.55!important;}
+.learn-step{font-size:12px!important;line-height:1.35!important;padding:8px 6px!important;}
+.learn-btn{font-size:16px!important;min-height:48px!important;}
+.condition-panel{padding:14px 12px!important;border-radius:16px!important;}
+.condition-title{font-size:15px!important;line-height:1.5!important;margin-bottom:10px!important;}
+.condition-row{grid-template-columns:92px 1fr!important;gap:9px 10px!important;align-items:center!important;}
+.condition-row label{font-size:13px!important;}
+.condition-select{font-size:15px!important;min-height:48px!important;padding:0 12px!important;border-radius:12px!important;}
+.predict-condition-grid{grid-template-columns:92px 1fr!important;gap:9px 10px!important;align-items:center!important;}
+.predict-condition-grid label{font-size:13px!important;white-space:normal!important;}
+.condition-help{font-size:13px!important;line-height:1.6!important;margin:10px 0 0!important;}
+.profile-chip{font-size:12px!important;padding:6px 10px!important;}
+.first-learn-note{font-size:13px!important;line-height:1.6!important;padding:10px 11px!important;}
+.predict-btn{font-size:16px!important;min-height:50px!important;border-radius:13px!important;}
+.predict-loading{font-size:13px!important;line-height:1.55!important;min-height:26px!important;}
+.scope-buttons{grid-template-columns:repeat(2,1fr)!important;gap:8px!important;}
+.scope-btn{font-size:13px!important;min-height:50px!important;padding:8px 6px!important;}
+.selected-plan{grid-template-columns:1fr!important;gap:10px!important;}
+.plan-summary{font-size:14px!important;line-height:1.65!important;padding:13px!important;}
+.plan-soc{padding:13px!important;}
+.plan-soc-label{font-size:13px!important;}
+.plan-soc-value{font-size:35px!important;}
+.plan-soc-sub{font-size:13px!important;line-height:1.5!important;}
+.start-clean-primary{font-size:18px!important;min-height:64px!important;border-radius:16px!important;}
+.start-clean-primary small{font-size:12px!important;}
+.gauge-label{font-size:13px!important;}
+.gauge-value{font-size:32px!important;}
+.gauge-desc{font-size:13px!important;line-height:1.55!important;}
+.control-head{font-size:15px!important;}
+.control-caption{font-size:12px!important;}
+.primary-btn{font-size:16px!important;min-height:48px!important;}
+.panel-title{font-size:18px!important;}
+.panel-head > div:last-child{font-size:14px!important;}
+.badge{font-size:12px!important;}
+.chart-text{font-size:12px!important;}
+.legend{font-size:13px!important;}
+.insight-row{font-size:14px!important;line-height:1.65!important;}
+.record-label,.event-time{font-size:13px!important;}
+.record-value{font-size:31px!important;}
+.event-content strong{font-size:14px!important;}
+.event-content span{font-size:13px!important;line-height:1.55!important;}
+.bar-value{font-size:12px!important;}
+.bar-label{font-size:12px!important;}
+.level-number{font-size:34px!important;}
+.level-caption{font-size:12px!important;}
+.reward-title{font-size:15px!important;}
+.reward-desc{font-size:13px!important;line-height:1.55!important;}
+.reward-btn{font-size:13px!important;min-height:40px!important;}
+.modal-title{font-size:25px!important;}
+.modal-body{font-size:17px!important;line-height:1.75!important;}
+.modal-btn{font-size:17px!important;padding:14px!important;}
+.toast{font-size:15px!important;line-height:1.55!important;}
+#homePage .home-dashboard{padding:14px 10px 34px!important;}
+@media(max-width:440px){
+  .phone{height:100vh!important;}
+  .header{height:154px!important;}
+  .pages{height:calc(100% - 154px)!important;}
+  .condition-row,.predict-condition-grid{grid-template-columns:88px 1fr!important;gap:9px 9px!important;}
+  .scope-buttons{grid-template-columns:repeat(2,1fr)!important;}
+}
+@media(max-height:820px){
+  #homePage .room{flex-basis:318px!important;height:318px!important;min-height:318px!important;}
+  .speech{top:12px!important;}
+  .mode-chip{top:114px!important;}
 }
 
 </style>
@@ -899,9 +1031,10 @@ const targetFromRequired=(required)=>clamp(Math.round(Number(required||0)+15),15
 const cleanModeLabels={dry:"건식",mop:"물걸레",both:"건식+물걸레"};
 const intensityLabels={fast:"빠른",standard:"표준",careful:"꼼꼼"};
 const todayStateLabels={normal:"평소와 같음",dust:"먼지 많음",pet:"반려동물 털 많음",obstacle:"바닥 물건 많음"};
-const cleanModeMultipliers={dry:1.00,mop:1.08,both:1.15};
-const intensityMultipliers={fast:0.90,standard:1.00,careful:1.12};
-const todayStateMultipliers={normal:1.00,dust:1.05,pet:1.08,obstacle:1.06};
+// 아래 선택값은 배율을 곱하는 보정계수가 아니라,
+// CSV 안에서 조건이 가장 가까운 머신러닝 예측 행을 찾기 위한 검색 조건으로 사용됩니다.
+const intensityAliases={fast:["약","중"],standard:["중","강"],careful:["강","터보"]};
+const todayStateAliases={normal:"학습 프로필 기준",dust:"오염도 높은 조건",pet:"오염도 높음 + 강한 흡입 조건",obstacle:"장애물 많은 조건"};
 
 function pickRandomRun(candidates){
   if(!candidates || candidates.length===0)return null;
@@ -967,7 +1100,8 @@ const state={
   intensityLabel:'표준',
   todayStateChoice:'normal',
   todayStateLabel:'평소와 같음',
-  adjustmentMultiplier:1,
+  matchNote:"CSV 머신러닝 예측값 사용",
+  matchBasis:"조건 매칭",
   pendingCleanAfterCharge:false,
   chargeComplete:false,
   predicting:false,
@@ -1044,27 +1178,147 @@ function getBaseScenarioFromChoices(choices){
   return getScenario("zone",choices.zoneNumber);
 }
 
-function makeAdjustedScenario(baseScenario,choices){
-  const mClean=cleanModeMultipliers[choices.cleanMode]||1;
-  const mIntensity=intensityMultipliers[choices.intensity]||1;
-  const mToday=todayStateMultipliers[choices.todayState]||1;
-  const multiplier=mClean*mIntensity*mToday;
-  const required=Math.max(1,Number(baseScenario.requiredSoc||0)*multiplier);
-  const scenario=Object.assign({},baseScenario);
-  scenario.requiredSoc=Math.round(required*10)/10;
-  scenario.targetSoc=targetFromRequired(scenario.requiredSoc);
-  scenario.cleaningType=cleanModeLabels[choices.cleanMode]||baseScenario.cleaningType;
-  scenario.mopEnabled=choices.cleanMode!=="dry";
+function getCleanModeCandidateValue(scenario){
+  const txt=String(scenario.cleaningType||"");
+  if(txt.includes("건식+물걸레")||txt.includes("복합")||txt.includes("both"))return "both";
+  if(scenario.mopEnabled || txt.includes("물걸레") || txt.toLowerCase().includes("mop"))return "mop";
+  return "dry";
+}
+
+function cleanModeScore(scenario,choice){
+  const v=getCleanModeCandidateValue(scenario);
+  if(choice===v)return 120;
+  // 데이터셋에 건식+물걸레가 없을 수 있으므로, 복합 청소는 물걸레 조건을 가장 가까운 후보로 인정합니다.
+  if(choice==="both" && v==="mop")return 70;
+  return -260;
+}
+
+function suctionPreferenceScore(scenario,intensity){
+  const mode=String(scenario.suctionMode||"");
+  const code=Number(scenario.suctionCode||scenario.suctionMaxCode||0);
+  if(intensity==="fast"){
+    if(mode.includes("약"))return 80;
+    if(mode.includes("중"))return 50;
+    if(code && code<=2)return 60;
+    return -25;
+  }
+  if(intensity==="careful"){
+    if(mode.includes("터보"))return 90;
+    if(mode.includes("강"))return 65;
+    if(code && code>=3)return 70;
+    return -20;
+  }
+  // 표준은 중/강 또는 학습 프로필과 가까운 후보를 우선합니다.
+  if(mode.includes("중"))return 70;
+  if(mode.includes("강"))return 45;
+  if(code && code>=2 && code<=3)return 55;
+  return 10;
+}
+
+function todayStateScore(scenario,choice,baseScenario){
+  const dirt=Number(scenario.dirtCode||scenario.dirtMaxCode||0);
+  const dirtMax=Number(scenario.dirtMaxCode||dirt||0);
+  const obs=Number(scenario.obstacleLevelCode||0);
+  const suction=Number(scenario.suctionCode||scenario.suctionMaxCode||0);
+  const mode=String(scenario.suctionMode||"");
+  const baseDirt=Number(baseScenario.dirtCode||baseScenario.dirtMaxCode||0);
+  const baseObs=Number(baseScenario.obstacleLevelCode||0);
+
+  if(choice==="dust"){
+    if(dirtMax>=3 || dirt>=3 || String(scenario.dirtLevel||"").includes("높"))return 100;
+    if(dirt>=2)return 45;
+    return -20;
+  }
+  if(choice==="pet"){
+    let score=0;
+    if(dirtMax>=3 || dirt>=3 || String(scenario.dirtLevel||"").includes("높"))score+=60;
+    if(suction>=3 || mode.includes("강") || mode.includes("터보"))score+=60;
+    return score || -20;
+  }
+  if(choice==="obstacle"){
+    if(obs>=3 || String(scenario.obstacleLevel||"").includes("높"))return 100;
+    if(obs>=2 || String(scenario.obstacleLevel||"").includes("중"))return 45;
+    return -20;
+  }
+  // 평소와 같음은 1회차 학습 프로필의 오염도/장애물 수준과 가까운 후보를 우선합니다.
+  return 70 - Math.abs((dirt||baseDirt)-baseDirt)*12 - Math.abs((obs||baseObs)-baseObs)*12;
+}
+
+function scenarioPoolForChoices(choices){
+  if(!predictionData.runs || !predictionData.runs.length)return [];
+  if(choices.scope==="home"){
+    return predictionData.runs.map(r=>r.home).filter(Boolean);
+  }
+  const zoneNo=Number(choices.zoneNumber||1);
+  const pool=[];
+  predictionData.runs.forEach(r=>{
+    const z=(r.zones||[]).find(item=>Number(item.zone)===zoneNo);
+    if(z)pool.push(z);
+  });
+  return pool;
+}
+
+function scoreScenarioForChoices(scenario,choices,baseScenario){
+  let score=0;
+  score+=cleanModeScore(scenario,choices.cleanMode);
+  score+=suctionPreferenceScore(scenario,choices.intensity);
+  score+=todayStateScore(scenario,choices.todayState,baseScenario);
+
+  // 1회차 학습한 우리 집 프로필과 최대한 가까운 후보를 우선합니다.
+  if(Number(scenario.areaPyung)===Number(activeRun.home.areaPyung))score+=180;
+  else score-=Math.abs(Number(scenario.areaPyung||0)-Number(activeRun.home.areaPyung||0))*4;
+
+  if(choices.scope==="zone"){
+    if(Number(scenario.zone)===Number(choices.zoneNumber))score+=80;
+    if(baseScenario.floorType && scenario.floorType===baseScenario.floorType)score+=90;
+    else if(baseScenario.floorType && scenario.floorType)score-=35;
+    score-=Math.abs(Number(scenario.cleaningAreaM2||0)-Number(baseScenario.cleaningAreaM2||0))*1.5;
+  }else{
+    score-=Math.abs(Number(scenario.cleaningAreaM2||0)-Number(activeRun.home.cleaningAreaM2||0))*.25;
+  }
+
+  // 동점 방지를 위한 아주 작은 랜덤값. 조건 점수 자체에는 영향이 거의 없습니다.
+  score+=Math.random()*0.01;
+  return score;
+}
+
+function findMlScenarioFromChoices(choices){
+  const baseScenario=getBaseScenarioFromChoices(choices);
+  const pool=scenarioPoolForChoices(choices);
+  if(!pool.length){
+    const fallback=Object.assign({},baseScenario);
+    fallback.matchNote="CSV 후보가 없어 1회차 학습 프로필 예측값을 사용";
+    return fallback;
+  }
+
+  let best=null;
+  let bestScore=-Infinity;
+  pool.forEach(candidate=>{
+    const score=scoreScenarioForChoices(candidate,choices,baseScenario);
+    if(score>bestScore){bestScore=score;best=candidate;}
+  });
+
+  const scenario=Object.assign({},best||baseScenario);
+  scenario.scope=choices.scope;
+  if(choices.scope==="zone"){
+    scenario.zone=Number(choices.zoneNumber||scenario.zone||1);
+    scenario.label=scenario.zone+"구역";
+  }else{
+    scenario.label="집 전체";
+  }
   scenario.cleanModeChoice=choices.cleanMode;
-  scenario.cleanModeLabel=cleanModeLabels[choices.cleanMode]||baseScenario.cleaningType;
+  scenario.cleanModeLabel=cleanModeLabels[choices.cleanMode]||scenario.cleaningType;
   scenario.intensityChoice=choices.intensity;
   scenario.intensityLabel=intensityLabels[choices.intensity]||"표준";
   scenario.todayStateChoice=choices.todayState;
   scenario.todayStateLabel=todayStateLabels[choices.todayState]||"평소와 같음";
-  scenario.adjustmentMultiplier=Math.round(multiplier*100)/100;
-  if(choices.todayState==="dust")scenario.dirtLevel=(baseScenario.dirtLevel||"보통")+" + 먼지 보정";
-  if(choices.todayState==="pet")scenario.dirtLevel=(baseScenario.dirtLevel||"보통")+" + 털 보정";
-  if(choices.todayState==="obstacle")scenario.obstacleLevel="높음 보정";
+  scenario.targetSoc=targetFromRequired(scenario.requiredSoc);
+  scenario.matchNote="선택 조건과 가장 가까운 CSV 머신러닝 예측값 사용";
+  scenario.matchBasis="청소방식·흡입모드·오염도·장애물 수준 조건 매칭";
+
+  if(choices.cleanMode==="both" && getCleanModeCandidateValue(scenario)!=="both"){
+    scenario.matchNote="건식+물걸레와 가장 가까운 물걸레 조건의 ML 예측값 사용";
+  }
   return scenario;
 }
 
@@ -1091,7 +1345,8 @@ function syncScenarioToState(scenario){
   state.intensityLabel=scenario.intensityLabel||state.intensityLabel;
   state.todayStateChoice=scenario.todayStateChoice||state.todayStateChoice;
   state.todayStateLabel=scenario.todayStateLabel||state.todayStateLabel;
-  state.adjustmentMultiplier=scenario.adjustmentMultiplier||1;
+  state.matchNote=scenario.matchNote||"CSV 머신러닝 예측값 사용";
+  state.matchBasis=scenario.matchBasis||"조건 매칭";
   state.area=scenario.cleaningAreaM2||state.area;
 }
 
@@ -1102,17 +1357,16 @@ function predictSocFromConditions(){
     return;
   }
   const choices=getPredictionChoices();
-  const baseScenario=getBaseScenarioFromChoices(choices);
-  const adjustedScenario=makeAdjustedScenario(baseScenario,choices);
+  const matchedScenario=findMlScenarioFromChoices(choices);
   const loading=$('predictLoading');
   state.predicting=true;
-  if(loading){loading.textContent="저장된 우리 집 프로필에 오늘 청소 조건을 반영해 SOC를 계산 중이에요...";loading.classList.add('active');}
-  $("speech").innerHTML="<strong style='color:#2f8b3a'>잠깐만요!</strong><br>오늘 조건을 반영해 SOC를 계산하고 있어요.";
+  if(loading){loading.textContent="선택 조건과 가장 가까운 머신러닝 예측값을 CSV에서 찾는 중이에요...";loading.classList.add('active');}
+  $("speech").innerHTML="<strong style='color:#2f8b3a'>잠깐만요!</strong><br>조건에 맞는 ML 예측값을 찾고 있어요.";
   $("modeChip").textContent="🤖 우리 집 기록 기반 AI 예측 중";
-  showToast("우리 집 프로필에 오늘 청소 조건을 반영합니다.");
+  showToast("CSV에서 조건이 가장 가까운 ML 예측값을 조회합니다.");
 
   setTimeout(()=>{
-    syncScenarioToState(adjustedScenario);
+    syncScenarioToState(matchedScenario);
     state.predicted=true;
     state.predicting=false;
     if(loading){
@@ -1125,8 +1379,9 @@ function predictSocFromConditions(){
       +"선택 범위: <b>"+scopeText+"</b><br>"
       +"청소 방식: <b>"+state.cleanModeLabel+"</b><br>"
       +"청소 강도: <b>"+state.intensityLabel+"</b><br>"
-      +"오늘 상태: <b>"+state.todayStateLabel+"</b><br><br>"
-      +"기준 예측값에 오늘 조건 보정값을 반영한 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>"
+      +"오늘 상태: <b>"+state.todayStateLabel+"</b><br>" 
+      +"예측 방식: <b>"+state.matchNote+"</b><br><br>"
+      +"선택 조건과 가장 가까운 머신러닝 예측값 기준 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>"
       +"안전 마진 15%를 더해서 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.";
     openModal("AI 예측 완료!",body);
   },900);
@@ -1203,9 +1458,8 @@ function selectScenario(scope,zoneNumber=null){
   const scopeSelect=$('scopeSelect');
   if(scopeSelect)scopeSelect.value=scope==="home"?"home":String(zoneNumber||1);
   const choices=getPredictionChoices(scope,zoneNumber);
-  const baseScenario=getBaseScenarioFromChoices(choices);
-  const adjustedScenario=makeAdjustedScenario(baseScenario,choices);
-  syncScenarioToState(adjustedScenario);
+  const matchedScenario=findMlScenarioFromChoices(choices);
+  syncScenarioToState(matchedScenario);
   render();
   openScenarioModal();
 }
@@ -1214,7 +1468,7 @@ function openScenarioModal(){
   const enough=state.soc>=state.targetSoc;
   const title=enough?"배가 든든해요!":"아직 배고파요!";
   const scopeText=state.selectedScope==="home"?"집 전체 청소":state.selectedLabel+" 청소";
-  const conditionLine="청소 방식 <b>"+state.cleanModeLabel+"</b> · 청소 강도 <b>"+state.intensityLabel+"</b> · 오늘 상태 <b>"+state.todayStateLabel+"</b><br><br>";
+  const conditionLine="청소 방식 <b>"+state.cleanModeLabel+"</b> · 청소 강도 <b>"+state.intensityLabel+"</b> · 오늘 상태 <b>"+state.todayStateLabel+"</b><br>예측 방식 <b>"+state.matchNote+"</b><br><br>";
   const zoneLine=state.selectedScope==="zone"
     ? "1회차 학습 결과, "+state.selectedLabel+"의 바닥 타입은 <b>"+(state.floorType||"정보 없음")+"</b>입니다.<br>오염도는 <b>"+(state.dirtLevel||"정보 없음")+"</b>, 흡입 모드는 <b>"+(state.suctionMode||"AI 자동")+"</b>로 기록됐어요.<br><br>"
     : "1회차 학습으로 저장한 5개 구역 기록을 모두 합산해서 예측했어요.<br><br>";
@@ -1327,7 +1581,7 @@ function renderPlan(){
     ? state.areaPyung+"평 프로필 · "+state.cleaningAreaM2+"㎡"
     : (state.floorType||"바닥재질")+" · 오염도 "+(state.dirtLevel||"-")+" · "+state.cleaningAreaM2+"㎡";
   const conditionDetail="청소 방식 "+state.cleanModeLabel+" · 강도 "+state.intensityLabel+" · 오늘 상태 "+state.todayStateLabel;
-  $('planSummary').innerHTML="<strong>"+scopeText+"</strong> 선택됨<br>"+detail+"<br>"+conditionDetail+"<br>예상 SOC 소모량 <strong>"+fmtSoc(state.requiredSoc)+"%</strong> → 목표 SOC <strong>"+state.targetSoc+"%</strong>";
+  $('planSummary').innerHTML="<strong>"+scopeText+"</strong> 선택됨<br>"+detail+"<br>"+conditionDetail+"<br><span style='color:#2f8b3a;font-weight:900'>"+state.matchNote+"</span><br>예상 SOC 소모량 <strong>"+fmtSoc(state.requiredSoc)+"%</strong> → 목표 SOC <strong>"+state.targetSoc+"%</strong>";
   $('planSocSub').textContent="예상 "+fmtSoc(state.requiredSoc)+"% + 안전마진 15%";
 }
 
@@ -1429,7 +1683,7 @@ function renderBattery(){
   }else if(!state.predicted){
     $("insightText").innerHTML="우리 집 프로필이 저장되었습니다. AI 예측하기를 누르면 1회차 청소 기록을 기준으로 다음 청소 목표 SOC를 계산합니다.";
   }else{
-    $("insightText").innerHTML="우리 집 "+state.areaPyung+"평 프로필에서 <b>"+state.selectedLabel+"</b> 범위를 선택했어요. "+state.cleanModeLabel+" · "+state.intensityLabel+" · "+state.todayStateLabel+" 조건을 반영한 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>입니다. 안전 마진 15%를 반영하여 SOC <b>"+state.targetSoc+"%</b>까지만 충전하면 청소를 완료할 수 있습니다.";
+    $("insightText").innerHTML="우리 집 "+state.areaPyung+"평 프로필에서 <b>"+state.selectedLabel+"</b> 범위를 선택했어요. "+state.cleanModeLabel+" · "+state.intensityLabel+" · "+state.todayStateLabel+" 조건과 가장 가까운 <b>머신러닝 예측값</b>을 사용했으며, 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>입니다. 안전 마진 15%를 반영하여 SOC <b>"+state.targetSoc+"%</b>까지만 충전하면 청소를 완료할 수 있습니다.";
   }
 
   const y=132-(state.targetSoc-15)/75*104;
@@ -1502,7 +1756,7 @@ function showStatus(){
   if(!state.predicted){openModal("우리 집 프로필","1회차 학습 청소 기록이 저장됐어요.<br><br>"+profileResultBody()+"<br><br>다음 단계로 AI 예측하기를 눌러주세요.");return}
   const scopeText=state.selectedScope==="home"?"집 전체 청소":state.selectedLabel+" 청소";
   const zoneInfo=state.selectedScope==="zone"?"<br>바닥 타입 <b>"+(state.floorType||"정보 없음")+"</b><br>오염도 <b>"+(state.dirtLevel||"정보 없음")+"</b>":"";
-  openModal("AI SOC 예측 결과","저장된 프로필 <b>"+state.areaPyung+"평</b><br>선택 범위 <b>"+scopeText+"</b>"+zoneInfo+"<br>청소 방식 <b>"+state.cleanModeLabel+"</b><br>청소 강도 <b>"+state.intensityLabel+"</b><br>오늘 상태 <b>"+state.todayStateLabel+"</b><br>현재 SOC <b>"+state.soc+"%</b><br>예상 SOC 소모량 <b>"+fmtSoc(state.requiredSoc)+"%</b><br>AI 목표 SOC <b>"+state.targetSoc+"%</b><br><br>사용 모델: <b>"+state.modelName+"</b>");
+  openModal("AI SOC 예측 결과","저장된 프로필 <b>"+state.areaPyung+"평</b><br>선택 범위 <b>"+scopeText+"</b>"+zoneInfo+"<br>청소 방식 <b>"+state.cleanModeLabel+"</b><br>청소 강도 <b>"+state.intensityLabel+"</b><br>오늘 상태 <b>"+state.todayStateLabel+"</b><br>예측 방식 <b>"+state.matchNote+"</b><br>현재 SOC <b>"+state.soc+"%</b><br>예상 SOC 소모량 <b>"+fmtSoc(state.requiredSoc)+"%</b><br>AI 목표 SOC <b>"+state.targetSoc+"%</b><br><br>사용 모델: <b>"+state.modelName+"</b>");
 }
 
 function showChargeChoiceModal(autoStartAfterCharge=false){
@@ -1618,4 +1872,4 @@ render();
 
 APP_HTML = APP_HTML.replace("__UI_PREDICTION_DATA__", UI_PREDICTION_JSON)
 
-components.html(APP_HTML, height=1060, scrolling=False)
+components.html(APP_HTML, height=1080, scrolling=False)
