@@ -492,7 +492,7 @@ button,input{font-family:inherit} button{cursor:pointer}
 .learn-panel{margin-bottom:8px;padding:9px;border-radius:13px;background:linear-gradient(145deg,#fff8df,#f3dfb2);border:1px solid rgba(124,83,43,.13)}.learn-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.learn-title{font-size:10px;font-weight:900}.learn-pill{padding:4px 7px;border-radius:11px;background:#fff;color:#8b6139;font-size:8px;font-weight:900}.learn-desc{margin-top:5px;color:#6f4f38;font-size:8px;line-height:1.45;font-weight:800}.learn-progress{height:8px;margin-top:7px;overflow:hidden;border-radius:12px;background:#dcc79f}.learn-fill{width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#62aa49,#ffd44f);transition:width .25s}.learn-status{margin-top:6px;font-size:8px;line-height:1.45;font-weight:900;color:#4b3324}.learn-steps{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:7px}.learn-step{padding:5px 4px;border-radius:9px;background:rgba(255,255,255,.58);color:#806047;font-size:7px;font-weight:900;text-align:center}.learn-step.done{background:#e7f4d9;color:#2f8b3a}.learn-step.active{background:#fff;color:#ef8c32;box-shadow:0 2px 6px rgba(89,56,26,.12)}.learn-btn{width:100%;min-height:34px;margin-top:7px;border:0;border-radius:11px;background:linear-gradient(90deg,#ef8c32,#ffb24b);color:#fff;font-size:10px;font-weight:900;box-shadow:0 5px 10px rgba(239,140,50,.22)}.learn-btn.ready{background:linear-gradient(90deg,#4a9b42,#75b84e)}.locked-area{opacity:.45;filter:grayscale(.15)}.condition-panel{margin-bottom:8px;padding:8px;border-radius:13px;background:#fff2cf;border:1px solid rgba(124,83,43,.12)}
 .condition-title{margin-bottom:7px;font-size:10px;font-weight:900;color:#6f4f38;line-height:1.4}
 .condition-row{display:grid;grid-template-columns:.7fr 1fr .7fr 1fr;gap:6px;align-items:center}.condition-row label{font-size:9px;font-weight:900;color:#6c4a2f}.condition-select{width:100%;min-height:34px;border:1px solid rgba(124,83,43,.22);border-radius:10px;background:#fffaf0;color:#4b3324;font-size:10px;font-weight:900;padding:0 7px}.predict-condition-grid{display:grid;grid-template-columns:.72fr 1fr .72fr 1fr;gap:6px;align-items:center;margin-top:8px}.predict-condition-grid label{font-size:9px;font-weight:900;color:#6c4a2f;white-space:nowrap}.condition-help{font-size:9px;line-height:1.5;color:#8a6a45;margin:7px 0 0;font-weight:800}.first-learn-note{padding:8px 9px;border-radius:11px;background:rgba(255,255,255,.58);font-size:10px;line-height:1.55;color:#6f4f38}.predict-btn{width:100%;min-height:36px;margin-top:8px;border:0;border-radius:11px;background:linear-gradient(90deg,#4a9b42,#75b84e);color:#fff;font-size:11px;font-weight:900;box-shadow:0 5px 10px rgba(47,139,58,.2)}.predict-loading{margin-top:6px;min-height:18px;font-size:9px;line-height:1.45;color:#745431;font-weight:800}.predict-loading.active{color:#2f8b3a}
-.selected-plan{display:grid;grid-template-columns:1fr .9fr;gap:7px;align-items:stretch}.plan-summary{padding:9px;border-radius:12px;background:#fff4d5;font-size:9px;line-height:1.55;font-weight:800}.plan-summary strong{color:#2f8b3a}.plan-soc{padding:9px;border-radius:12px;background:#f0e0be;text-align:center;font-weight:900}.plan-soc-label{font-size:8px;color:#79583e}.plan-soc-value{margin-top:2px;color:#ef573f;font-size:22px;line-height:1}.plan-soc-sub{margin-top:4px;font-size:8px;color:#76553e;line-height:1.35}
+.selected-plan{display:grid;grid-template-columns:1fr .9fr;gap:7px;align-items:stretch}.plan-summary{padding:9px;border-radius:12px;background:#fff4d5;font-size:9px;line-height:1.55;font-weight:800}.plan-summary strong{color:#2f8b3a}.plan-soc{padding:9px;border-radius:12px;background:#f0e0be;text-align:center;font-weight:900}.plan-soc-label{font-size:8px;color:#79583e}.plan-soc-value{margin-top:2px;color:#ef573f;font-size:22px;line-height:1}.plan-soc-sub{margin-top:4px;font-size:8px;color:#76553e;line-height:1.35}.start-clean-primary{width:100%;min-height:46px;margin-top:9px;border:0;border-radius:14px;background:linear-gradient(90deg,#ef8c32,#f2a84d);color:#fff;font-size:13px;font-weight:950;letter-spacing:-.2px;box-shadow:0 7px 15px rgba(239,140,50,.26)}.start-clean-primary:disabled{opacity:.55;filter:grayscale(.12);box-shadow:none}.start-clean-primary small{display:block;margin-top:2px;font-size:9px;font-weight:800;color:rgba(255,255,255,.88)}
 
 /* Battery */
 .gauge-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.gauge-card{padding:14px 10px;text-align:center}
@@ -676,6 +676,10 @@ button,input{font-family:inherit} button{cursor:pointer}
                 <div class="plan-soc-sub" id="planSocSub">예상 소모량 + 안전마진 15%</div>
               </div>
             </div>
+            <button class="start-clean-primary" id="startCleanPrimary" data-action="clean" disabled>
+              🧹 청소 미션 수행하기
+              <small id="startCleanHint">AI 예측 후 바로 시작할 수 있어요</small>
+            </button>
           </div>
 
           <div class="actions">
@@ -1198,6 +1202,7 @@ function renderPlan(){
   const learnSteps=$('learnSteps');
   const firstLearnInputs=$('firstLearnInputs');
   const predictionInputs=$('predictionInputs');
+  const startCleanPrimary=$('startCleanPrimary');
 
   if(learnSteps){
     learnSteps.innerHTML=mappingSteps.map((s,i)=>{
@@ -1247,6 +1252,23 @@ function renderPlan(){
   else if($('scopeZone'+state.selectedZone))$('scopeZone'+state.selectedZone).classList.add('active');
 
   $('planModel').textContent=state.mapping?'1회차 학습 중':(!state.profileReady?'1회차 학습 전':(state.predicted?(predictionData.dataStatus==="csv"?state.modelName:"DEMO")+" 기반":"프로필 저장 완료"));
+
+
+  if(startCleanPrimary){
+    const canStart=state.profileReady && state.predicted && !state.mapping && !state.cleaning && !state.charging;
+    startCleanPrimary.disabled=!canStart;
+    if(state.mapping){
+      startCleanPrimary.innerHTML='🏠 우리 집을 배우는 중이에요<small id="startCleanHint">학습이 끝나면 청소 미션을 시작할 수 있어요</small>';
+    }else if(!state.profileReady){
+      startCleanPrimary.innerHTML='🏠 1회차 학습 청소가 먼저예요<small id="startCleanHint">집 구조를 저장한 뒤 청소할 수 있어요</small>';
+    }else if(!state.predicted){
+      startCleanPrimary.innerHTML='🤖 AI 예측이 먼저예요<small id="startCleanHint">필요 SOC를 계산한 뒤 시작해요</small>';
+    }else if(state.soc<state.targetSoc){
+      startCleanPrimary.innerHTML='🔋 목표 SOC까지 충전하고 청소하기<small id="startCleanHint">현재 '+state.soc+'% · 목표 '+state.targetSoc+'%</small>';
+    }else{
+      startCleanPrimary.innerHTML='🧹 청소 미션 수행하기<small id="startCleanHint">'+state.selectedLabel+' · 예상 소모 '+fmtSoc(state.requiredSoc)+'%</small>';
+    }
+  }
 
   if(!state.profileReady){
     $('planTargetSoc').textContent='--';
