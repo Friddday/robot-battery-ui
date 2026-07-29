@@ -1357,6 +1357,10 @@ const state={
   mappingProgress:0,
   mappingStepIndex:-1,
   firstRunSocUsed:0,
+  firstRunRequiredSoc:0,
+  firstRunStartSoc:predictionData.currentSoc,
+  firstRunEndSoc:predictionData.currentSoc,
+  firstRunSocEnough:true,
   temperature:29,health:100,heart:100,
   level:13,exp:55,coins:50,food:1,cleaning:false,charging:false,
   celebrating:false,progress:0,missionDone:false,cleanCount:0,
@@ -1663,35 +1667,61 @@ function dirtSummary(){
 }
 function obstacleSummary(){return activeRun && activeRun.home ? (activeRun.home.obstacleLevel||"중간") : "중간";}
 function profileResultBody(){
+  const startSoc=Number(state.firstRunStartSoc||0);
+  const endSoc=Number(state.firstRunEndSoc||state.soc||0);
+  const recorded=Number(state.firstRunRequiredSoc||state.firstRunSocUsed||0);
+  const used=Number(state.firstRunSocUsed||0);
+  const socLine=state.firstRunSocEnough
+    ? "SOC 변화: <b>"+Math.round(startSoc)+"% → "+Math.round(endSoc)+"%</b>"
+    : "SOC 변화: <b>"+Math.round(startSoc)+"% → "+Math.round(endSoc)+"%</b> <small>(배터리 부족)</small>";
   return "<b>우리 집 프로필 저장 완료</b><br><br>"
     +"집 크기: <b>"+activeRun.areaPyung+"평 · "+activeRun.home.cleaningAreaM2+"㎡</b><br>"
     +"구역: <b>5개</b><br>"
     +"바닥: <b>"+floorKindCount()+"종 혼합</b><br>"
     +"오염도: <b>"+dirtSummaryShort()+"</b><br>"
     +"장애물: <b>"+obstacleSummary()+"</b><br>"
-    +"SOC 기록: <b>"+fmtSoc(state.firstRunSocUsed)+"%</b><br><br>"
+    +"학습 소모 SOC: <b>"+fmtSoc(recorded)+"%</b><br>"
+    +socLine+"<br>"
+    +"현재 SOC: <b>"+Math.round(state.soc)+"%</b><br><br>"
     +"다음 단계: <b>AI 예측하기</b>";
 }
 function startFirstMapping(){
   if(state.cleaning||state.charging||state.mapping){showToast("진행 중인 작업이 끝난 뒤 다시 시도해 주세요.");return}
   activeRun=pickRandomRun(predictionData.runs) || predictionData.runs[0];
   syncScenarioToState(activeRun.home);
+
+  const startSoc=clamp(Math.round(Number(state.soc||0)),0,100);
+  const requiredSoc=Number(activeRun.home.requiredSoc||0);
+  const actualUse=Math.min(requiredSoc,startSoc);
+  const expectedEndSoc=Math.max(0,startSoc-actualUse);
+
   state.profileReady=false;
   state.predicted=false;
   state.mapping=true;
   state.mappingProgress=0;
   state.mappingStepIndex=0;
-  state.firstRunSocUsed=Number(activeRun.home.requiredSoc||0);
+  state.firstRunRequiredSoc=requiredSoc;
+  state.firstRunSocUsed=actualUse;
+  state.firstRunStartSoc=startSoc;
+  state.firstRunEndSoc=expectedEndSoc;
+  state.firstRunSocEnough=startSoc>=requiredSoc;
+  state.soc=startSoc;
+  state.chargeComplete=false;
+  state.celebrating=false;
   switchPage("homePage");
-  showToast("1회차 학습 청소를 시작합니다.");
+  showToast("1회차 학습 청소를 시작합니다. 배터리 SOC가 실제로 감소해요.");
   render();
+
   let tick=0;
   const total=mappingSteps.length*4;
   const timer=setInterval(()=>{
     tick+=1;
-    state.mappingProgress=Math.min(100,Math.round(tick/total*100));
+    const ratio=Math.min(1,tick/total);
+    state.mappingProgress=Math.min(100,Math.round(ratio*100));
     state.mappingStepIndex=Math.min(mappingSteps.length-1,Math.floor((tick-1)/4));
     state.progress=state.mappingProgress;
+    state.soc=Math.max(0,Math.round((startSoc-actualUse*ratio)*10)/10);
+    state.firstRunEndSoc=state.soc;
     state.temperature=Math.min(33,state.temperature+0.08);
     render();
     if(tick>=total){
@@ -1700,19 +1730,21 @@ function startFirstMapping(){
       state.profileReady=true;
       state.predicted=false;
       state.progress=100;
-      const scopeSelect=$('scopeSelect'); if(scopeSelect)scopeSelect.value='home';
-      const cleanModeSelect=$('cleanModeSelect'); if(cleanModeSelect)cleanModeSelect.value=activeRun.home.mopEnabled?'mop':'dry';
-      const intensitySelect=$('intensitySelect'); if(intensitySelect)intensitySelect.value='standard';
-      const todayStateSelect=$('todayStateSelect'); if(todayStateSelect)todayStateSelect.value='normal';
+      state.soc=Math.max(0,Math.round(expectedEndSoc));
+      state.firstRunEndSoc=state.soc;
+      const scopeSelect=$("scopeSelect"); if(scopeSelect)scopeSelect.value='home';
+      const cleanModeSelect=$("cleanModeSelect"); if(cleanModeSelect)cleanModeSelect.value=activeRun.home.mopEnabled?'mop':'dry';
+      const intensitySelect=$("intensitySelect"); if(intensitySelect)intensitySelect.value='standard';
+      const todayStateSelect=$("todayStateSelect"); if(todayStateSelect)todayStateSelect.value='normal';
       state.temperature=29;
-      addEvent("1회차 학습 청소 완료","집 구조, 바닥 타입, 오염도, 장애물 수준, SOC 소모 기록을 저장했습니다.");
+      const eventMsg="시작 SOC "+Math.round(startSoc)+"% → 현재 SOC "+Math.round(state.soc)+"% · 학습 소모 "+fmtSoc(requiredSoc)+"%";
+      addEvent("1회차 학습 청소 완료",eventMsg);
       spawnEffect("🏠",8);spawnEffect("✨",9);
       render();
       setTimeout(()=>openModal("우리 집 프로필 저장 완료!",profileResultBody()),350);
     }
   },260);
 }
-
 function selectScenario(scope,zoneNumber=null){
   if(state.cleaning||state.charging||state.mapping){showToast("학습/청소/충전이 끝난 뒤 변경할 수 있어요.");return}
   if(!state.profileReady){openModal("우리 집 학습이 먼저예요","구역별 바닥 타입과 오염도는 1회차 학습 청소 후 확인할 수 있어요.<br><br>먼저 <b>1회차 학습 청소 시작</b>을 눌러 로보킹에게 우리 집을 알려주세요.");return}
@@ -1770,12 +1802,15 @@ function renderPlan(){
 
   if(state.mapping){
     if(learnPill)learnPill.textContent="학습 중";
-    if(learnStatus)learnStatus.textContent=mappingSteps[state.mappingStepIndex].label+" 중... "+state.mappingProgress+"%";
+    if(learnStatus){
+      const currentStep=mappingSteps[state.mappingStepIndex]||mappingSteps[0];
+      learnStatus.innerHTML=currentStep.label+" 중 · "+state.mappingProgress+"%<br><b>SOC "+Math.round(state.firstRunStartSoc)+"% → "+Math.round(state.soc)+"%</b>";
+    }
     if(learnBtn){learnBtn.textContent="로보킹이 집을 배우는 중...";learnBtn.disabled=true;}
     if(conditionPanel)conditionPanel.classList.add('locked-area');
   }else if(state.profileReady){
     if(learnPill)learnPill.textContent="프로필 저장됨";
-    if(learnStatus)learnStatus.innerHTML="프로필 저장 완료 · "+activeRun.home.cleaningAreaM2+"㎡ · "+floorSummary();
+    if(learnStatus)learnStatus.innerHTML="프로필 저장 완료 · 현재 SOC "+Math.round(state.soc)+"% · "+activeRun.home.cleaningAreaM2+"㎡";
     if(learnBtn){learnBtn.textContent="🔄 1회차 학습 다시 실행";learnBtn.disabled=false;learnBtn.classList.add('ready');}
     if(conditionPanel)conditionPanel.classList.remove('locked-area');
   }else{
@@ -1832,7 +1867,7 @@ function renderPlan(){
   }
   if(!state.predicted){
     $('planTargetSoc').textContent='--';
-    $('planSummary').innerHTML="<div class='summary-card'><div class='summary-title'>프로필 저장 완료</div><div class='summary-row'><span class='summary-key'>집 크기</span><span class='summary-val'>"+state.areaPyung+"평 · "+state.cleaningAreaM2+"㎡</span></div><div class='summary-row'><span class='summary-key'>다음 단계</span><span class='summary-val green'>AI 예측하기</span></div></div>";
+    $('planSummary').innerHTML="<div class='summary-card'><div class='summary-title'>프로필 저장 완료</div><div class='summary-row'><span class='summary-key'>집 크기</span><span class='summary-val'>"+state.areaPyung+"평 · "+state.cleaningAreaM2+"㎡</span></div><div class='summary-row'><span class='summary-key'>학습 SOC</span><span class='summary-val em'>"+Math.round(state.firstRunStartSoc)+"% → "+Math.round(state.soc)+"%</span></div><div class='summary-row'><span class='summary-key'>다음 단계</span><span class='summary-val green'>AI 예측하기</span></div></div>";
     $('planSocSub').textContent="예측 대기";
     return;
   }
@@ -1872,10 +1907,10 @@ function renderHome(){
     room.classList.add("cleaning");
     const step=mappingSteps[state.mappingStepIndex]||mappingSteps[0];
     $("speech").innerHTML="<strong style='color:#2f8b3a'>우리 집을 배우는 중!</strong><br>"+step.label+" 중이에요.";
-    $("modeChip").textContent="🏠 1회차 학습 청소 · "+state.mappingProgress+"%";
+    $("modeChip").textContent="🏠 학습 청소 · SOC "+Math.round(state.firstRunStartSoc)+"% → "+Math.round(state.soc)+"%";
     $("batteryFace").textContent="🧭";$("spark").textContent="📡";
-    $("batteryMessage").innerHTML="집 구조와 청소 조건을<br>처음으로 저장하고 있어요.";
-    $("timeTip").textContent="학습 진행률 "+state.mappingProgress+"%";
+    $("batteryMessage").innerHTML="학습 청소 중입니다.<br>SOC가 실제로 소모돼요.";
+    $("timeTip").textContent="학습 진행 "+state.mappingProgress+"% · 현재 SOC "+Math.round(state.soc)+"%";
   }else if(state.predicting){
     $("speech").innerHTML="<strong style='color:#2f8b3a'>분석 중이에요!</strong><br>저장된 기록으로 SOC를 계산하고 있어요.";
     $("modeChip").textContent="🤖 우리 집 기록 기반 AI 예측 중";
