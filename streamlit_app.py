@@ -491,7 +491,7 @@ button,input{font-family:inherit} button{cursor:pointer}
 .scope-btn.active{background:linear-gradient(180deg,#65ae4b,#368e3d);color:#fff;border-color:transparent;box-shadow:0 5px 12px rgba(47,139,58,.25)}
 .learn-panel{margin-bottom:8px;padding:9px;border-radius:13px;background:linear-gradient(145deg,#fff8df,#f3dfb2);border:1px solid rgba(124,83,43,.13)}.learn-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.learn-title{font-size:10px;font-weight:900}.learn-pill{padding:4px 7px;border-radius:11px;background:#fff;color:#8b6139;font-size:8px;font-weight:900}.learn-desc{margin-top:5px;color:#6f4f38;font-size:8px;line-height:1.45;font-weight:800}.learn-progress{height:8px;margin-top:7px;overflow:hidden;border-radius:12px;background:#dcc79f}.learn-fill{width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#62aa49,#ffd44f);transition:width .25s}.learn-status{margin-top:6px;font-size:8px;line-height:1.45;font-weight:900;color:#4b3324}.learn-steps{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:7px}.learn-step{padding:5px 4px;border-radius:9px;background:rgba(255,255,255,.58);color:#806047;font-size:7px;font-weight:900;text-align:center}.learn-step.done{background:#e7f4d9;color:#2f8b3a}.learn-step.active{background:#fff;color:#ef8c32;box-shadow:0 2px 6px rgba(89,56,26,.12)}.learn-btn{width:100%;min-height:34px;margin-top:7px;border:0;border-radius:11px;background:linear-gradient(90deg,#ef8c32,#ffb24b);color:#fff;font-size:10px;font-weight:900;box-shadow:0 5px 10px rgba(239,140,50,.22)}.learn-btn.ready{background:linear-gradient(90deg,#4a9b42,#75b84e)}.locked-area{opacity:.45;filter:grayscale(.15)}.condition-panel{margin-bottom:8px;padding:8px;border-radius:13px;background:#fff2cf;border:1px solid rgba(124,83,43,.12)}
 .condition-title{margin-bottom:7px;font-size:10px;font-weight:900;color:#6f4f38;line-height:1.4}
-.condition-row{display:grid;grid-template-columns:.7fr 1fr .7fr 1fr;gap:6px;align-items:center}.condition-row label{font-size:9px;font-weight:900;color:#6c4a2f}.condition-select{width:100%;min-height:34px;border:1px solid rgba(124,83,43,.22);border-radius:10px;background:#fffaf0;color:#4b3324;font-size:10px;font-weight:900;padding:0 7px}.predict-condition-grid{display:grid;grid-template-columns:.72fr 1fr .72fr 1fr;gap:6px;align-items:center;margin-top:8px}.predict-condition-grid label{font-size:9px;font-weight:900;color:#6c4a2f;white-space:nowrap}.condition-help{font-size:9px;line-height:1.5;color:#8a6a45;margin:7px 0 0;font-weight:800}.predict-btn{width:100%;min-height:36px;margin-top:8px;border:0;border-radius:11px;background:linear-gradient(90deg,#4a9b42,#75b84e);color:#fff;font-size:11px;font-weight:900;box-shadow:0 5px 10px rgba(47,139,58,.2)}.predict-loading{margin-top:6px;min-height:18px;font-size:9px;line-height:1.45;color:#745431;font-weight:800}.predict-loading.active{color:#2f8b3a}
+.condition-row{display:grid;grid-template-columns:.7fr 1fr .7fr 1fr;gap:6px;align-items:center}.condition-row label{font-size:9px;font-weight:900;color:#6c4a2f}.condition-select{width:100%;min-height:34px;border:1px solid rgba(124,83,43,.22);border-radius:10px;background:#fffaf0;color:#4b3324;font-size:10px;font-weight:900;padding:0 7px}.predict-condition-grid{display:grid;grid-template-columns:.72fr 1fr .72fr 1fr;gap:6px;align-items:center;margin-top:8px}.predict-condition-grid label{font-size:9px;font-weight:900;color:#6c4a2f;white-space:nowrap}.condition-help{font-size:9px;line-height:1.5;color:#8a6a45;margin:7px 0 0;font-weight:800}.first-learn-note{padding:8px 9px;border-radius:11px;background:rgba(255,255,255,.58);font-size:10px;line-height:1.55;color:#6f4f38}.predict-btn{width:100%;min-height:36px;margin-top:8px;border:0;border-radius:11px;background:linear-gradient(90deg,#4a9b42,#75b84e);color:#fff;font-size:11px;font-weight:900;box-shadow:0 5px 10px rgba(47,139,58,.2)}.predict-loading{margin-top:6px;min-height:18px;font-size:9px;line-height:1.45;color:#745431;font-weight:800}.predict-loading.active{color:#2f8b3a}
 .selected-plan{display:grid;grid-template-columns:1fr .9fr;gap:7px;align-items:stretch}.plan-summary{padding:9px;border-radius:12px;background:#fff4d5;font-size:9px;line-height:1.55;font-weight:800}.plan-summary strong{color:#2f8b3a}.plan-soc{padding:9px;border-radius:12px;background:#f0e0be;text-align:center;font-weight:900}.plan-soc-label{font-size:8px;color:#79583e}.plan-soc-value{margin-top:2px;color:#ef573f;font-size:22px;line-height:1}.plan-soc-sub{margin-top:4px;font-size:8px;color:#76553e;line-height:1.35}
 
 /* Battery */
@@ -609,24 +609,18 @@ button,input{font-family:inherit} button{cursor:pointer}
               </div>
               <div class="learn-desc">1회차 청소로 집 구조, 구역 면적, 바닥 타입, 오염도, 장애물 수준, 실제 SOC 소모 기록을 저장한 뒤 AI 예측을 시작합니다.</div>
               <div class="learn-progress"><div class="learn-fill" id="learnFill"></div></div>
-              <div class="learn-status" id="learnStatus">아래에서 평수와 청소 방식을 선택한 뒤 1회차 학습 청소를 시작해 주세요.</div>
+              <div class="learn-status" id="learnStatus">1회차 학습 청소를 시작하면 로보킹이 집 구조와 구역 정보를 자동으로 기록해요.</div>
               <div class="learn-steps" id="learnSteps"></div>
               <button class="learn-btn" id="learnBtn" data-action="startFirstMapping">🏠 1회차 학습 청소 시작</button>
             </div>
             <div class="condition-panel" id="conditionPanel">
-              <div class="condition-title" id="conditionTitle">평수와 물걸레 사용 여부를 선택해 1회차 학습 청소를 시작하세요</div>
+              <div class="condition-title" id="conditionTitle">1회차 학습 청소로 우리 집 프로필을 먼저 만들어요</div>
 
               <div id="firstLearnInputs">
-                <div class="condition-row">
-                  <label for="areaSelect">평수</label>
-                  <select class="condition-select" id="areaSelect"></select>
-                  <label for="mopSelect">학습 방식</label>
-                  <select class="condition-select" id="mopSelect">
-                    <option value="dry">건식</option>
-                    <option value="mop">물걸레</option>
-                  </select>
+                <div class="condition-help first-learn-note">
+                  평수, 구역별 면적, 바닥 타입, 오염도, 장애물 수준은 1회차 학습 청소에서 자동으로 기록돼요.<br>
+                  프로토타입에서는 CSV에 저장된 여러 집 프로필 중 하나를 랜덤으로 불러와 학습 과정을 보여줍니다.
                 </div>
-                <div class="condition-help">처음 1회만 선택해요. 학습 청소가 끝나면 로보킹이 집 구조와 구역별 면적을 기억합니다.</div>
               </div>
 
               <div id="predictionInputs" style="display:none;">
@@ -867,16 +861,44 @@ const cleanModeMultipliers={dry:1.00,mop:1.08,both:1.15};
 const intensityMultipliers={fast:0.90,standard:1.00,careful:1.12};
 const todayStateMultipliers={normal:1.00,dust:1.05,pet:1.08,obstacle:1.06};
 
+function pickRandomRun(candidates){
+  if(!candidates || candidates.length===0)return null;
+
+  // 현재 화면에 떠 있는 global_run_id와 같은 시나리오는 가능하면 제외
+  // 같은 조건으로 1회차 학습 청소를 다시 실행할 때 매번 다른 집 프로필이 나오게 하기 위함
+  let pool = candidates;
+  if(activeRun && activeRun.globalRunId && candidates.length>1){
+    const filtered = candidates.filter(r=>String(r.globalRunId)!==String(activeRun.globalRunId));
+    if(filtered.length>0)pool = filtered;
+  }
+
+  const idx = Math.floor(Math.random()*pool.length);
+  return pool[idx];
+}
+
 function findRun(areaPyung, mopEnabled){
   const area = Number(areaPyung);
   const mop = Boolean(mopEnabled);
-  let run = predictionData.runs.find(r=>Number(r.areaPyung)===area && Boolean(r.mopEnabled)===mop);
-  if(!run) run = predictionData.runs.find(r=>Number(r.areaPyung)===area);
-  if(!run) run = predictionData.runs[0];
-  return run;
+
+  // 1순위: 사용자가 선택한 평수 + 청소방식이 모두 같은 CSV 시나리오 중 랜덤 선택
+  let candidates = predictionData.runs.filter(r=>Number(r.areaPyung)===area && Boolean(r.mopEnabled)===mop);
+  let run = pickRandomRun(candidates);
+
+  // 2순위: 청소방식까지 완전히 맞는 데이터가 없으면, 같은 평수 안에서 랜덤 선택
+  if(!run){
+    candidates = predictionData.runs.filter(r=>Number(r.areaPyung)===area);
+    run = pickRandomRun(candidates);
+  }
+
+  // 3순위: 같은 평수도 없으면 전체 CSV 중 랜덤 선택
+  if(!run){
+    run = pickRandomRun(predictionData.runs);
+  }
+
+  return run || predictionData.runs[0];
 }
 
-activeRun = findRun(predictionData.defaultAreaPyung, predictionData.defaultMopEnabled);
+activeRun = pickRandomRun(predictionData.runs) || predictionData.runs[0];
 
 const state={
   page:"homePage",
@@ -920,19 +942,6 @@ const state={
 };
 
 function populateConditionSelectors(){
-  const areaSelect=$('areaSelect');
-  const mopSelect=$('mopSelect');
-  if(areaSelect){
-    areaSelect.innerHTML='';
-    predictionData.areaOptions.forEach(area=>{
-      const opt=document.createElement('option');
-      opt.value=area; opt.textContent=area+'평';
-      areaSelect.appendChild(opt);
-    });
-    areaSelect.value=String(activeRun.areaPyung);
-  }
-  if(mopSelect)mopSelect.value=activeRun.mopEnabled?'mop':'dry';
-
   const cleanModeSelect=$('cleanModeSelect');
   if(cleanModeSelect)cleanModeSelect.value=activeRun.mopEnabled?'mop':'dry';
   const scopeSelect=$('scopeSelect');
@@ -1106,9 +1115,7 @@ function profileResultBody(){
 }
 function startFirstMapping(){
   if(state.cleaning||state.charging||state.mapping){showToast("진행 중인 작업이 끝난 뒤 다시 시도해 주세요.");return}
-  const area=Number($('areaSelect').value);
-  const mop=$('mopSelect').value==='mop';
-  activeRun=findRun(area,mop);
+  activeRun=pickRandomRun(predictionData.runs) || predictionData.runs[0];
   syncScenarioToState(activeRun.home);
   state.profileReady=false;
   state.predicted=false;
