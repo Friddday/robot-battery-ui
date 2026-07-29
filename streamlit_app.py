@@ -1,3 +1,7 @@
+import json
+from pathlib import Path
+
+import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -28,6 +32,219 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+
+# ============================================================
+# ML SOC 예측 결과 CSV 연결부
+# GitHub에는 아래 구조로 CSV를 올리면 됩니다.
+# data/home_model_predictions.csv
+# data/zone_model_predictions.csv
+# ============================================================
+
+BASE_DIR = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+DATA_DIR = BASE_DIR / "data"
+HOME_PRED_PATH = DATA_DIR / "home_model_predictions.csv"
+ZONE_PRED_PATH = DATA_DIR / "zone_model_predictions.csv"
+
+CURRENT_SOC = 35  # 데모용 현재 SOC. 실제 제품에서는 로봇/앱에서 받은 현재 SOC로 교체
+
+
+def _is_valid(value):
+    return value is not None and not pd.isna(value)
+
+
+def _safe_text(row, candidates, default=""):
+    for col in candidates:
+        if col in row.index and _is_valid(row[col]):
+            return str(row[col])
+    return default
+
+
+def _safe_float(row, candidates, default=0.0):
+    for col in candidates:
+        if col in row.index and _is_valid(row[col]):
+            try:
+                return float(row[col])
+            except Exception:
+                pass
+    return float(default)
+
+
+def _soc_target(required_soc):
+    return int(round(max(15, min(float(required_soc) + 15, 90))))
+
+
+@st.cache_data
+def load_prediction_csv(path: str):
+    p = Path(path)
+    if not p.exists():
+        return None
+    df = pd.read_csv(p)
+    if "global_run_id" in df.columns:
+        df["global_run_id"] = df["global_run_id"].astype(str)
+    return df
+
+
+def make_demo_payload():
+    zones = []
+    demo_zone_values = [4.8, 5.6, 3.9, 6.2, 4.5]
+    floor_types = ["마루/타일", "저파일 러그", "장판/PVC", "현관매트", "고파일 카펫"]
+    dirt_levels = ["낮음", "중간", "낮음", "높음", "중간"]
+    for i, required in enumerate(demo_zone_values, start=1):
+        zones.append({
+            "scope": "zone",
+            "zone": i,
+            "label": f"{i}구역",
+            "globalRunId": "demo_001",
+            "areaPyung": 18,
+            "cleaningAreaM2": 9.8,
+            "requiredSoc": round(required, 1),
+            "targetSoc": _soc_target(required),
+            "modelName": "RandomForest",
+            "cleaningType": "건식",
+            "obstacleLevel": "중간",
+            "floorType": floor_types[i-1],
+            "dirtLevel": dirt_levels[i-1],
+            "suctionMode": "중"
+        })
+    home_required = round(sum(demo_zone_values), 1)
+    return {
+        "currentSoc": CURRENT_SOC,
+        "home": {
+            "scope": "home",
+            "label": "집 전체",
+            "globalRunId": "demo_001",
+            "areaPyung": 18,
+            "cleaningAreaM2": 49,
+            "requiredSoc": home_required,
+            "targetSoc": _soc_target(home_required),
+            "modelName": "XGBoost",
+            "cleaningType": "건식",
+            "obstacleLevel": "중간",
+            "floorType": "혼합",
+            "dirtLevel": "평균",
+            "suctionMode": "AI 자동"
+        },
+        "zones": zones,
+        "selectedScope": "home",
+        "selectedZone": None,
+        "dataStatus": "demo"
+    }
+
+
+def make_prediction_payload(home_df, zone_df):
+    if home_df is None and zone_df is None:
+        return make_demo_payload()
+
+    # home과 zone이 같은 global_run_id를 바라보도록 우선 공통 run_id 선택
+    selected_run_id = None
+    if home_df is not None and zone_df is not None and "global_run_id" in home_df.columns and "global_run_id" in zone_df.columns:
+        zone_counts = zone_df.groupby("global_run_id").size()
+        valid_zone_ids = set(zone_counts[zone_counts >= 5].index.astype(str))
+        for gid in home_df["global_run_id"].astype(str).tolist():
+            if gid in valid_zone_ids:
+                selected_run_id = gid
+                break
+
+    if selected_run_id is None and home_df is not None and "global_run_id" in home_df.columns and len(home_df) > 0:
+        selected_run_id = str(home_df.iloc[0]["global_run_id"])
+    elif selected_run_id is None and zone_df is not None and "global_run_id" in zone_df.columns and len(zone_df) > 0:
+        selected_run_id = str(zone_df.iloc[0]["global_run_id"])
+
+    # Home 시나리오
+    if home_df is not None and len(home_df) > 0:
+        if "global_run_id" in home_df.columns and selected_run_id in home_df["global_run_id"].astype(str).values:
+            home_row = home_df[home_df["global_run_id"].astype(str) == selected_run_id].iloc[0]
+        else:
+            home_row = home_df.iloc[0]
+
+        home_required = _safe_float(
+            home_row,
+            ["best_pred_required_soc_pct", "pred_XGBoost", "pred_RandomForest", "home_required_soc_pct"],
+            25,
+        )
+        home_target = _safe_float(
+            home_row,
+            ["best_pred_target_soc_pct", "home_target_soc_pct"],
+            _soc_target(home_required),
+        )
+        home = {
+            "scope": "home",
+            "label": "집 전체",
+            "globalRunId": _safe_text(home_row, ["global_run_id"], selected_run_id or ""),
+            "areaPyung": int(round(_safe_float(home_row, ["area_pyung_first", "area_pyung"], 0))),
+            "cleaningAreaM2": int(round(_safe_float(home_row, ["zone_area_m2_sum", "cleaning_area_m2"], 0))),
+            "requiredSoc": round(float(home_required), 1),
+            "targetSoc": int(round(max(15, min(float(home_target), 90)))),
+            "modelName": _safe_text(home_row, ["best_model"], "XGBoost"),
+            "cleaningType": _safe_text(home_row, ["cleaning_type_first", "cleaning_type"], ""),
+            "obstacleLevel": _safe_text(home_row, ["obstacle_level_first", "obstacle_level"], ""),
+            "floorType": "혼합",
+            "dirtLevel": "평균",
+            "suctionMode": "AI 자동",
+        }
+    else:
+        home = make_demo_payload()["home"]
+        home["globalRunId"] = selected_run_id or "demo_001"
+
+    # Zone 시나리오 5개
+    zones = []
+    if zone_df is not None and len(zone_df) > 0:
+        if "global_run_id" in zone_df.columns and selected_run_id in zone_df["global_run_id"].astype(str).values:
+            zdf = zone_df[zone_df["global_run_id"].astype(str) == selected_run_id].copy()
+        else:
+            first_gid = str(zone_df.iloc[0]["global_run_id"]) if "global_run_id" in zone_df.columns else None
+            zdf = zone_df[zone_df["global_run_id"].astype(str) == first_gid].copy() if first_gid else zone_df.head(5).copy()
+
+        if "zone" in zdf.columns:
+            zdf = zdf.sort_values("zone")
+        zdf = zdf.head(5)
+
+        for idx, (_, zrow) in enumerate(zdf.iterrows(), start=1):
+            zone_no = int(round(_safe_float(zrow, ["zone"], idx)))
+            required = _safe_float(
+                zrow,
+                ["best_pred_required_soc_pct", "pred_RandomForest", "pred_XGBoost", "zone_required_soc_pct"],
+                max(home["requiredSoc"] / 5, 1),
+            )
+            zones.append({
+                "scope": "zone",
+                "zone": zone_no,
+                "label": f"{zone_no}구역",
+                "globalRunId": _safe_text(zrow, ["global_run_id"], selected_run_id or home["globalRunId"]),
+                "areaPyung": int(round(_safe_float(zrow, ["area_pyung", "area_pyung_first"], home["areaPyung"]))),
+                "cleaningAreaM2": round(_safe_float(zrow, ["zone_area_m2"], 0), 1),
+                "requiredSoc": round(float(required), 1),
+                "targetSoc": _soc_target(required),
+                "modelName": _safe_text(zrow, ["best_model"], "RandomForest"),
+                "cleaningType": _safe_text(zrow, ["cleaning_type"], home["cleaningType"]),
+                "obstacleLevel": _safe_text(zrow, ["obstacle_level"], home["obstacleLevel"]),
+                "floorType": _safe_text(zrow, ["floor_type"], ""),
+                "dirtLevel": _safe_text(zrow, ["dirt_level"], ""),
+                "suctionMode": _safe_text(zrow, ["effective_suction_mode"], ""),
+            })
+
+    if len(zones) < 5:
+        demo_zones = make_demo_payload()["zones"]
+        for z in demo_zones[len(zones):]:
+            z["globalRunId"] = home["globalRunId"]
+            z["areaPyung"] = home["areaPyung"]
+            zones.append(z)
+
+    return {
+        "currentSoc": int(CURRENT_SOC),
+        "home": home,
+        "zones": zones[:5],
+        "selectedScope": "home",
+        "selectedZone": None,
+        "dataStatus": "csv" if home_df is not None or zone_df is not None else "demo",
+    }
+
+
+home_pred_df = load_prediction_csv(str(HOME_PRED_PATH))
+zone_pred_df = load_prediction_csv(str(ZONE_PRED_PATH))
+ui_prediction_data = make_prediction_payload(home_pred_df, zone_pred_df)
+UI_PREDICTION_JSON = json.dumps(ui_prediction_data, ensure_ascii=False)
 
 APP_HTML = r"""
 <!doctype html>
@@ -119,6 +336,16 @@ button,input{font-family:inherit} button{cursor:pointer}
 .time-card{text-align:center}.time-icon{margin-top:10px;font-size:31px;animation:float 2s ease-in-out infinite}.time-number{color:#ef573f;font-size:32px;line-height:1;font-weight:900}.time-number small{font-size:12px}.time-sub{margin-top:4px;font-size:8px;font-weight:800}.time-tip{margin-top:15px;padding:7px 5px;border-radius:9px;background:#fff0ca;color:#745431;font-size:8px;line-height:1.45;font-weight:800}
 .food-card{display:flex;flex-direction:column;align-items:center;justify-content:space-between}.food-title{width:100%;font-size:10px;font-weight:900}.food-bowl{position:relative;width:64px;height:42px;margin:26px auto 10px;border-radius:6px 6px 25px 25px;background:linear-gradient(180deg,#d84849,#ad2e36);box-shadow:0 7px 8px rgba(81,37,25,.2),inset 0 -7px 8px rgba(83,12,22,.14)}
 .food-bowl:before{content:"";position:absolute;left:4px;top:-9px;width:56px;height:19px;border:4px solid #d54749;border-radius:50%;background:radial-gradient(circle at 30% 35%,#f1ab36 0 4px,transparent 5px),radial-gradient(circle at 60% 45%,#d57d24 0 5px,transparent 6px),radial-gradient(circle at 78% 30%,#f3c248 0 4px,transparent 5px),#944827}.food-bowl:after{content:"⚡";position:absolute;left:50%;top:10px;transform:translateX(-50%);color:#ffd542;font-size:20px;font-weight:900}.food-count{font-size:9px;font-weight:900}
+
+
+/* ML SOC Plan Selector */
+.plan-panel{margin-bottom:8px;padding:11px 10px;background:rgba(255,248,231,.98)}
+.plan-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.plan-title{font-size:11px;font-weight:900}.plan-model{padding:4px 7px;border-radius:11px;background:#eaf4df;color:#367b36;font-size:8px;font-weight:900}
+.scope-buttons{display:grid;grid-template-columns:1.05fr repeat(5,1fr);gap:5px;margin-bottom:8px}
+.scope-btn{min-height:37px;padding:5px 2px;border:1px solid rgba(124,83,43,.16);border-radius:12px;background:#f3e2be;color:#5a412e;font-size:8px;font-weight:900;line-height:1.2;box-shadow:0 3px 7px rgba(69,43,20,.09)}
+.scope-btn.active{background:linear-gradient(180deg,#65ae4b,#368e3d);color:#fff;border-color:transparent;box-shadow:0 5px 12px rgba(47,139,58,.25)}
+.selected-plan{display:grid;grid-template-columns:1fr .9fr;gap:7px;align-items:stretch}.plan-summary{padding:9px;border-radius:12px;background:#fff4d5;font-size:9px;line-height:1.55;font-weight:800}.plan-summary strong{color:#2f8b3a}.plan-soc{padding:9px;border-radius:12px;background:#f0e0be;text-align:center;font-weight:900}.plan-soc-label{font-size:8px;color:#79583e}.plan-soc-value{margin-top:2px;color:#ef573f;font-size:22px;line-height:1}.plan-soc-sub{margin-top:4px;font-size:8px;color:#76553e;line-height:1.35}
 
 /* Battery */
 .gauge-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.gauge-card{padding:14px 10px;text-align:center}
@@ -222,6 +449,30 @@ button,input{font-family:inherit} button{cursor:pointer}
         </div>
 
         <div class="home-dashboard">
+
+          <div class="panel plan-panel">
+            <div class="plan-head">
+              <div class="plan-title">오늘 청소 범위 선택</div>
+              <div class="plan-model" id="planModel">AI SOC 예측</div>
+            </div>
+            <div class="scope-buttons">
+              <button class="scope-btn active" id="scopeHome" data-action="selectHome">집 전체</button>
+              <button class="scope-btn" id="scopeZone1" data-action="selectZone1">1구역</button>
+              <button class="scope-btn" id="scopeZone2" data-action="selectZone2">2구역</button>
+              <button class="scope-btn" id="scopeZone3" data-action="selectZone3">3구역</button>
+              <button class="scope-btn" id="scopeZone4" data-action="selectZone4">4구역</button>
+              <button class="scope-btn" id="scopeZone5" data-action="selectZone5">5구역</button>
+            </div>
+            <div class="selected-plan">
+              <div class="plan-summary" id="planSummary">집 전체 청소 조건을 분석 중입니다.</div>
+              <div class="plan-soc">
+                <div class="plan-soc-label">AI 목표 SOC</div>
+                <div class="plan-soc-value"><span id="planTargetSoc">81</span>%</div>
+                <div class="plan-soc-sub" id="planSocSub">예상 소모량 + 안전마진 15%</div>
+              </div>
+            </div>
+          </div>
+
           <div class="actions">
             <button class="action-btn" data-action="feed"><span class="action-icon">🥣</span>먹여주기</button>
             <button class="action-btn" data-action="play"><span class="action-icon">🏐</span>놀아주기</button>
@@ -280,8 +531,8 @@ button,input{font-family:inherit} button{cursor:pointer}
         <div class="panel control">
           <div class="control-row">
             <div class="control-head"><span>목표 SOC 조절</span><span class="control-value" id="targetLabel">81%</span></div>
-            <input id="targetSlider" type="range" min="50" max="90" value="81">
-            <div class="control-caption"><span>50%</span><span>배터리 보호 권장</span><span>90%</span></div>
+            <input id="targetSlider" type="range" min="15" max="90" value="81">
+            <div class="control-caption"><span>15%</span><span>배터리 보호 권장</span><span>90%</span></div>
           </div>
           <div class="control-row">
             <div class="control-head"><span>온도 시뮬레이션</span><span class="control-value" id="tempLabel">29℃</span></div>
@@ -378,16 +629,37 @@ button,input{font-family:inherit} button{cursor:pointer}
 <script>
 "use strict";
 
+const predictionData = __UI_PREDICTION_DATA__;
+
 const state={
-  page:"homePage",soc:81,targetSoc:81,temperature:29,health:100,heart:100,
+  page:"homePage",
+  soc:predictionData.currentSoc,
+  targetSoc:predictionData.home.targetSoc,
+  requiredSoc:predictionData.home.requiredSoc,
+  selectedScope:"home",
+  selectedZone:null,
+  selectedLabel:predictionData.home.label,
+  selectedScenario:predictionData.home,
+  modelName:predictionData.home.modelName,
+  globalRunId:predictionData.home.globalRunId,
+  areaPyung:predictionData.home.areaPyung,
+  cleaningAreaM2:predictionData.home.cleaningAreaM2,
+  cleaningType:predictionData.home.cleaningType,
+  obstacleLevel:predictionData.home.obstacleLevel,
+  floorType:predictionData.home.floorType,
+  dirtLevel:predictionData.home.dirtLevel,
+  suctionMode:predictionData.home.suctionMode,
+  pendingCleanAfterCharge:false,
+  temperature:29,health:100,heart:100,
   level:13,exp:55,coins:50,food:1,cleaning:false,charging:false,
   celebrating:false,progress:0,missionDone:false,cleanCount:0,
-  acceptCount:4,area:72,average:38
+  acceptCount:4,area:predictionData.home.cleaningAreaM2||72,average:38
 };
 
 const $=(id)=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.min(Math.max(v,min),max);
 const cleanMinutes=()=>Math.max(0,Math.round(state.soc*.56));
+const fmtSoc=(v)=>Number(v).toFixed(1).replace(/\.0$/,"");
 
 function switchPage(pageId){
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
@@ -399,7 +671,7 @@ function switchPage(pageId){
 
 function render(){
   state.soc=clamp(Math.round(state.soc),0,100);
-  state.targetSoc=clamp(Math.round(state.targetSoc),50,90);
+  state.targetSoc=clamp(Math.round(state.targetSoc),15,90);
   state.temperature=Math.round(state.temperature*10)/10;
   state.exp=clamp(Math.round(state.exp),0,100);
 
@@ -410,7 +682,69 @@ function render(){
   $("cleanFill").style.width=state.progress+"%";
   $("missionFill").style.width=state.missionDone?"100%":state.progress+"%";
 
-  renderHome();renderBattery();renderRecord();renderReward();
+  renderPlan();renderHome();renderBattery();renderRecord();renderReward();
+}
+
+
+function getScenario(scope,zoneNumber=null){
+  if(scope==="home")return predictionData.home;
+  return predictionData.zones.find(z=>Number(z.zone)===Number(zoneNumber)) || predictionData.zones[zoneNumber-1] || predictionData.home;
+}
+
+function syncScenarioToState(scenario){
+  state.selectedScenario=scenario;
+  state.selectedScope=scenario.scope;
+  state.selectedZone=scenario.scope==="zone"?scenario.zone:null;
+  state.selectedLabel=scenario.label;
+  state.requiredSoc=Number(scenario.requiredSoc);
+  state.targetSoc=Number(scenario.targetSoc);
+  state.modelName=scenario.modelName;
+  state.globalRunId=scenario.globalRunId;
+  state.areaPyung=scenario.areaPyung;
+  state.cleaningAreaM2=scenario.cleaningAreaM2;
+  state.cleaningType=scenario.cleaningType;
+  state.obstacleLevel=scenario.obstacleLevel;
+  state.floorType=scenario.floorType;
+  state.dirtLevel=scenario.dirtLevel;
+  state.suctionMode=scenario.suctionMode;
+  state.area=scenario.cleaningAreaM2||state.area;
+}
+
+function selectScenario(scope,zoneNumber=null){
+  if(state.cleaning||state.charging){showToast("청소 또는 충전이 끝난 뒤 변경할 수 있어요.");return}
+  const scenario=getScenario(scope,zoneNumber);
+  syncScenarioToState(scenario);
+  render();
+  openScenarioModal();
+}
+
+function openScenarioModal(){
+  const enough=state.soc>=state.targetSoc;
+  const title=enough?"배가 든든해요!":"아직 배고파요!";
+  const scopeText=state.selectedScope==="home"?"집 전체 청소":state.selectedLabel+" 청소";
+  const detail=state.selectedScope==="home"
+    ? "집 전체 "+state.cleaningAreaM2+"㎡"
+    : state.floorType+" · 오염도 "+state.dirtLevel+" · "+state.cleaningAreaM2+"㎡";
+  const body=enough
+    ? scopeText+"를 선택했어요.<br><br>예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>이고, 목표 SOC는 <b>"+state.targetSoc+"%</b>예요.<br>지금 SOC가 <b>"+state.soc+"%</b>라서 바로 청소를 시작할 수 있어요!"
+    : scopeText+"를 선택했어요.<br><br>"+detail+" 조건 기준 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>안전 마진 15%를 더해서 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.<br><br><b>목표 SOC까지만 충전하고 청소를 시작할게요.</b> 과충전은 줄이고 배터리는 오래 지켜볼게요!";
+  openModal(title,body);
+}
+
+function renderPlan(){
+  if(!$('planSummary'))return;
+  document.querySelectorAll('.scope-btn').forEach(btn=>btn.classList.remove('active'));
+  if(state.selectedScope==="home")$('scopeHome').classList.add('active');
+  else if($('scopeZone'+state.selectedZone))$('scopeZone'+state.selectedZone).classList.add('active');
+
+  $('planTargetSoc').textContent=state.targetSoc;
+  $('planModel').textContent=state.modelName+" 기반";
+  const scopeText=state.selectedScope==="home"?"집 전체":state.selectedLabel;
+  const detail=state.selectedScope==="home"
+    ? state.areaPyung+"평 · "+state.cleaningAreaM2+"㎡ · "+(state.cleaningType||"AI 청소")
+    : (state.floorType||"바닥재질")+" · 오염도 "+(state.dirtLevel||"-")+" · "+state.cleaningAreaM2+"㎡";
+  $('planSummary').innerHTML="<strong>"+scopeText+"</strong> 선택됨<br>"+detail+"<br>예상 SOC 소모량 <strong>"+fmtSoc(state.requiredSoc)+"%</strong> → 목표 SOC <strong>"+state.targetSoc+"%</strong>";
+  $('planSocSub').textContent="예상 "+fmtSoc(state.requiredSoc)+"% + 안전마진 15%";
 }
 
 function renderHome(){
@@ -424,7 +758,7 @@ function renderHome(){
   }else if(state.cleaning){
     room.classList.add("cleaning");
     $("speech").innerHTML="<strong>열심히 청소 중이에요!</strong><br>진행률 "+state.progress+"%";
-    $("modeChip").textContent="🧹 거실 청소 중 · "+state.progress+"%";
+    $("modeChip").textContent="🧹 "+state.selectedLabel+" 청소 중 · "+state.progress+"%";
     $("batteryFace").textContent="🧹";
     $("batteryMessage").innerHTML="청소 중입니다.<br>SOC와 시간이 변하고 있어요.";
     $("timeTip").textContent="청소 진행률 "+state.progress+"%";
@@ -432,7 +766,7 @@ function renderHome(){
   }else if(state.charging){
     room.classList.add("charging");
     $("speech").innerHTML="<strong style='color:#e48627'>에너지를 먹고 있어요!</strong><br>필요한 만큼 충전할게요.";
-    $("modeChip").textContent="⚡ 맞춤 충전 중 · "+state.soc+" → "+state.targetSoc+"%";
+    $("modeChip").textContent="⚡ "+state.selectedLabel+" 맞춤 충전 · "+state.soc+" → "+state.targetSoc+"%";
     $("batteryFace").textContent="⚡";
     $("batteryMessage").innerHTML="AI 권장 SOC까지<br>맞춤 충전 중입니다.";
     $("timeTip").textContent="현재 SOC "+state.soc+"%";
@@ -447,10 +781,10 @@ function renderHome(){
     $("spark").textContent="💦";
   }else{
     $("speech").innerHTML="<strong>배가 든든해요!</strong><br>청소를 준비할게요!";
-    $("modeChip").textContent="✨ AI 권장 SOC "+state.targetSoc+"%";
+    $("modeChip").textContent="✨ "+state.selectedLabel+" AI 권장 SOC "+state.targetSoc+"%";
     $("batteryFace").textContent=state.soc>90?"😮":"😊";
     $("batteryMessage").innerHTML=state.soc>90?"권장 SOC를 넘었어요.<br>90% 이하 사용을 권장합니다.":"배터리 상태가 좋아요.<br>수명 보호 범위 안입니다.";
-    $("timeTip").textContent="현재 배터리로 청소가 가능합니다.";
+    $("timeTip").textContent=state.soc>=state.targetSoc?"현재 배터리로 청소가 가능합니다.":"목표 SOC "+state.targetSoc+"%까지 충전이 필요해요.";
     $("spark").textContent="✨";
   }
 }
@@ -466,7 +800,7 @@ function renderBattery(){
   $("targetSlider").value=state.targetSoc;
   $("tempLabel").textContent=state.temperature+"℃";
   $("tempSlider").value=state.temperature;
-  $("insightText").innerHTML="최근 청소 패턴을 분석한 결과, 오늘은 SOC <b>"+state.targetSoc+"%</b>까지만 충전해도 예상 청소를 완료할 수 있습니다.";
+  $("insightText").innerHTML=state.selectedLabel+" 조건을 분석한 결과, 예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>입니다. 안전 마진 15%를 반영하여 SOC <b>"+state.targetSoc+"%</b>까지만 충전하면 청소를 완료할 수 있습니다.";
 
   const y=132-(state.targetSoc-15)/75*104;
   const middleY=Math.round((82+y)/2);
@@ -566,20 +900,44 @@ function decorateRobot(){
 }
 
 function showStatus(){
-  openModal("배터리 상태","현재 SOC <b>"+state.soc+"%</b><br>배터리 온도 <b>"+state.temperature+"℃</b><br>예상 청소 가능 시간 <b>"+cleanMinutes()+"분</b><br><br>AI 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.");
+  const scopeText=state.selectedScope==="home"?"집 전체 청소":state.selectedLabel+" 청소";
+  openModal(
+    "AI SOC 예측 결과",
+    "선택 범위 <b>"+scopeText+"</b><br>"
+    + "시나리오 ID <b>"+state.globalRunId+"</b><br>"
+    + "현재 SOC <b>"+state.soc+"%</b><br>"
+    + "예상 SOC 소모량 <b>"+fmtSoc(state.requiredSoc)+"%</b><br>"
+    + "AI 목표 SOC <b>"+state.targetSoc+"%</b><br><br>"
+    + "사용 모델: <b>"+state.modelName+"</b>"
+  );
 }
 
 function startCleaning(){
   if(state.cleaning){showToast("이미 청소 중이에요.");return}
   if(state.charging){showToast("충전이 끝난 후 청소할게요.");return}
+
+  if(state.soc<state.targetSoc){
+    state.pendingCleanAfterCharge=true;
+    openModal(
+      "아직 배고파요!",
+      state.selectedLabel+" 청소에는 목표 SOC <b>"+state.targetSoc+"%</b>가 필요해요.<br><br>"
+      + "지금은 <b>"+state.soc+"%</b>라서, 목표 SOC까지만 충전하고 바로 청소를 시작할게요."
+    );
+    chargeRobot(true);
+    return;
+  }
+
   if(state.soc<15){showToast("SOC가 부족합니다. 먼저 충전해 주세요.");return}
 
-  state.cleaning=true;state.progress=0;render();showToast("거실 청소를 시작합니다!");
-  let step=0;const totalSteps=18;
+  state.cleaning=true;state.progress=0;
+  const startSoc=state.soc;
+  const plannedUse=Math.min(state.requiredSoc,state.soc);
+  render();showToast(state.selectedLabel+" 청소를 시작합니다!");
+  let step=0;const totalSteps=20;
 
   const timer=setInterval(()=>{
     step+=1;state.progress=Math.round(step/totalSteps*100);
-    state.soc=Math.max(0,state.soc-1);
+    state.soc=Math.max(0,startSoc-plannedUse*(step/totalSteps));
     state.temperature=Math.min(36,state.temperature+.25);
     render();
 
@@ -587,23 +945,27 @@ function startCleaning(){
       clearInterval(timer);
       state.cleaning=false;state.progress=100;state.temperature=29;
       state.missionDone=true;state.celebrating=true;state.cleanCount+=1;
-      state.coins+=50;state.exp+=20;state.area+=18;
-      state.average=Math.round((state.average+32)/2);
+      state.coins+=50;state.exp+=20;state.area=Math.round((state.area||0)+(state.cleaningAreaM2||0));
+      state.average=Math.round((state.average+Math.max(15,Math.round(state.requiredSoc*1.4)))/2);
       levelCheck();
-      addEvent("거실 청소 완료","청소 보상으로 50코인과 경험치 20을 획득했습니다.");
+      addEvent(state.selectedLabel+" 청소 완료","AI 예측 SOC "+fmtSoc(state.requiredSoc)+"%를 기준으로 청소를 완료했습니다.");
       spawnEffect("🎉",15);spawnEffect("⭐",9);render();
 
       setTimeout(()=>{state.celebrating=false;render()},2200);
-      setTimeout(()=>openModal("청소 완료!","거실 청소를 완료했습니다.<br><br>보상으로 <b>50코인</b>과 경험치 20을 획득했습니다."),550);
+      setTimeout(()=>openModal("청소 완료!",state.selectedLabel+" 청소를 완료했습니다.<br><br>예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>였고, 보상으로 <b>50코인</b>과 경험치 20을 획득했습니다."),550);
     }
   },320);
 }
 
-function chargeRobot(){
+function chargeRobot(autoStart=false){
   if(state.cleaning){showToast("청소가 끝난 후 충전할 수 있어요.");return}
   if(state.charging){showToast("이미 충전 중이에요.");return}
   if(state.soc>=state.targetSoc){
-    openModal("맞춤 충전 안내","현재 SOC가 목표 SOC <b>"+state.targetSoc+"%</b>에 이미 도달했습니다.<br><br>추가 충전을 하지 않습니다.");
+    openModal("맞춤 충전 안내","현재 SOC가 목표 SOC <b>"+state.targetSoc+"%</b>에 이미 도달했습니다.<br><br>"+state.selectedLabel+" 청소를 바로 시작할 수 있어요.");
+    if(autoStart||state.pendingCleanAfterCharge){
+      state.pendingCleanAfterCharge=false;
+      setTimeout(startCleaning,450);
+    }
     return;
   }
 
@@ -615,9 +977,12 @@ function chargeRobot(){
 
     if(state.soc>=state.targetSoc){
       clearInterval(timer);state.charging=false;state.temperature=29;state.acceptCount+=1;
-      addEvent("맞춤 충전 완료","목표 SOC "+state.targetSoc+"%에서 자동 충전을 종료했습니다.");
+      addEvent("맞춤 충전 완료",state.selectedLabel+" 목표 SOC "+state.targetSoc+"%에서 자동 충전을 종료했습니다.");
       spawnEffect("✨",10);render();
-      setTimeout(()=>openModal("맞춤 충전 완료","필요한 만큼만 충전했습니다.<br><br>목표 SOC <b>"+state.targetSoc+"%</b>에서 충전을 종료하여 고SOC 유지 시간을 줄였습니다."),400);
+      const shouldStart=autoStart||state.pendingCleanAfterCharge;
+      state.pendingCleanAfterCharge=false;
+      setTimeout(()=>openModal("맞춤 충전 완료","필요한 만큼만 충전했습니다.<br><br>"+state.selectedLabel+" 목표 SOC <b>"+state.targetSoc+"%</b>에서 충전을 종료하여 고SOC 유지 시간을 줄였습니다."+(shouldStart?"<br><br>이제 청소를 시작할게요!":"")),400);
+      if(shouldStart){setTimeout(startCleaning,1200)}
     }
   },150);
 }
@@ -628,6 +993,12 @@ function buyFood(){
 }
 
 const actions={
+  selectHome:()=>selectScenario("home"),
+  selectZone1:()=>selectScenario("zone",1),
+  selectZone2:()=>selectScenario("zone",2),
+  selectZone3:()=>selectScenario("zone",3),
+  selectZone4:()=>selectScenario("zone",4),
+  selectZone5:()=>selectScenario("zone",5),
   pet:petRobot,feed:feedRobot,play:playRobot,train:trainRobot,photo:takePhoto,
   clean:startCleaning,charge:chargeRobot,status:showStatus,
   record:()=>switchPage("recordPage"),decorate:decorateRobot,shop:()=>switchPage("rewardPage"),
@@ -663,5 +1034,7 @@ render();
 </body>
 </html>
 """
+
+APP_HTML = APP_HTML.replace("__UI_PREDICTION_DATA__", UI_PREDICTION_JSON)
 
 components.html(APP_HTML, height=930, scrolling=False)
