@@ -861,7 +861,10 @@ body,button,input,select{
 
 /* CTA click safety: keep the first-learning button above decorative layers */
 #learnPanel{position:relative!important;z-index:60!important;}
-#learnBtn{position:relative!important;z-index:120!important;pointer-events:auto!important;touch-action:manipulation!important;}
+#learnBtn{position:relative!important;z-index:9999!important;pointer-events:auto!important;touch-action:manipulation!important;isolation:isolate!important;}
+.learn-panel,.plan-panel,.home-dashboard{position:relative!important;}
+.learn-panel{z-index:80!important;}
+.condition-panel{position:relative!important;z-index:10!important;}
 
 
 /* ===== Compact learning/profile summary cards ===== */
@@ -1192,7 +1195,7 @@ body,button,input,select{
               <div class="learn-progress"><div class="learn-fill" id="learnFill"></div></div>
               <div class="learn-status" id="learnStatus">1회차 학습 청소를 시작하면 로보킹이 집 구조와 구역 정보를 자동으로 기록해요.</div>
               <div class="learn-steps" id="learnSteps"></div>
-              <button type="button" class="learn-btn" id="learnBtn" data-action="startFirstMapping" onclick="event.preventDefault(); event.stopPropagation(); startFirstMapping();">🏠 1회차 학습 청소 시작</button>
+              <button type="button" class="learn-btn" id="learnBtn" data-action="startFirstMapping" onpointerdown="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);" onmousedown="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);" ontouchstart="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);" onclick="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);">🏠 1회차 학습 청소 시작</button>
             </div>
             <div class="condition-panel" id="conditionPanel">
               <div class="condition-title" id="conditionTitle">1회차 학습 청소로 우리 집 정보를 먼저 만들어요</div>
@@ -2845,21 +2848,42 @@ const actions={
 };
 
 document.addEventListener("click",(event)=>{const nav=event.target.closest("[data-page]");if(nav){switchPage(nav.dataset.page);return}const action=event.target.closest("[data-action]");if(action&&typeof actions[action.dataset.action]==="function"){actions[action.dataset.action]()}});
-// 1회차 학습 청소는 핵심 CTA라서, 이벤트 위임/터치/겹침 이슈가 있어도 동작하도록 직접 연결합니다.
+// 1회차 학습 청소는 핵심 CTA라서, 이벤트 위임/터치/겹침 이슈가 있어도 반드시 동작하도록 여러 경로로 직접 연결합니다.
 let lastLearnClickAt=0;
 function triggerLearnButton(event){
-  if(event){event.preventDefault();event.stopPropagation();if(event.stopImmediatePropagation)event.stopImmediatePropagation();}
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+    if(event.stopImmediatePropagation)event.stopImmediatePropagation();
+  }
   const now=Date.now();
   if(now-lastLearnClickAt<700)return;
   lastLearnClickAt=now;
   if(typeof startFirstMapping==="function")startFirstMapping();
 }
+window.__forceStartFirstMapping=triggerLearnButton;
 const learnBtnDirect=$("learnBtn");
 if(learnBtnDirect){
+  learnBtnDirect.onclick=triggerLearnButton;
+  learnBtnDirect.onpointerdown=triggerLearnButton;
+  learnBtnDirect.onmousedown=triggerLearnButton;
+  learnBtnDirect.ontouchstart=triggerLearnButton;
   learnBtnDirect.addEventListener("click",triggerLearnButton,true);
+  learnBtnDirect.addEventListener("pointerdown",triggerLearnButton,true);
   learnBtnDirect.addEventListener("pointerup",triggerLearnButton,true);
-  learnBtnDirect.addEventListener("touchend",triggerLearnButton,true);
+  learnBtnDirect.addEventListener("mousedown",triggerLearnButton,true);
+  learnBtnDirect.addEventListener("touchstart",triggerLearnButton,{capture:true,passive:false});
+  learnBtnDirect.addEventListener("touchend",triggerLearnButton,{capture:true,passive:false});
 }
+document.addEventListener("pointerdown",(event)=>{
+  const btn=event.target && event.target.closest ? event.target.closest("#learnBtn") : null;
+  if(btn)triggerLearnButton(event);
+},true);
+document.addEventListener("touchstart",(event)=>{
+  const target=event.target;
+  const btn=target && target.closest ? target.closest("#learnBtn") : null;
+  if(btn)triggerLearnButton(event);
+},{capture:true,passive:false});
 
 $("modalCancel").addEventListener("click",closeModal);$("modalConfirm").addEventListener("click",()=>modalConfirmHandler());$("modal").addEventListener("click",(event)=>{if(event.target===$("modal"))closeModal()});
 $("targetSlider").addEventListener("input",(event)=>{state.targetSoc=Number(event.target.value);render()});
