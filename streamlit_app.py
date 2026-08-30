@@ -106,6 +106,15 @@ st.markdown(
 .toast{font-size:12px;}
 @media(max-width:440px){.phone{height:100vh;}.pages{height:calc(100% - 136px);}}
 
+
+
+/* ===== Final UX: use bottom sheet only for decisions; routine updates use cards/toasts/speech ===== */
+.modal{align-items:flex-end!important;justify-content:center!important;padding:0 16px 18px!important;background:rgba(45,33,23,.32)!important;backdrop-filter:blur(2px)!important;}
+.modal-card{max-width:392px!important;border-radius:24px 24px 20px 20px!important;animation:sheetUp .22s ease-out!important;}
+@keyframes sheetUp{from{opacity:0;transform:translateY(46px)}to{opacity:1;transform:translateY(0)}}
+.predict-loading{border-radius:10px;padding:6px 8px;background:rgba(255,255,255,.35);}
+.predict-loading.active{background:#eaf4df;color:#2f8b3a;}
+
 </style>
     """,
     unsafe_allow_html=True,
@@ -1646,7 +1655,10 @@ function syncScenarioToState(scenario){
 function predictSocFromConditions(){
   if(state.cleaning||state.charging||state.mapping){showToast("학습/청소/충전이 끝난 뒤 다시 예측할 수 있어요.");return}
   if(!state.profileReady){
-    openModal("1회차 학습이 먼저예요","아직 로보킹이 우리 집 구조를 배우지 못했어요.<br><br>먼저 <b>1회차 학습 청소</b>를 실행하면 집 구조, 구역별 면적, 바닥 타입, 오염도, 장애물 수준, 실제 SOC 소모 기록을 저장합니다.<br><br>그 다음부터 AI가 다음 청소에 필요한 SOC를 예측할 수 있어요.");
+    showToast("1회차 학습 청소가 먼저 필요해요.");
+    $("speech").innerHTML="<strong style='color:#ef8c32'>아직 학습 전이에요!</strong><br>먼저 우리 집을 알려주세요.";
+    $("modeChip").textContent="🏠 1회차 학습 필요";
+    switchPage("homePage");
     return;
   }
   const choices=getPredictionChoices();
@@ -1662,17 +1674,18 @@ function predictSocFromConditions(){
     syncScenarioToState(matchedScenario);
     state.predicted=true;
     state.predicting=false;
+    state.chargeComplete=false;
     if(loading){
-      loading.textContent=state.selectedLabel+" · "+state.cleanModeLabel+" · "+state.intensityLabel+" · "+state.todayStateLabel+" 조건 예측 완료";
+      const status=state.soc>=state.targetSoc?"바로 청소 가능":"충전 필요";
+      loading.textContent="예측 완료 · 예상 SOC "+fmtSoc(state.requiredSoc)+"% · 목표 SOC "+state.targetSoc+"% · "+status;
       loading.classList.remove('active');
     }
     render();
-    const scopeText=state.selectedScope==="home"?"집 전체":state.selectedLabel;
-    const body="<b>"+scopeText+"</b> · "+state.cleanModeLabel+" · "+state.intensityLabel+" · "+state.todayStateLabel+"<br><br>"
-      +"예상 SOC: <b>"+fmtSoc(state.requiredSoc)+"%</b><br>"
-      +"목표 SOC: <b>"+state.targetSoc+"%</b> <small>(+안전마진 15%)</small><br>"
-      +"방식: <b>"+state.matchNote+"</b>";
-    openModal("AI 예측 완료!",body);
+    const statusText=state.soc>=state.targetSoc?"바로 청소할 수 있어요":"목표 SOC까지 충전이 필요해요";
+    $("speech").innerHTML="<strong style='color:#2f8b3a'>예측 완료!</strong><br>목표 SOC "+state.targetSoc+"% · "+statusText;
+    $("modeChip").textContent="✅ AI 예측 완료 · "+state.selectedLabel;
+    addEvent("AI SOC 예측 완료",state.selectedLabel+" · 예상 SOC "+fmtSoc(state.requiredSoc)+"% · 목표 SOC "+state.targetSoc+"%.");
+    showToast("AI 예측 완료 · 목표 SOC "+state.targetSoc+"%");
   },900);
 }
 
@@ -1787,13 +1800,18 @@ function startFirstMapping(){
       addEvent("1회차 학습 청소 완료",eventMsg);
       spawnEffect("🏠",8);spawnEffect("✨",9);
       render();
-      setTimeout(()=>openModal("우리 집 프로필 저장 완료!",profileResultBody()),350);
+      showToast("우리 집 프로필 저장 완료 · 이제 AI 예측하기를 눌러주세요.");
+      setTimeout(()=>{render();},350);
     }
   },260);
 }
 function selectScenario(scope,zoneNumber=null){
   if(state.cleaning||state.charging||state.mapping){showToast("학습/청소/충전이 끝난 뒤 변경할 수 있어요.");return}
-  if(!state.profileReady){openModal("우리 집 학습이 먼저예요","구역별 바닥 타입과 오염도는 1회차 학습 청소 후 확인할 수 있어요.<br><br>먼저 <b>1회차 학습 청소 시작</b>을 눌러 로보킹에게 우리 집을 알려주세요.");return}
+  if(!state.profileReady){
+    showToast("구역 선택은 1회차 학습 후 가능해요.");
+    $("speech").innerHTML="<strong style='color:#ef8c32'>우리 집 학습이 먼저예요</strong><br>1회차 학습 청소를 시작해 주세요.";
+    return;
+  }
   if(!state.predicted){showToast("AI 예측하기를 먼저 눌러주세요.");return}
   const scopeSelect=$('scopeSelect');
   if(scopeSelect)scopeSelect.value=scope==="home"?"home":String(zoneNumber||1);
@@ -1801,7 +1819,12 @@ function selectScenario(scope,zoneNumber=null){
   const matchedScenario=findMlScenarioFromChoices(choices);
   syncScenarioToState(matchedScenario);
   render();
-  openScenarioModal();
+  const status=state.soc>=state.targetSoc?"청소 가능":"충전 필요";
+  const loading=$('predictLoading');
+  if(loading)loading.textContent=state.selectedLabel+" 선택 · 예상 SOC "+fmtSoc(state.requiredSoc)+"% · 목표 SOC "+state.targetSoc+"% · "+status;
+  $("speech").innerHTML="<strong>"+state.selectedLabel+" 선택!</strong><br>목표 SOC "+state.targetSoc+"%로 업데이트했어요.";
+  $("modeChip").textContent="✨ "+state.selectedLabel+" AI 목표 SOC "+state.targetSoc+"%";
+  showToast(state.selectedLabel+" 예측값을 적용했어요.");
 }
 
 function openScenarioModal(){
@@ -2199,11 +2222,21 @@ function startCleaning(){
   if(state.cleaning){showToast("이미 청소 중이에요.");return}
   if(state.charging){showToast("충전이 끝난 후 청소할게요.");return}
   if(state.mapping){showToast("1회차 학습이 끝난 뒤 청소할 수 있어요.");return}
-  if(!state.profileReady){openModal("1회차 학습이 먼저예요","아직 우리 집 구조와 구역 정보가 저장되지 않았어요.<br><br>먼저 <b>1회차 학습 청소</b>를 실행해 주세요.");return}
-  if(!state.predicted){openModal("AI 예측이 필요해요","우리 집 프로필은 저장됐어요.<br><br>청소를 시작하기 전에 <b>AI 예측하기</b>로 필요한 목표 SOC를 계산해 주세요.");return}
+  if(!state.profileReady){
+    showToast("1회차 학습 청소가 먼저 필요해요.");
+    $("speech").innerHTML="<strong style='color:#ef8c32'>학습이 먼저예요</strong><br>집 프로필을 저장한 뒤 청소할 수 있어요.";
+    switchPage("homePage");
+    return;
+  }
+  if(!state.predicted){
+    showToast("청소 전 AI 예측하기를 먼저 눌러주세요.");
+    $("speech").innerHTML="<strong style='color:#2f8b3a'>AI 예측이 필요해요</strong><br>필요한 SOC를 먼저 계산할게요.";
+    switchPage("homePage");
+    return;
+  }
 
   const totalRequired=Math.max(0,Number(state.requiredSoc||0));
-  if(totalRequired<=0){openModal("예측값 확인 필요","예상 SOC 소모량이 0으로 계산되었습니다.<br>AI 예측을 다시 실행해 주세요.");return}
+  if(totalRequired<=0){showToast("예측 SOC를 다시 확인해 주세요.");return}
 
   if(state.missionDone || state.progress>=100){
     resetCleaningMissionPlan();
@@ -2211,7 +2244,7 @@ function startCleaning(){
 
   let remaining=getRemainingCleaningSoc();
 
-  // 90% 상한과 15% 잔량 기준으로 한 번에 끝낼 수 없는 경우에는 분할 청소로 전환
+  // 90% 상한과 15% 잔량 기준으로 한 번에 끝낼 수 없는 경우에만 분할 청소 안내를 띄웁니다.
   if(remaining>MAX_SINGLE_PASS_USE && state.soc<MAX_CHARGE_SOC){
     showSplitCleaningModal();
     return;
@@ -2221,7 +2254,6 @@ function startCleaning(){
   state.targetSoc=neededStart;
 
   // 청소 시작 전 Reserve SOC Guard
-  // 현재 SOC - 남은 예상 소모 SOC가 15% 미만이면 청소를 시작하지 않고 충전 안내
   if(remaining<=MAX_SINGLE_PASS_USE && state.soc<neededStart){
     showReserveChargeModal(true);
     return;
@@ -2269,7 +2301,6 @@ function startCleaning(){
     state.temperature=Math.min(36,state.temperature+.25);
     render();
 
-    // 실시간 SOC Guard: 예상보다 빨리 닳는 상황을 가정해도 15% 이하로 내려가기 전 도킹 처리
     if(state.soc<=CRITICAL_DOCK_SOC && !segmentWillComplete){
       step=totalSteps;
     }
@@ -2287,7 +2318,9 @@ function startCleaning(){
         state.targetSoc=targetFromRequired(newRemaining);
         addEvent("중간 충전 필요",state.selectedLabel+" 청소 중 15% 잔량 보호 기준에 도달하여 도킹했습니다. 남은 예상 SOC "+fmtSoc(newRemaining)+"%.");
         render();
-        setTimeout(()=>openModal("중간 충전 후 이어서 청소해요","배터리를 <b>"+MIN_RESERVE_SOC+"%</b> 이상 남기기 위해 청소를 잠시 멈췄어요.<br><br>현재 SOC <b>"+fmtSoc(state.soc)+"%</b><br>남은 예상 SOC <b>"+fmtSoc(newRemaining)+"%</b><br>다음 목표 SOC <b>"+state.targetSoc+"%</b><br><br>충전 후 남은 구역을 이어서 청소할게요.",{
+        $("speech").innerHTML="<strong style='color:#ef8c32'>잠시 쉬어갈게요</strong><br>남은 청소를 이어서 할 수 있어요.";
+        showToast("남은 청소를 위해 중간 충전이 필요해요.");
+        setTimeout(()=>openModal("중간 충전이 필요해요","배터리를 <b>"+MIN_RESERVE_SOC+"%</b> 이상 남기기 위해 청소를 잠시 멈췄어요.<br><br>현재 SOC <b>"+fmtSoc(state.soc)+"%</b><br>남은 예상 SOC <b>"+fmtSoc(newRemaining)+"%</b><br>다음 목표 SOC <b>"+state.targetSoc+"%</b><br><br>충전 후 남은 구역을 이어서 청소할게요.",{
           showCancel:true,
           cancelText:"나중에",
           confirmText:"충전하고 이어서",
@@ -2307,9 +2340,12 @@ function startCleaning(){
       state.average=Math.round((state.average+Math.max(15,Math.round(state.requiredSoc*1.4)))/2);
       levelCheck();
       addEvent(state.selectedLabel+" 청소 완료","AI 예측 SOC "+fmtSoc(state.requiredSoc)+"%와 최소 잔량 "+MIN_RESERVE_SOC+"% 기준을 지키며 청소를 완료했습니다.");
-      spawnEffect("🎉",15);spawnEffect("⭐",9);render();
+      spawnEffect("🎉",15);spawnEffect("⭐",9);
+      render();
+      $("speech").innerHTML="<strong style='color:#2f8b3a'>청소 완료!</strong><br>+50코인을 받았어요.";
+      $("modeChip").textContent="🏆 "+state.selectedLabel+" 완료 · 종료 SOC "+fmtSoc(state.soc)+"%";
+      showToast("청소 완료 · +50코인 · 종료 SOC "+fmtSoc(state.soc)+"%");
       setTimeout(()=>{state.celebrating=false;render()},2200);
-      setTimeout(()=>openModal("청소 완료!",state.selectedLabel+" 청소를 완료했습니다.<br><br>예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>였고, 종료 SOC는 <b>"+fmtSoc(state.soc)+"%</b>입니다.<br>최소 잔량 <b>"+MIN_RESERVE_SOC+"%</b> 기준을 지켰어요.<br><br>보상으로 <b>50코인</b>과 경험치 20을 획득했습니다."),550);
     }
   },320);
 }
@@ -2319,7 +2355,12 @@ function chargeRobot(autoStart=false){
   if(state.charging){showToast("이미 충전 중이에요.");return}
   if(state.soc>=state.targetSoc){
     if(autoStart){setTimeout(startCleaning,250);return}
-    openModal("배불러요!","현재 SOC가 목표 SOC <b>"+state.targetSoc+"%</b>에 이미 도달했어요.<br><br>이제 "+state.selectedLabel+" 청소를 시작할 수 있어요.");
+    state.chargeComplete=true;
+    render();
+    $("speech").innerHTML="<strong>배불러요!</strong><br>이제 "+state.selectedLabel+" 청소가 가능해요.";
+    $("modeChip").textContent="💖 목표 SOC 도달 · "+state.soc+"%";
+    showToast("이미 목표 SOC에 도달했어요.");
+    setTimeout(()=>{state.chargeComplete=false;render()},2600);
     return;
   }
   closeModal();
@@ -2343,9 +2384,11 @@ function chargeRobot(autoStart=false){
       spawnEffect("💖",12);
       spawnEffect("✨",8);
       render();
-      setTimeout(()=>openModal("배불러요!","목표 SOC <b>"+state.targetSoc+"%</b>까지 딱 맞게 충전했어요.<br><br>과충전은 줄이고, 배터리는 아껴둘게요.<br>이제 <b>"+state.selectedLabel+" 청소가 가능해요!</b>"),450);
+      $("speech").innerHTML="<strong>배불러요!</strong><br>목표 SOC "+state.targetSoc+"%까지 채웠어요.";
+      $("modeChip").textContent="💖 맞춤 충전 완료 · SOC "+state.soc+"%";
+      showToast("맞춤 충전 완료 · 이제 청소 가능해요.");
       setTimeout(()=>{state.chargeComplete=false;render()},3200);
-      if(autoStart){setTimeout(startCleaning,1300)}
+      if(autoStart){setTimeout(startCleaning,1000)}
     }
   },150);
 }
