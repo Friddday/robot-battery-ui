@@ -2215,20 +2215,17 @@ function resetCleaningMissionPlan(){
 }
 
 function showSplitCleaningModal(){
-  const remaining=getRemainingCleaningSoc();
-  const needAtStart=targetFromRequired(remaining);
-  const maxUseAt90=MAX_SINGLE_PASS_USE;
   state.targetSoc=MAX_CHARGE_SOC;
   state.splitCleaning=true;
   render();
-  const body="필요 배터리는 <b>"+fmtSoc(remaining)+"%</b>라서 한 번에 청소하면 15% 잔량을 유지하기 어려워요.<br><br>"
-    +"배터리를 오래 쓰기 위해 최대 충전은 <b>"+MAX_CHARGE_SOC+"%</b>, 최소 잔량은 <b>"+MIN_RESERVE_SOC+"%</b>로 유지합니다.<br>"
-    +"따라서 1회 주행에서 안전하게 쓸 수 있는 배터리는 최대 <b>"+maxUseAt90+"%</b>입니다.<br><br>"
-    +"이번 청소는 중간에 한 번 쉬어가며 이어서 진행할게요.";
-  openModal("분할 청소가 필요해요",body,{
+  const body="청소할 양이 많아서<br>"
+    +"한 번에 무리하면 로보킹이 금방 지칠 수 있어요.<br><br>"
+    +"배터리를 아끼기 위해<br>"
+    +"잠깐 쉬어가며 이어서 청소할게요.";
+  openModal("이번 청소는 나눠서 할게요",body,{
     showCancel:true,
     cancelText:"취소",
-    confirmText:state.soc<MAX_CHARGE_SOC?"90%까지 충전":"분할 청소 시작",
+    confirmText:state.soc<MAX_CHARGE_SOC?"충전하고 시작":"청소 시작",
     onConfirm:()=>{
       closeModal();
       if(state.soc<MAX_CHARGE_SOC){
@@ -2384,12 +2381,12 @@ function startCleaning(){
       if(newRemaining>0.2){
         state.progress=endProgress;
         state.targetSoc=targetFromRequired(newRemaining);
-        addEvent("중간 충전 필요",state.selectedLabel+" 청소 중 15% 잔량 보호 기준에 도달하여 도킹했습니다. 남은 필요 배터리 "+fmtSoc(newRemaining)+"%.");
+        addEvent("잠깐 쉬어가기",state.selectedLabel+" 청소 중 로보킹이 잠깐 충전한 뒤 남은 곳을 이어서 청소하기로 했어요.");
         render();
-        $("speech").innerHTML="<strong style='color:#ef8c32'>잠시 쉬어갈게요</strong><br>남은 청소를 이어서 할 수 있어요.";
-        setGuide("로보킹이 조금 배고파졌어요. 잠깐 쉬고 남은 청소를 이어갈게요.","warning");
-        showToast("로보킹이 잠깐 쉬어가려고 해요.");
-        setTimeout(()=>openModal("중간 충전이 필요해요","배터리를 <b>"+MIN_RESERVE_SOC+"%</b> 이상 남기기 위해 청소를 잠시 멈췄어요.<br><br>현재 배터리 <b>"+fmtSoc(state.soc)+"%</b><br>남은 필요 배터리 <b>"+fmtSoc(newRemaining)+"%</b><br>다음 권장량 <b>"+state.targetSoc+"%</b><br><br>충전 후 남은 구역을 이어서 청소할게요.",{
+        $("speech").innerHTML="<strong style='color:#ef8c32'>잠깐 쉬어갈게요!</strong><br>조금만 쉬고 다시 힘낼게요.";
+        setGuide("로보킹이 조금 지쳤어요. 잠깐 충전하고 남은 곳을 이어서 청소할게요.","warning");
+        showToast("잠깐 충전하고 남은 곳을 이어서 청소할게요.");
+        setTimeout(()=>openModal("잠깐 쉬어갈게요!","제가 조금 지쳤어요.<br>잠깐 충전하고 나면<br>남은 곳도 다시 힘내서 청소할게요!<br><br>지금 배터리: <b>"+fmtSoc(state.soc)+"%</b>",{
           showCancel:true,
           cancelText:"나중에",
           confirmText:"충전하고 이어서",
