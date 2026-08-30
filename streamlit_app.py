@@ -1463,6 +1463,25 @@ const $=(id)=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.min(Math.max(v,min),max);
 const fmtSoc=(v)=>Number(v || 0).toFixed(1).replace(/\.0$/,"");
 const cleanMinutes=()=>Math.max(0,Math.round(state.soc*.56));
+
+// ============================================================
+// 배터리 보호/학습 주행 기준값
+// 최근 UX 문구 수정 과정에서 이 상수들이 빠지면
+// 1회차 학습 버튼 클릭 시 startFirstMapping() 내부에서 ReferenceError가 발생합니다.
+// 그래서 사용자에게 숫자를 직접 노출하지 않더라도, 내부 로직에는 반드시 유지합니다.
+// ============================================================
+const MIN_RESERVE_SOC = 15;
+const MAX_CHARGE_SOC = 90;
+const MAX_SINGLE_PASS_USE = MAX_CHARGE_SOC - MIN_RESERVE_SOC;
+const CRITICAL_DOCK_SOC = MIN_RESERVE_SOC;
+const targetFromRequired = (required)=>clamp(Math.ceil(Number(required||0)+MIN_RESERVE_SOC),MIN_RESERVE_SOC,MAX_CHARGE_SOC);
+const expectedEndSoc = (startSoc,required)=>Math.round((Number(startSoc||0)-Number(required||0))*10)/10;
+
+const MIN_SOC_AFTER_LEARNING = MIN_RESERVE_SOC;
+const MIN_LEARNING_SOC_USE = 5;
+const MAX_LEARNING_SOC_USE = 30;
+const LEARNING_SOC_RATIO = 0.35;
+
 function setGuide(message,tone="normal"){
   state.userGuide=message;
   state.userGuideTone=tone;
