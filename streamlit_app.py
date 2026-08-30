@@ -931,7 +931,7 @@ body,button,input,select{
 /* 모자는 로보킹 머리 위에 실제로 얹힌 느낌이 나도록 낮게 배치 */
 .robot-head-deco.hat{top:-31px;font-size:52px;height:46px;transform:translateX(-50%) rotate(-10deg);}
 /* 토끼/고양이는 동물 이모지가 아니라 로보킹 자체에 귀가 붙는 장착형 레이어 */
-.robot-head-deco.ears{top:-34px;width:132px;height:72px;min-width:132px;}
+.robot-head-deco.ears{top:-42px;width:138px;height:78px;min-width:138px;}
 .robot-head-deco.ears.show{display:block;animation:decoPop .34s ease-out;}
 .robo-ear{position:absolute;z-index:2;bottom:4px;filter:drop-shadow(0 3px 3px rgba(64,38,18,.16));}
 .robot-head-deco.bunny .robo-ear{
@@ -945,16 +945,16 @@ body,button,input,select{
 .robot-head-deco.bunny .robo-ear.left{left:36px;transform:rotate(-8deg);transform-origin:bottom center;}
 .robot-head-deco.bunny .robo-ear.right{right:36px;transform:rotate(8deg);transform-origin:bottom center;}
 .robot-head-deco.cat .robo-ear{
-  width:40px;height:38px;bottom:0;background:linear-gradient(180deg,#fff 0%,#f0edf5 100%);
+  width:34px;height:32px;bottom:6px;background:linear-gradient(180deg,#fff 0%,#f0edf5 100%);
   clip-path:polygon(50% 0,4% 100%,96% 100%);
   border-radius:8px;
 }
 .robot-head-deco.cat .robo-ear:after{
-  content:"";position:absolute;left:50%;bottom:6px;width:18px;height:19px;transform:translateX(-50%);
+  content:"";position:absolute;left:50%;bottom:5px;width:15px;height:15px;transform:translateX(-50%);
   background:#ffc4d4;clip-path:polygon(50% 0,8% 100%,92% 100%);
 }
-.robot-head-deco.cat .robo-ear.left{left:26px;transform:rotate(-13deg);}
-.robot-head-deco.cat .robo-ear.right{right:26px;transform:rotate(13deg);}
+.robot-head-deco.cat .robo-ear.left{left:22px;transform:rotate(-16deg);transform-origin:bottom center;}
+.robot-head-deco.cat .robo-ear.right{right:22px;transform:rotate(16deg);transform-origin:bottom center;}
 .robot-aura-deco{
   position:absolute;
   z-index:5;
@@ -978,14 +978,14 @@ body,button,input,select{
 .preview-head,.preview-aura{position:absolute;pointer-events:none;}
 .preview-head{top:-4px;left:50%;transform:translateX(-50%);font-size:35px;filter:drop-shadow(0 3px 3px rgba(64,38,18,.18));}
 .preview-head.hat{top:-4px;transform:translateX(-50%) rotate(-10deg);font-size:38px;}
-.preview-head.ears{top:-9px;width:86px;height:44px;}
+.preview-head.ears{top:-13px;width:92px;height:48px;}
 .preview-head.ears .p-ear{position:absolute;bottom:0;filter:drop-shadow(0 2px 2px rgba(64,38,18,.14));}
 .preview-head.bunny .p-ear{width:13px;height:42px;border:2px solid #fff;border-radius:12px;background:#f5f1fb;}
 .preview-head.bunny .p-ear:after{content:"";position:absolute;left:50%;top:6px;width:5px;height:29px;transform:translateX(-50%);border-radius:8px;background:#ffc2d7;}
 .preview-head.bunny .p-ear.left{left:24px;transform:rotate(-8deg)}.preview-head.bunny .p-ear.right{right:24px;transform:rotate(8deg)}
-.preview-head.cat .p-ear{width:26px;height:24px;background:#fff;clip-path:polygon(50% 0,4% 100%,96% 100%);}
-.preview-head.cat .p-ear:after{content:"";position:absolute;left:50%;bottom:4px;width:11px;height:12px;transform:translateX(-50%);background:#ffc4d4;clip-path:polygon(50% 0,8% 100%,92% 100%);}
-.preview-head.cat .p-ear.left{left:17px;transform:rotate(-13deg)}.preview-head.cat .p-ear.right{right:17px;transform:rotate(13deg)}
+.preview-head.cat .p-ear{width:23px;height:21px;background:#fff;clip-path:polygon(50% 0,4% 100%,96% 100%);}
+.preview-head.cat .p-ear:after{content:"";position:absolute;left:50%;bottom:3px;width:10px;height:10px;transform:translateX(-50%);background:#ffc4d4;clip-path:polygon(50% 0,8% 100%,92% 100%);}
+.preview-head.cat .p-ear.left{left:14px;transform:rotate(-15deg)}.preview-head.cat .p-ear.right{right:14px;transform:rotate(15deg)}
 .preview-aura{inset:0;font-size:18px;animation:decoTwinkle 1.5s ease-in-out infinite;}
 .preview-aura .a1{position:absolute;left:2px;top:15px}.preview-aura .a2{position:absolute;right:0;top:28px}.preview-aura .a3{position:absolute;right:12px;bottom:12px}
 .reward-btn.equipped{background:linear-gradient(90deg,#4a9b42,#75b84e)!important;color:#fff!important;}
