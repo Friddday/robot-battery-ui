@@ -1010,6 +1010,19 @@ body,button,input,select{
 .reward-card.owned{background:rgba(255,253,240,.98)!important;border-color:rgba(75,155,66,.22)!important;}
 .reward-card.equipped{box-shadow:0 0 0 2px rgba(75,155,66,.2), var(--shadow)!important;}
 .reward-status{margin-top:5px;color:#4a9b42;font-size:10px;font-weight:950;min-height:13px;}
+
+.reward-folder-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 9px;}
+.reward-folder-btn{min-height:43px;border:1px solid rgba(124,83,43,.18);border-radius:14px;background:rgba(255,248,231,.9);color:#6f4f38;font-size:13px;font-weight:950;box-shadow:0 4px 10px rgba(79,48,21,.1);}
+.reward-folder-btn.active{background:linear-gradient(90deg,#4a9b42,#75b84e);color:#fff;border-color:transparent;}
+.reward-panel{display:block;}
+.reward-panel.hidden{display:none;}
+.coupon-card{min-height:158px;text-align:left;}
+.coupon-card .reward-icon{text-align:center;font-size:34px;}
+.coupon-card .reward-title{text-align:center;line-height:1.25;}
+.coupon-card .reward-desc{font-size:10.5px;line-height:1.5;text-align:left;min-height:46px;}
+.coupon-benefit{margin-top:7px;padding:7px 8px;border-radius:10px;background:#fff2cf;color:#6f4f38;font-size:10px;font-weight:900;line-height:1.35;text-align:left;}
+.coupon-card.owned{border-color:rgba(75,155,66,.24);background:rgba(255,253,240,.98);}
+
 @keyframes decoPop{from{opacity:0;transform:translateX(-50%) translateY(8px) scale(.7)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
 @keyframes decoTwinkle{0%,100%{opacity:.45;transform:scale(.88) rotate(-8deg)}50%{opacity:1;transform:scale(1.12) rotate(8deg)}}
 
@@ -1379,13 +1392,29 @@ body,button,input,select{
           <div class="level-caption">경험치 <span id="expText">55</span> / 100</div>
         </div>
 
-        <div class="reward-grid">
-          <div class="reward-card" id="cardFood"><div class="reward-icon">🥣</div><div class="reward-title">에너지 간식</div><div class="reward-desc">먹으면 배터리가 조금 회복돼요.</div><div class="reward-status" id="statusFood"></div><button class="reward-btn" id="btnFood" data-action="buyFood">50 코인</button></div>
-          <div class="reward-card" id="cardRibbon"><div class="reward-icon">🎀</div><div class="reward-title">빨간 리본</div><div class="reward-desc">머리 위에 귀엽게 달아줘요.</div><div class="reward-status" id="statusRibbon"></div><button class="reward-btn" id="btnRibbon" data-action="itemRibbon">60 코인</button></div>
-          <div class="reward-card" id="cardHat"><div class="reward-icon">🧢</div><div class="reward-title">탐험가 모자</div><div class="reward-desc">로보킹 머리에 딱 맞게 씌워줘요.</div><div class="reward-status" id="statusHat"></div><button class="reward-btn" id="btnHat" data-action="itemHat">120 코인</button></div>
-          <div class="reward-card" id="cardSparkle"><div class="reward-icon">✨</div><div class="reward-title">반짝이 오라</div><div class="reward-desc">로보킹 주변이 반짝여요.</div><div class="reward-status" id="statusSparkle"></div><button class="reward-btn" id="btnSparkle" data-action="itemSparkle">80 코인</button></div>
-          <div class="reward-card" id="cardBunny"><div class="reward-icon">🐰</div><div class="reward-title">토끼 귀</div><div class="reward-desc">로보킹 머리에 토끼 귀가 쏙!</div><div class="reward-status" id="statusBunny"></div><button class="reward-btn" id="btnBunny" data-action="itemBunny">90 코인</button></div>
-          <div class="reward-card" id="cardCat"><div class="reward-icon">🐱</div><div class="reward-title">고양이 귀</div><div class="reward-desc">새침한 고양이 로보킹으로 변신!</div><div class="reward-status" id="statusCat"></div><button class="reward-btn" id="btnCat" data-action="itemCat">70 코인</button></div>
+        <div class="reward-folder-tabs">
+          <button class="reward-folder-btn active" id="rewardTabItems" data-action="rewardTabItems">꾸미기 아이템</button>
+          <button class="reward-folder-btn" id="rewardTabCoupons" data-action="rewardTabCoupons">LG 혜택 쿠폰</button>
+        </div>
+
+        <div class="reward-panel" id="rewardItemsPanel">
+          <div class="reward-grid">
+            <div class="reward-card" id="cardFood"><div class="reward-icon">🥣</div><div class="reward-title">에너지 간식</div><div class="reward-desc">먹으면 배터리가 조금 회복돼요.</div><div class="reward-status" id="statusFood"></div><button class="reward-btn" id="btnFood" data-action="buyFood">50 코인</button></div>
+            <div class="reward-card" id="cardRibbon"><div class="reward-icon">🎀</div><div class="reward-title">빨간 리본</div><div class="reward-desc">머리 위에 귀엽게 달아줘요.</div><div class="reward-status" id="statusRibbon"></div><button class="reward-btn" id="btnRibbon" data-action="itemRibbon">60 코인</button></div>
+            <div class="reward-card" id="cardHat"><div class="reward-icon">🧢</div><div class="reward-title">탐험가 모자</div><div class="reward-desc">로보킹 머리에 딱 맞게 씌워줘요.</div><div class="reward-status" id="statusHat"></div><button class="reward-btn" id="btnHat" data-action="itemHat">120 코인</button></div>
+            <div class="reward-card" id="cardSparkle"><div class="reward-icon">✨</div><div class="reward-title">반짝이 오라</div><div class="reward-desc">로보킹 주변이 반짝여요.</div><div class="reward-status" id="statusSparkle"></div><button class="reward-btn" id="btnSparkle" data-action="itemSparkle">80 코인</button></div>
+            <div class="reward-card" id="cardBunny"><div class="reward-icon">🐰</div><div class="reward-title">토끼 귀</div><div class="reward-desc">로보킹 머리에 토끼 귀가 쏙!</div><div class="reward-status" id="statusBunny"></div><button class="reward-btn" id="btnBunny" data-action="itemBunny">90 코인</button></div>
+            <div class="reward-card" id="cardCat"><div class="reward-icon">🐱</div><div class="reward-title">고양이 귀</div><div class="reward-desc">새침한 고양이 로보킹으로 변신!</div><div class="reward-status" id="statusCat"></div><button class="reward-btn" id="btnCat" data-action="itemCat">70 코인</button></div>
+          </div>
+        </div>
+
+        <div class="reward-panel hidden" id="rewardCouponsPanel">
+          <div class="reward-grid">
+            <div class="reward-card coupon-card" id="cardCouponLg5"><div class="reward-icon">🎟</div><div class="reward-title">LG 생활가전 5% 쿠폰</div><div class="reward-desc">LG 생활가전 1개를 구매할 때 사용할 수 있는 기본 할인 쿠폰이에요.</div><div class="coupon-benefit">혜택: 단일 제품 5% 할인</div><div class="reward-status" id="statusCouponLg5"></div><button class="reward-btn" id="btnCouponLg5" data-action="couponLg5">300 코인</button></div>
+            <div class="reward-card coupon-card" id="cardCouponCleanKit"><div class="reward-icon">🧹</div><div class="reward-title">로보킹 클린 키트 쿠폰</div><div class="reward-desc">필터, 브러시, 물걸레 패드처럼 자주 바꾸는 소모품을 준비할 때 사용해요.</div><div class="coupon-benefit">혜택: 소모품 키트 구매 할인</div><div class="reward-status" id="statusCouponCleanKit"></div><button class="reward-btn" id="btnCouponCleanKit" data-action="couponCleanKit">180 코인</button></div>
+            <div class="reward-card coupon-card" id="cardCouponBatteryCare"><div class="reward-icon">🔋</div><div class="reward-title">배터리 케어 쿠폰</div><div class="reward-desc">로보킹을 오래 쓰기 위해 배터리 점검이나 관리 서비스를 받을 때 사용해요.</div><div class="coupon-benefit">혜택: 배터리 점검/케어 서비스</div><div class="reward-status" id="statusCouponBatteryCare"></div><button class="reward-btn" id="btnCouponBatteryCare" data-action="couponBatteryCare">250 코인</button></div>
+            <div class="reward-card coupon-card" id="cardCouponMoveIn"><div class="reward-icon">🏠</div><div class="reward-title">이사·입주 패키지 쿠폰</div><div class="reward-desc">새집에 필요한 LG 생활가전을 2개 이상 함께 구매할 때 추가 혜택을 받아요.</div><div class="coupon-benefit">혜택: 2개 이상 구매 시 패키지 추가 할인</div><div class="reward-status" id="statusCouponMoveIn"></div><button class="reward-btn" id="btnCouponMoveIn" data-action="couponMoveIn">300 코인</button></div>
+          </div>
         </div>
       </section>
 
@@ -1473,6 +1502,25 @@ const shopItems={
   cat:{name:"고양이 귀",icon:"🐱",cost:70,slot:"head",value:"cat",message:"고양이 귀를 달아줬어요! 로보킹이 더 새침해졌어요."},
   sparkle:{name:"반짝이 오라",icon:"✨",cost:80,slot:"aura",value:"sparkle",message:"반짝이 오라를 켰어요! 청소할 때마다 기분이 좋아져요."}
 };
+
+const couponItems={
+  lg5:{name:"LG 생활가전 5% 쿠폰",icon:"🎟",cost:300,benefit:"LG 생활가전 1개 구매 시 5% 할인",message:"LG 생활가전 5% 쿠폰을 보관함에 담았어요."},
+  cleanKit:{name:"로보킹 클린 키트 쿠폰",icon:"🧹",cost:180,benefit:"필터·브러시·물걸레 패드 등 소모품 키트 할인",message:"로보킹 클린 키트 쿠폰을 보관함에 담았어요."},
+  batteryCare:{name:"배터리 케어 쿠폰",icon:"🔋",cost:250,benefit:"배터리 점검 또는 관리 서비스 혜택",message:"배터리 케어 쿠폰을 보관함에 담았어요."},
+  moveIn:{name:"이사·입주 패키지 쿠폰",icon:"🏠",cost:300,benefit:"LG 생활가전 2개 이상 구매 시 패키지 추가 혜택",message:"이사·입주 패키지 쿠폰을 보관함에 담았어요."}
+};
+function loadCoupons(){
+  try{
+    const raw=localStorage.getItem("lgRoboCareCouponsV1");
+    const defaults={lg5:0,cleanKit:0,batteryCare:0,moveIn:0};
+    if(!raw)return defaults;
+    return Object.assign(defaults,JSON.parse(raw)||{});
+  }catch(e){return {lg5:0,cleanKit:0,batteryCare:0,moveIn:0};}
+}
+function saveCoupons(){
+  try{localStorage.setItem("lgRoboCareCouponsV1",JSON.stringify(state.ownedCoupons));}catch(e){}
+}
+
 function loadCloset(){
   try{
     const raw=localStorage.getItem("lgRoboCareClosetV2");
@@ -1491,6 +1539,7 @@ function saveCloset(){
   try{localStorage.setItem("lgRoboCareClosetV2",JSON.stringify({owned:state.ownedItems,equipped:state.equippedItems}));}catch(e){}
 }
 const initialCloset=loadCloset();
+const initialCoupons=loadCoupons();
 
 function pickRandomRun(candidates){
   if(!candidates || candidates.length===0)return null;
@@ -1579,6 +1628,8 @@ const state={
   firstRunSocEnough:true,
   ownedItems:initialCloset.owned,
   equippedItems:initialCloset.equipped,
+  rewardTab:"items",
+  ownedCoupons:initialCoupons,
   temperature:29,health:100,heart:100,
   level:13,exp:55,coins:50,food:1,cleaning:false,charging:false,
   celebrating:false,progress:0,missionDone:false,cleanCount:0,
@@ -2329,11 +2380,24 @@ function renderReward(){
     preview.innerHTML=html;
   }
 
+  const itemTab=$("rewardTabItems");
+  const couponTab=$("rewardTabCoupons");
+  const itemPanel=$("rewardItemsPanel");
+  const couponPanel=$("rewardCouponsPanel");
+  if(itemTab)itemTab.classList.toggle("active",state.rewardTab==="items");
+  if(couponTab)couponTab.classList.toggle("active",state.rewardTab==="coupons");
+  if(itemPanel)itemPanel.classList.toggle("hidden",state.rewardTab!=="items");
+  if(couponPanel)couponPanel.classList.toggle("hidden",state.rewardTab!=="coupons");
+
   updateRewardButton("ribbon","Ribbon");
   updateRewardButton("hat","Hat");
   updateRewardButton("bunny","Bunny");
   updateRewardButton("cat","Cat");
   updateRewardButton("sparkle","Sparkle");
+  updateCouponButton("lg5","CouponLg5");
+  updateCouponButton("cleanKit","CouponCleanKit");
+  updateCouponButton("batteryCare","CouponBatteryCare");
+  updateCouponButton("moveIn","CouponMoveIn");
 
   const foodBtn=$("btnFood");
   const foodStatus=$("statusFood");
@@ -2355,6 +2419,20 @@ function updateRewardButton(key,suffix){
   if(equipped){btn.textContent="해제하기";btn.classList.add("equipped");}
   else if(owned){btn.textContent="장착하기";btn.classList.add("owned");}
   else{btn.textContent=item.cost+" 코인";}
+}
+
+function updateCouponButton(key,suffix){
+  const item=couponItems[key];
+  const btn=$("btn"+suffix);
+  const card=$("card"+suffix);
+  const status=$("status"+suffix);
+  if(!item || !btn)return;
+  const count=Number(state.ownedCoupons[key]||0);
+  btn.classList.remove("owned","equipped");
+  if(card)card.classList.toggle("owned",count>0);
+  if(status)status.textContent=count>0?"보유 쿠폰 "+count+"장":"";
+  if(state.coins<item.cost){btn.textContent="코인 부족";}
+  else{btn.textContent=item.cost+" 코인으로 교환";}
 }
 
 
@@ -2717,6 +2795,24 @@ function handleRewardItem(key){
   }
 }
 
+function switchRewardTab(tab){
+  state.rewardTab=tab;
+  render();
+}
+function handleCoupon(key){
+  const item=couponItems[key];
+  if(!item)return;
+  if(state.coins<item.cost){
+    showToast(item.name+"으로 바꾸려면 코인이 조금 더 필요해요.");
+    return;
+  }
+  state.coins-=item.cost;
+  state.ownedCoupons[key]=Number(state.ownedCoupons[key]||0)+1;
+  saveCoupons();
+  render();
+  showToast(item.message+" 혜택: "+item.benefit);
+}
+
 
 const actions={
   startFirstMapping:startFirstMapping,
@@ -2725,6 +2821,8 @@ const actions={
   pet:petRobot,feed:feedRobot,play:playRobot,train:trainRobot,photo:takePhoto,clean:startCleaning,charge:chargeRobot,status:showStatus,
   record:()=>switchPage("recordPage"),decorate:decorateRobot,shop:()=>switchPage("rewardPage"),chargeFromBattery:()=>{switchPage("homePage");setTimeout(chargeRobot,220)},buyFood:buyFood,
   itemRibbon:()=>handleRewardItem("ribbon"),itemHat:()=>handleRewardItem("hat"),itemBunny:()=>handleRewardItem("bunny"),itemCat:()=>handleRewardItem("cat"),itemSparkle:()=>handleRewardItem("sparkle"),
+  rewardTabItems:()=>switchRewardTab("items"),rewardTabCoupons:()=>switchRewardTab("coupons"),
+  couponLg5:()=>handleCoupon("lg5"),couponCleanKit:()=>handleCoupon("cleanKit"),couponBatteryCare:()=>handleCoupon("batteryCare"),couponMoveIn:()=>handleCoupon("moveIn"),
   ribbon:()=>handleRewardItem("ribbon"),sparkle:()=>handleRewardItem("sparkle"),hat:()=>handleRewardItem("hat")
 };
 
