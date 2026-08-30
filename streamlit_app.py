@@ -1016,12 +1016,16 @@ body,button,input,select{
 .reward-folder-btn.active{background:linear-gradient(90deg,#4a9b42,#75b84e);color:#fff;border-color:transparent;}
 .reward-panel{display:block;}
 .reward-panel.hidden{display:none;}
-.coupon-card{min-height:158px;text-align:left;}
-.coupon-card .reward-icon{text-align:center;font-size:34px;}
-.coupon-card .reward-title{text-align:center;line-height:1.25;}
-.coupon-card .reward-desc{font-size:10.5px;line-height:1.5;text-align:left;min-height:46px;}
-.coupon-benefit{margin-top:7px;padding:7px 8px;border-radius:10px;background:#fff2cf;color:#6f4f38;font-size:10px;font-weight:900;line-height:1.35;text-align:left;}
+.coupon-card{min-height:178px;text-align:left;display:flex;flex-direction:column;align-items:stretch;}
+.coupon-card .reward-icon{text-align:center;font-size:34px;line-height:1.05;}
+.coupon-card .reward-title{text-align:center;line-height:1.25;min-height:32px;display:flex;align-items:center;justify-content:center;}
+.coupon-card .reward-desc{font-size:10.5px;line-height:1.5;text-align:left;min-height:58px;}
+.coupon-benefit{margin-top:7px;padding:7px 8px;border-radius:10px;background:#fff2cf;color:#6f4f38;font-size:10px;font-weight:900;line-height:1.35;text-align:left;min-height:42px;display:flex;align-items:center;}
+.coupon-card .reward-status{min-height:15px;text-align:center;}
+.coupon-card .reward-btn{margin-top:auto;min-height:42px;display:flex;align-items:center;justify-content:center;text-align:center;}
 .coupon-card.owned{border-color:rgba(75,155,66,.24);background:rgba(255,253,240,.98);}
+.reward-btn.need-coins{background:#efe0bc!important;color:#6f4f38!important;}
+.reward-btn.need-coins:after{content:"";}
 
 @keyframes decoPop{from{opacity:0;transform:translateX(-50%) translateY(8px) scale(.7)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
 @keyframes decoTwinkle{0%,100%{opacity:.45;transform:scale(.88) rotate(-8deg)}50%{opacity:1;transform:scale(1.12) rotate(8deg)}}
@@ -2401,7 +2405,10 @@ function renderReward(){
 
   const foodBtn=$("btnFood");
   const foodStatus=$("statusFood");
-  if(foodBtn)foodBtn.textContent=state.coins>=50?"50 코인":"코인 부족";
+  if(foodBtn){
+    foodBtn.textContent=state.coins>=50?"50 코인":"50 코인 필요";
+    foodBtn.classList.toggle("need-coins",state.coins<50);
+  }
   if(foodStatus)foodStatus.textContent="보유 간식 "+state.food+"개";
 }
 
@@ -2413,12 +2420,15 @@ function updateRewardButton(key,suffix){
   if(!item || !btn)return;
   const owned=Boolean(state.ownedItems[key]);
   const equipped=state.equippedItems[item.slot]===item.value;
-  btn.classList.remove("owned","equipped");
+  btn.classList.remove("owned","equipped","need-coins");
   if(card){card.classList.toggle("owned",owned);card.classList.toggle("equipped",equipped);}
   if(status)status.textContent=equipped?"장착 중":(owned?"보유 중":"");
   if(equipped){btn.textContent="해제하기";btn.classList.add("equipped");}
   else if(owned){btn.textContent="장착하기";btn.classList.add("owned");}
-  else{btn.textContent=item.cost+" 코인";}
+  else{
+    btn.textContent=state.coins<item.cost ? item.cost+" 코인 필요" : item.cost+" 코인";
+    if(state.coins<item.cost)btn.classList.add("need-coins");
+  }
 }
 
 function updateCouponButton(key,suffix){
@@ -2428,10 +2438,13 @@ function updateCouponButton(key,suffix){
   const status=$("status"+suffix);
   if(!item || !btn)return;
   const count=Number(state.ownedCoupons[key]||0);
-  btn.classList.remove("owned","equipped");
+  btn.classList.remove("owned","equipped","need-coins");
   if(card)card.classList.toggle("owned",count>0);
   if(status)status.textContent=count>0?"보유 쿠폰 "+count+"장":"";
-  if(state.coins<item.cost){btn.textContent="코인 부족";}
+  if(state.coins<item.cost){
+    btn.textContent=item.cost+" 코인 필요";
+    btn.classList.add("need-coins");
+  }
   else{btn.textContent=item.cost+" 코인으로 교환";}
 }
 
@@ -2803,7 +2816,8 @@ function handleCoupon(key){
   const item=couponItems[key];
   if(!item)return;
   if(state.coins<item.cost){
-    showToast(item.name+"으로 바꾸려면 코인이 조금 더 필요해요.");
+    const need=Math.max(0,item.cost-state.coins);
+    showToast(item.name+" 교환까지 "+need+"코인 더 필요해요.");
     return;
   }
   state.coins-=item.cost;
