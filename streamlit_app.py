@@ -904,6 +904,83 @@ body,button,input,select{
 .flow-guide.charging{border-left-color:#f2a84d;background:linear-gradient(145deg,#fff2d2,#fff8e8);}
 .toast{min-width:260px;text-align:center;line-height:1.45;}
 
+/* ===== Reward closet: equipped items stay on Roboking ===== */
+.robot-accessory{
+  position:absolute;
+  z-index:34;
+  left:50%;
+  transform:translateX(-50%);
+  pointer-events:none;
+  display:none;
+  filter:drop-shadow(0 4px 4px rgba(64,38,18,.22));
+}
+.robot.has-custom-head .crown{display:none!important;}
+.robot-head-deco{
+  top:-45px;
+  min-width:86px;
+  height:58px;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-size:43px;
+  line-height:1;
+}
+.robot-head-deco.show{display:flex;animation:decoPop .34s ease-out;}
+.robot-head-deco.ribbon{top:-39px;font-size:48px;}
+.robot-head-deco.hat{top:-50px;font-size:50px;transform:translateX(-50%) rotate(-8deg);}
+.robot-head-deco.bunny{top:-53px;font-size:50px;}
+.robot-body-deco{
+  z-index:36;
+  left:30px;
+  bottom:28px;
+  transform:none;
+  width:31px;
+  height:31px;
+  border:2px solid rgba(255,255,255,.9);
+  border-radius:50%;
+  background:rgba(255,255,255,.88);
+  display:none;
+  place-items:center;
+  font-size:18px;
+}
+.robot-body-deco.show{display:grid;animation:decoPop .34s ease-out;}
+.robot-aura-deco{
+  position:absolute;
+  z-index:5;
+  inset:-42px -46px -22px -46px;
+  pointer-events:none;
+  display:none;
+}
+.robot-aura-deco.show{display:block;}
+.robot-aura-deco span{
+  position:absolute;
+  font-size:22px;
+  filter:drop-shadow(0 3px 3px rgba(64,38,18,.18));
+  animation:decoTwinkle 1.6s ease-in-out infinite;
+}
+.robot-aura-deco span:nth-child(1){left:7px;top:35px;animation-delay:.1s;}
+.robot-aura-deco span:nth-child(2){right:2px;top:22px;animation-delay:.45s;}
+.robot-aura-deco span:nth-child(3){right:18px;bottom:22px;animation-delay:.8s;}
+.robot-aura-deco span:nth-child(4){left:22px;bottom:10px;animation-delay:1.05s;}
+.level-robot-preview{position:relative;display:inline-grid;place-items:center;min-width:112px;min-height:94px;margin:0 auto;}
+.level-robot-preview .preview-base{font-size:72px;line-height:1;animation:float 2s ease-in-out infinite;}
+.preview-head,.preview-aura,.preview-decal{position:absolute;pointer-events:none;}
+.preview-head{top:-4px;left:50%;transform:translateX(-50%);font-size:35px;filter:drop-shadow(0 3px 3px rgba(64,38,18,.18));}
+.preview-head.hat{top:-11px;transform:translateX(-50%) rotate(-8deg);font-size:37px;}
+.preview-head.bunny{top:-14px;font-size:36px;}
+.preview-aura{inset:0;font-size:18px;animation:decoTwinkle 1.5s ease-in-out infinite;}
+.preview-aura .a1{position:absolute;left:2px;top:15px}.preview-aura .a2{position:absolute;right:0;top:28px}.preview-aura .a3{position:absolute;right:12px;bottom:12px}
+.preview-decal{left:27px;bottom:23px;font-size:18px;filter:drop-shadow(0 2px 2px rgba(64,38,18,.16));}
+.reward-btn.equipped{background:linear-gradient(90deg,#4a9b42,#75b84e)!important;color:#fff!important;}
+.reward-btn.owned{background:#fff2cf!important;color:#5c422f!important;border:1px solid rgba(124,83,43,.18)!important;}
+.reward-card.owned{background:rgba(255,253,240,.98)!important;border-color:rgba(75,155,66,.22)!important;}
+.reward-card.equipped{box-shadow:0 0 0 2px rgba(75,155,66,.2), var(--shadow)!important;}
+.reward-status{margin-top:5px;color:#4a9b42;font-size:10px;font-weight:950;min-height:13px;}
+@keyframes decoPop{from{opacity:0;transform:translateX(-50%) translateY(8px) scale(.7)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+@keyframes decoTwinkle{0%,100%{opacity:.45;transform:scale(.88) rotate(-8deg)}50%{opacity:1;transform:scale(1.12) rotate(8deg)}}
+
+
 /* ===== Room status cleanup: avoid speech overlap + show current robot 배터리 ===== */
 #homePage .room .mode-chip{
   top:125px!important;
@@ -1015,11 +1092,15 @@ body,button,input,select{
           <div class="dust"><span></span><span></span><span></span><span></span><span></span><span></span></div>
 
           <div class="robot" id="robot" data-action="pet">
-            <div class="crown">👑</div><div class="spark" id="spark">✨</div><div class="robot-top"></div>
+            <div class="robot-aura-deco" id="robotAuraDeco"><span>✨</span><span>✨</span><span>✨</span><span>✨</span></div>
+            <div class="crown">👑</div>
+            <div class="robot-accessory robot-head-deco" id="robotHeadDeco"></div>
+            <div class="spark" id="spark">✨</div><div class="robot-top"></div>
             <div class="face">
               <div class="eye left"></div><div class="eye right"></div>
               <div class="cheek left"></div><div class="cheek right"></div><div class="mouth"></div>
             </div>
+            <div class="robot-accessory robot-body-deco" id="robotBodyDeco"></div>
             <div class="slot"></div>
           </div>
           <div class="robot-soc-badge" id="robotSocBadge"><span>🔋 현재 배터리</span><b>20%</b></div>
@@ -1260,17 +1341,19 @@ body,button,input,select{
         <div class="section-title">로보킹 성장 리워드</div>
 
         <div class="panel level-panel">
-          <div class="level-robot">🤖</div>
+          <div class="level-robot-preview" id="levelRobotPreview"><span class="preview-base">🤖</span></div>
           <div class="level-number">Lv. <span id="levelText">13</span></div>
           <div class="level-track"><div class="level-fill" id="expFill"></div></div>
           <div class="level-caption">경험치 <span id="expText">55</span> / 100</div>
         </div>
 
         <div class="reward-grid">
-          <div class="reward-card"><div class="reward-icon">🥣</div><div class="reward-title">에너지 간식</div><div class="reward-desc">배터리를 12% 채워줘요.</div><button class="reward-btn" data-action="buyFood">50 코인</button></div>
-          <div class="reward-card"><div class="reward-icon">🎀</div><div class="reward-title">빨간 리본</div><div class="reward-desc">로보킹을 꾸며주세요.</div><button class="reward-btn" data-action="ribbon">미리보기</button></div>
-          <div class="reward-card"><div class="reward-icon">🧢</div><div class="reward-title">탐험가 모자</div><div class="reward-desc">청소 미션 전용 아이템입니다.</div><button class="reward-btn" data-action="hat">120 코인</button></div>
-          <div class="reward-card"><div class="reward-icon">✨</div><div class="reward-title">반짝이 효과</div><div class="reward-desc">청소 완료 효과를 변경합니다.</div><button class="reward-btn" data-action="sparkle">효과 체험</button></div>
+          <div class="reward-card" id="cardFood"><div class="reward-icon">🥣</div><div class="reward-title">에너지 간식</div><div class="reward-desc">먹으면 배터리가 조금 회복돼요.</div><div class="reward-status" id="statusFood"></div><button class="reward-btn" id="btnFood" data-action="buyFood">50 코인</button></div>
+          <div class="reward-card" id="cardRibbon"><div class="reward-icon">🎀</div><div class="reward-title">빨간 리본</div><div class="reward-desc">머리 위에 귀엽게 달아줘요.</div><div class="reward-status" id="statusRibbon"></div><button class="reward-btn" id="btnRibbon" data-action="itemRibbon">60 코인</button></div>
+          <div class="reward-card" id="cardHat"><div class="reward-icon">🧢</div><div class="reward-title">탐험가 모자</div><div class="reward-desc">청소 모험가처럼 꾸며줘요.</div><div class="reward-status" id="statusHat"></div><button class="reward-btn" id="btnHat" data-action="itemHat">120 코인</button></div>
+          <div class="reward-card" id="cardSparkle"><div class="reward-icon">✨</div><div class="reward-title">반짝이 오라</div><div class="reward-desc">로보킹 주변이 반짝여요.</div><div class="reward-status" id="statusSparkle"></div><button class="reward-btn" id="btnSparkle" data-action="itemSparkle">80 코인</button></div>
+          <div class="reward-card" id="cardBunny"><div class="reward-icon">🐰</div><div class="reward-title">토끼 귀</div><div class="reward-desc">귀여운 토끼 로보킹으로 변신!</div><div class="reward-status" id="statusBunny"></div><button class="reward-btn" id="btnBunny" data-action="itemBunny">90 코인</button></div>
+          <div class="reward-card" id="cardHeart"><div class="reward-icon">💛</div><div class="reward-title">하트 스티커</div><div class="reward-desc">몸통에 작은 하트를 붙여줘요.</div><div class="reward-status" id="statusHeart"></div><button class="reward-btn" id="btnHeart" data-action="itemHeart">70 코인</button></div>
         </div>
       </section>
 
@@ -1366,6 +1449,33 @@ const todayStateLabels={normal:"평소와 같음",dust:"먼지 많음",pet:"반�
 const intensityAliases={fast:["약","중"],standard:["중","강"],careful:["강","터보"]};
 const todayStateAliases={normal:"학습 프로필 기준",dust:"오염도 높은 조건",pet:"오염도 높음 + 강한 흡입 조건",obstacle:"장애물 많은 조건"};
 
+const closetDefault={
+  owned:{ribbon:false,hat:false,bunny:false,sparkle:false,heart:false},
+  equipped:{head:"crown",aura:null,decal:null}
+};
+const shopItems={
+  ribbon:{name:"빨간 리본",icon:"🎀",cost:60,slot:"head",value:"ribbon",message:"빨간 리본을 달아줬어요! 로보킹이 더 사랑스러워졌어요."},
+  hat:{name:"탐험가 모자",icon:"🧢",cost:120,slot:"head",value:"hat",message:"탐험가 모자를 씌워줬어요! 오늘 청소도 모험처럼 출발해요."},
+  bunny:{name:"토끼 귀",icon:"🐰",cost:90,slot:"head",value:"bunny",message:"토끼 귀를 달아줬어요! 로보킹이 통통 튀는 기분이에요."},
+  sparkle:{name:"반짝이 오라",icon:"✨",cost:80,slot:"aura",value:"sparkle",message:"반짝이 오라를 켰어요! 청소할 때마다 기분이 좋아져요."},
+  heart:{name:"하트 스티커",icon:"💛",cost:70,slot:"decal",value:"heart",message:"하트 스티커를 붙여줬어요! 오래오래 함께하자는 표시예요."}
+};
+function loadCloset(){
+  try{
+    const raw=localStorage.getItem("lgRoboCareClosetV2");
+    if(!raw)return JSON.parse(JSON.stringify(closetDefault));
+    const saved=JSON.parse(raw);
+    return {
+      owned:Object.assign({},closetDefault.owned,saved.owned||{}),
+      equipped:Object.assign({},closetDefault.equipped,saved.equipped||{})
+    };
+  }catch(e){return JSON.parse(JSON.stringify(closetDefault));}
+}
+function saveCloset(){
+  try{localStorage.setItem("lgRoboCareClosetV2",JSON.stringify({owned:state.ownedItems,equipped:state.equippedItems}));}catch(e){}
+}
+const initialCloset=loadCloset();
+
 function pickRandomRun(candidates){
   if(!candidates || candidates.length===0)return null;
 
@@ -1451,6 +1561,8 @@ const state={
   firstRunStartSoc:predictionData.currentSoc,
   firstRunEndSoc:predictionData.currentSoc,
   firstRunSocEnough:true,
+  ownedItems:initialCloset.owned,
+  equippedItems:initialCloset.equipped,
   temperature:29,health:100,heart:100,
   level:13,exp:55,coins:50,food:1,cleaning:false,charging:false,
   celebrating:false,progress:0,missionDone:false,cleanCount:0,
@@ -1495,7 +1607,7 @@ function render(){
     robotSocBadge.innerHTML="<span>🔋 현재 배터리</span><b>"+state.soc+"%</b>";
   }
 
-  renderPlan();renderHome();renderBattery();renderRecord();renderReward();
+  renderAccessories();renderPlan();renderHome();renderBattery();renderRecord();renderReward();
 }
 
 function getScenario(scope,zoneNumber=null){
@@ -2139,11 +2251,85 @@ function renderRecord(){
   $("sunBar").style.height=Math.min(96,56+state.cleanCount*10)+"%";
 }
 
+function renderAccessories(){
+  const robot=$("robot");
+  const head=$("robotHeadDeco");
+  const aura=$("robotAuraDeco");
+  const decal=$("robotBodyDeco");
+  if(!robot || !head || !aura || !decal)return;
+
+  robot.classList.toggle("has-custom-head",state.equippedItems.head && state.equippedItems.head!=="crown");
+
+  const headMap={ribbon:"🎀",hat:"🧢",bunny:"🐰"};
+  head.className="robot-accessory robot-head-deco";
+  if(state.equippedItems.head && state.equippedItems.head!=="crown"){
+    head.textContent=headMap[state.equippedItems.head]||"";
+    head.classList.add("show",state.equippedItems.head);
+  }else{
+    head.textContent="";
+  }
+
+  aura.className="robot-aura-deco";
+  if(state.equippedItems.aura==="sparkle"){
+    aura.innerHTML="<span>✨</span><span>✨</span><span>✨</span><span>✨</span>";
+    aura.classList.add("show");
+  }else{
+    aura.innerHTML="";
+  }
+
+  decal.className="robot-accessory robot-body-deco";
+  if(state.equippedItems.decal==="heart"){
+    decal.textContent="💛";
+    decal.classList.add("show");
+  }else{
+    decal.textContent="";
+  }
+}
+
 function renderReward(){
   $("levelText").textContent=state.level;
   $("expText").textContent=state.exp;
   $("expFill").style.width=state.exp+"%";
+
+  const preview=$("levelRobotPreview");
+  if(preview){
+    const head=state.equippedItems.head;
+    const headMap={ribbon:"🎀",hat:"🧢",bunny:"🐰"};
+    let html='<span class="preview-base">🤖</span>';
+    if(head && head!=="crown")html+='<span class="preview-head '+head+'">'+(headMap[head]||'')+'</span>';
+    if(state.equippedItems.aura==="sparkle")html+='<span class="preview-aura"><span class="a1">✨</span><span class="a2">✨</span><span class="a3">✨</span></span>';
+    if(state.equippedItems.decal==="heart")html+='<span class="preview-decal">💛</span>';
+    preview.innerHTML=html;
+  }
+
+  updateRewardButton("ribbon","Ribbon");
+  updateRewardButton("hat","Hat");
+  updateRewardButton("bunny","Bunny");
+  updateRewardButton("sparkle","Sparkle");
+  updateRewardButton("heart","Heart");
+
+  const foodBtn=$("btnFood");
+  const foodStatus=$("statusFood");
+  if(foodBtn)foodBtn.textContent=state.coins>=50?"50 코인":"코인 부족";
+  if(foodStatus)foodStatus.textContent="보유 간식 "+state.food+"개";
 }
+
+function updateRewardButton(key,suffix){
+  const item=shopItems[key];
+  const btn=$("btn"+suffix);
+  const card=$("card"+suffix);
+  const status=$("status"+suffix);
+  if(!item || !btn)return;
+  const owned=Boolean(state.ownedItems[key]);
+  const equipped=state.equippedItems[item.slot]===item.value;
+  btn.classList.remove("owned","equipped");
+  if(card){card.classList.toggle("owned",owned);card.classList.toggle("equipped",equipped);}
+  if(status)status.textContent=equipped?"장착 중":(owned?"보유 중":"");
+  if(equipped){btn.textContent="해제하기";btn.classList.add("equipped");}
+  else if(owned){btn.textContent="장착하기";btn.classList.add("owned");}
+  else{btn.textContent=item.cost+" 코인";}
+}
+
 
 function showToast(message){
   const toast=$("toast");toast.textContent=message;toast.classList.add("show");
@@ -2187,7 +2373,10 @@ function feedRobot(){if(state.food<=0){showToast("음식이 부족해요. 리워
 function playRobot(){if(state.soc<5){showToast("배터리가 부족해서 놀 수 없어요.");return}state.soc-=3;state.exp+=5;pulseRobot();spawnEffect("💖",8);levelCheck();render();showToast("로보킹의 친밀도와 경험치가 올랐어요.")}
 function trainRobot(){if(state.soc<8){showToast("훈련 전에 충전이 필요해요.");return}state.soc-=6;state.health=Math.min(100,state.health+3);state.exp+=12;pulseRobot();spawnEffect("✨",8);levelCheck();render();showToast("로보킹이 훈련을 완료했습니다.")}
 function takePhoto(){pulseRobot();spawnEffect("📸",5);openModal("오늘의 사진","왕관을 쓴 로보킹의 사진을 촬영했습니다.<br><br>향후 장식 아이템과 청소 완료 장면을 사진첩에 저장할 수 있습니다.")}
-function decorateRobot(){spawnEffect("🎀",9);openModal("로보킹 꾸미기","현재 장착 아이템은 <b>황금 왕관</b>입니다.<br><br>리본, 탐험가 모자, 표정 스킨 등을 리워드 화면에서 확인할 수 있습니다.")}
+function decorateRobot(){
+  switchPage("rewardPage");
+  showToast("리워드에서 아이템을 사면 로보킹에게 계속 장착돼요.");
+}
 
 function showStatus(){
   if(!state.profileReady){openModal("우리 집 학습 전","아직 1회차 학습 청소가 실행되지 않았어요.<br><br>로보킹이 집 구조, 구역별 면적, 바닥 타입, 오염도, 장애물 수준, 배터리 사용 기록을 저장하면 청소 준비을 시작할 수 있습니다.");return}
@@ -2462,7 +2651,45 @@ function chargeRobot(autoStart=false){
     }
   },150);
 }
-function buyFood(){if(state.coins<50){showToast("코인이 부족해요.");return}state.coins-=50;state.food+=1;render();showToast("에너지 간식 1개를 구매했습니다.")}
+function buyFood(){
+  if(state.coins<50){showToast("코인이 조금 부족해요. 청소 미션으로 코인을 모아보세요.");return}
+  state.coins-=50;
+  state.food+=1;
+  render();
+  showToast("냠냠! 에너지 간식 1개를 챙겼어요. 필요할 때 먹여주세요.");
+}
+function handleRewardItem(key){
+  const item=shopItems[key];
+  if(!item)return;
+  if(!state.ownedItems[key]){
+    if(state.coins<item.cost){
+      showToast(item.name+"을(를) 데려오려면 코인이 조금 더 필요해요.");
+      return;
+    }
+    state.coins-=item.cost;
+    state.ownedItems[key]=true;
+    state.equippedItems[item.slot]=item.value;
+    saveCloset();
+    switchPage("homePage");
+    setTimeout(()=>{spawnEffect(item.icon,10);showToast(item.message);render();},250);
+    render();
+    return;
+  }
+  const isEquipped=state.equippedItems[item.slot]===item.value;
+  if(isEquipped){
+    state.equippedItems[item.slot]=(item.slot==="head"?"crown":null);
+    saveCloset();
+    render();
+    showToast(item.name+"을(를) 잠시 벗겨뒀어요.");
+  }else{
+    state.equippedItems[item.slot]=item.value;
+    saveCloset();
+    switchPage("homePage");
+    setTimeout(()=>{spawnEffect(item.icon,8);showToast(item.message);render();},250);
+    render();
+  }
+}
+
 
 const actions={
   startFirstMapping:startFirstMapping,
@@ -2470,7 +2697,8 @@ const actions={
   selectHome:()=>selectScenario("home"),selectZone1:()=>selectScenario("zone",1),selectZone2:()=>selectScenario("zone",2),selectZone3:()=>selectScenario("zone",3),selectZone4:()=>selectScenario("zone",4),selectZone5:()=>selectScenario("zone",5),
   pet:petRobot,feed:feedRobot,play:playRobot,train:trainRobot,photo:takePhoto,clean:startCleaning,charge:chargeRobot,status:showStatus,
   record:()=>switchPage("recordPage"),decorate:decorateRobot,shop:()=>switchPage("rewardPage"),chargeFromBattery:()=>{switchPage("homePage");setTimeout(chargeRobot,220)},buyFood:buyFood,
-  ribbon:()=>{switchPage("homePage");setTimeout(()=>spawnEffect("🎀",10),220)},sparkle:()=>{switchPage("homePage");setTimeout(()=>spawnEffect("✨",10),220)},hat:()=>showToast("탐험가 모자는 120코인이 필요해요.")
+  itemRibbon:()=>handleRewardItem("ribbon"),itemHat:()=>handleRewardItem("hat"),itemBunny:()=>handleRewardItem("bunny"),itemSparkle:()=>handleRewardItem("sparkle"),itemHeart:()=>handleRewardItem("heart"),
+  ribbon:()=>handleRewardItem("ribbon"),sparkle:()=>handleRewardItem("sparkle"),hat:()=>handleRewardItem("hat")
 };
 
 document.addEventListener("click",(event)=>{const nav=event.target.closest("[data-page]");if(nav){switchPage(nav.dataset.page);return}const action=event.target.closest("[data-action]");if(action&&typeof actions[action.dataset.action]==="function"){actions[action.dataset.action]()}});
