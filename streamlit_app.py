@@ -121,8 +121,8 @@ st.markdown(
 )
 
 # ============================================================
-# ML SOC 예측 결과 CSV 연결부
-# GitHub에는 아래 구조로 CSV를 올리면 됩니다.
+# 맞춤 배터리 준비 결과 기록 연결부
+# GitHub에는 아래 구조로 기록를 올리면 됩니다.
 # data/home_model_predictions.csv
 # data/zone_model_predictions.csv
 # ============================================================
@@ -132,7 +132,7 @@ DATA_DIR = BASE_DIR / "data"
 HOME_PRED_PATH = DATA_DIR / "home_model_predictions.csv"
 ZONE_PRED_PATH = DATA_DIR / "zone_model_predictions.csv"
 
-# 데모용 현재 SOC. 실제 제품에서는 로봇/앱에서 받은 현재 SOC로 교체하면 됩니다.
+# 데모용 현재 배터리. 실제 제품에서는 로봇/앱에서 받은 현재 배터리로 교체하면 됩니다.
 CURRENT_SOC = 80
 
 
@@ -228,7 +228,7 @@ def _make_demo_runs():
                     "floorType": floor_types[i-1],
                     "dirtLevel": dirt_levels[i-1],
                     "dirtCode": 3 if dirt_levels[i-1] == "높음" else (2 if dirt_levels[i-1] == "중간" else 1),
-                    "suctionMode": "AI 자동",
+                    "suctionMode": "자동",
                     "suctionCode": 2,
                 })
             home_required = round(sum(z["requiredSoc"] for z in zones), 1)
@@ -250,7 +250,7 @@ def _make_demo_runs():
                 "dirtLevel": "평균",
                 "dirtCode": 2,
                 "dirtMaxCode": 3,
-                "suctionMode": "AI 자동",
+                "suctionMode": "자동",
                 "suctionCode": 2,
                 "suctionMaxCode": 3,
             }
@@ -302,7 +302,7 @@ def _build_home_scenario(home_row):
         "dirtLevel": "평균",
         "dirtCode": round(float(dirt_mean_code), 3),
         "dirtMaxCode": round(float(dirt_max_code), 3),
-        "suctionMode": "AI 자동",
+        "suctionMode": "자동",
         "suctionCode": round(float(suction_mean_code), 3),
         "suctionMaxCode": round(float(suction_max_code), 3),
     }
@@ -374,7 +374,7 @@ def make_prediction_payload(home_df, zone_df):
                     "zones": zones[:5],
                 })
 
-    # home CSV가 없고 zone CSV만 있을 때도 최소 동작하도록 처리
+    # home 기록가 없고 zone 기록만 있을 때도 최소 동작하도록 처리
     if not runs and zone_df is not None and len(zone_df) > 0 and "global_run_id" in zone_df.columns:
         for gid, zdf in zone_df.groupby("global_run_id"):
             if len(zdf) < 5:
@@ -391,7 +391,7 @@ def make_prediction_payload(home_df, zone_df):
                 "requiredSoc": 0, "targetSoc": 15, "modelName": "XGBoost",
                 "cleaningType": "물걸레" if mop_enabled else "건식", "cleaningTypeCode": 1 if mop_enabled else 0, "mopEnabled": mop_enabled,
                 "obstacleLevel": _safe_text(first, ["obstacle_level"], ""), "obstacleLevelCode": _safe_float(first, ["obstacle_level_code"], 0), "floorType": "혼합",
-                "dirtLevel": "평균", "dirtCode": 0, "dirtMaxCode": 0, "suctionMode": "AI 자동", "suctionCode": 0, "suctionMaxCode": 0
+                "dirtLevel": "평균", "dirtCode": 0, "dirtMaxCode": 0, "suctionMode": "자동", "suctionCode": 0, "suctionMaxCode": 0
             }
             zones = []
             for idx, (_, zrow) in enumerate(zdf.head(5).iterrows(), start=1):
@@ -521,7 +521,7 @@ button,input{font-family:inherit} button{cursor:pointer}
 .food-bowl:before{content:"";position:absolute;left:4px;top:-9px;width:56px;height:19px;border:4px solid #d54749;border-radius:50%;background:radial-gradient(circle at 30% 35%,#f1ab36 0 4px,transparent 5px),radial-gradient(circle at 60% 45%,#d57d24 0 5px,transparent 6px),radial-gradient(circle at 78% 30%,#f3c248 0 4px,transparent 5px),#944827}.food-bowl:after{content:"⚡";position:absolute;left:50%;top:10px;transform:translateX(-50%);color:#ffd542;font-size:20px;font-weight:900}.food-count{font-size:9px;font-weight:900}
 
 
-/* ML SOC Plan Selector */
+/* 맞춤 배터리 Plan Selector */
 .plan-panel{margin-bottom:8px;padding:11px 10px;background:rgba(255,248,231,.98)}
 .plan-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .plan-title{font-size:11px;font-weight:900}.plan-model{padding:4px 7px;border-radius:11px;background:#eaf4df;color:#367b36;font-size:8px;font-weight:900}
@@ -904,7 +904,7 @@ body,button,input,select{
 .flow-guide.charging{border-left-color:#f2a84d;background:linear-gradient(145deg,#fff2d2,#fff8e8);}
 .toast{min-width:260px;text-align:center;line-height:1.45;}
 
-/* ===== Room status cleanup: avoid speech overlap + show current robot SOC ===== */
+/* ===== Room status cleanup: avoid speech overlap + show current robot 배터리 ===== */
 #homePage .room .mode-chip{
   top:125px!important;
   left:12px!important;
@@ -1008,7 +1008,7 @@ body,button,input,select{
           <div class="wall-light"></div><div class="floor"></div>
           <div class="plant">🪴</div><div class="house"></div><div class="sofa"></div>
           <div class="speech" id="speech"><strong>배가 든든해요!</strong><br>청소를 준비할게요!</div>
-          <div class="mode-chip" id="modeChip">✨ AI 권장 SOC 81%</div>
+          <div class="mode-chip" id="modeChip">✨ 로보킹 권장 충전 81%</div>
           <div class="rug"></div>
           <div class="clean-path"><div class="clean-fill" id="cleanFill"></div></div>
           <div class="charge-ring"></div>
@@ -1022,7 +1022,7 @@ body,button,input,select{
             </div>
             <div class="slot"></div>
           </div>
-          <div class="robot-soc-badge" id="robotSocBadge"><span>🔋 현재 SOC</span><b>20%</b></div>
+          <div class="robot-soc-badge" id="robotSocBadge"><span>🔋 현재 배터리</span><b>20%</b></div>
 
           <div class="mission">
             <div class="mission-title">오늘의 미션</div>
@@ -1046,7 +1046,7 @@ body,button,input,select{
 
           <div class="panel plan-panel">
             <div class="plan-head">
-              <div class="plan-title">우리 집 학습 & AI SOC 예측</div>
+              <div class="plan-title">우리 집 맞춤 청소 준비</div>
               <div class="plan-model" id="planModel">1회차 학습 전</div>
             </div>
             <div class="learn-panel" id="learnPanel">
@@ -1054,28 +1054,28 @@ body,button,input,select{
                 <div class="learn-title">처음 사용할 때는 로보킹이 집을 먼저 배워요</div>
                 <div class="learn-pill" id="learnPill">초기 학습</div>
               </div>
-              <div class="learn-desc">1회차 학습으로 AI 예측에 필요한 집 프로필을 저장해요.</div>
+              <div class="learn-desc">처음 한 번만 집 구조와 바닥 상태를 배워요.</div>
               <div class="learn-progress"><div class="learn-fill" id="learnFill"></div></div>
               <div class="learn-status" id="learnStatus">1회차 학습 청소를 시작하면 로보킹이 집 구조와 구역 정보를 자동으로 기록해요.</div>
               <div class="learn-steps" id="learnSteps"></div>
               <button class="learn-btn" id="learnBtn" data-action="startFirstMapping">🏠 1회차 학습 청소 시작</button>
             </div>
             <div class="condition-panel" id="conditionPanel">
-              <div class="condition-title" id="conditionTitle">1회차 학습 청소로 우리 집 프로필을 먼저 만들어요</div>
+              <div class="condition-title" id="conditionTitle">1회차 학습 청소로 우리 집 정보를 먼저 만들어요</div>
 
               <div id="firstLearnInputs">
                 <div class="condition-help first-learn-note compact-note">
                   <div class="note-title">저장 항목</div>
                   <div class="profile-mini-grid">
                     <span>집 크기</span><span>5개 구역</span><span>면적</span>
-                    <span>바닥 타입</span><span>오염도</span><span>SOC 기록</span>
+                    <span>바닥 타입</span><span>오염도</span><span>배터리 사용</span>
                   </div>
-                  <div class="note-caption">CSV 집 프로필 중 하나를 랜덤 학습합니다.</div>
+                  <div class="note-caption">처음 청소하며 우리 집 환경을 저장해요.</div>
                 </div>
               </div>
 
               <div id="predictionInputs" style="display:none;">
-                <div class="condition-help">오늘 조건만 선택하면 CSV 예측값을 매칭해요.</div>
+                <div class="condition-help">오늘 상태만 고르면 필요한 만큼 알아서 준비해요.</div>
                 <div class="predict-condition-grid">
                   <label for="scopeSelect">청소 범위</label>
                   <select class="condition-select" id="scopeSelect">
@@ -1108,9 +1108,9 @@ body,button,input,select{
                 </div>
               </div>
 
-              <button class="predict-btn" id="predictBtn" data-action="predictSoc">🤖 AI 예측하기</button>
-              <div class="predict-loading" id="predictLoading">1회차 학습 청소가 끝나면 AI 예측을 실행할 수 있어요.</div>
-              <div class="flow-guide" id="flowGuide"><span class="guide-step">현재 단계</span>1회차 학습 청소로 집 프로필을 먼저 저장해 주세요.</div>
+              <button class="predict-btn" id="predictBtn" data-action="predictSoc">🤖 오늘 청소 준비하기</button>
+              <div class="predict-loading" id="predictLoading">1회차 학습 청소가 끝나면 오늘 청소 준비를 할 수 있어요.</div>
+              <div class="flow-guide" id="flowGuide"><span class="guide-step">현재 단계</span>1회차 학습 청소로 집 정보를 먼저 저장해 주세요.</div>
             </div>
             <div class="scope-buttons">
               <button class="scope-btn active" id="scopeHome" data-action="selectHome">집 전체</button>
@@ -1123,14 +1123,14 @@ body,button,input,select{
             <div class="selected-plan">
               <div class="plan-summary" id="planSummary">집 전체 청소 조건을 분석 중입니다.</div>
               <div class="plan-soc">
-                <div class="plan-soc-label">AI 목표 SOC</div>
+                <div class="plan-soc-label">권장 충전량</div>
                 <div class="plan-soc-value"><span id="planTargetSoc">81</span>%</div>
-                <div class="plan-soc-sub" id="planSocSub">예상 소모량 + 안전마진 15%</div>
+                <div class="plan-soc-sub" id="planSocSub">청소 후 여유 배터리까지 반영</div>
               </div>
             </div>
             <button class="start-clean-primary" id="startCleanPrimary" data-action="clean" disabled>
               🧹 청소 미션 수행하기
-              <small id="startCleanHint">AI 예측 후 바로 시작할 수 있어요</small>
+              <small id="startCleanHint">준비가 끝나면 바로 시작할 수 있어요</small>
             </button>
           </div>
 
@@ -1154,7 +1154,7 @@ body,button,input,select{
             </section>
 
             <section class="mini-card time-card">
-              <div class="mini-title">예상 청소 가능 시간</div>
+              <div class="mini-title">필요 청소 가능 시간</div>
               <div class="time-icon">🤖</div>
               <div class="time-number"><span id="cleanTime">45</span><small> 분</small></div>
               <div class="time-sub">현재 배터리 기준</div>
@@ -1171,12 +1171,12 @@ body,button,input,select{
 
       <section class="page" id="batteryPage">
         <div class="section-kicker">BATTERY HEALTH</div>
-        <div class="section-title">배터리 건강 관리</div>
+        <div class="section-title">배터리 건강 돌보기</div>
 
         <div class="gauge-grid">
           <div class="panel gauge-card">
             <div class="gauge" id="socGauge" style="--value:81;--color:#49a646">
-              <div class="gauge-content"><div class="gauge-label">SOC</div><div class="gauge-value" id="socGaugeText">81%</div></div>
+              <div class="gauge-content"><div class="gauge-label">배터리</div><div class="gauge-value" id="socGaugeText">81%</div></div>
             </div>
             <div class="gauge-desc">권장 운용 구간<br>15%~90%</div>
           </div>
@@ -1191,7 +1191,7 @@ body,button,input,select{
 
         <div class="panel control">
           <div class="control-row">
-            <div class="control-head"><span>목표 SOC 조절</span><span class="control-value" id="targetLabel">81%</span></div>
+            <div class="control-head"><span>권장 충전량 조절</span><span class="control-value" id="targetLabel">81%</span></div>
             <input id="targetSlider" type="range" min="15" max="90" value="81">
             <div class="control-caption"><span>15%</span><span>배터리 보호 권장</span><span>90%</span></div>
           </div>
@@ -1200,11 +1200,11 @@ body,button,input,select{
             <input id="tempSlider" type="range" min="15" max="50" value="29">
             <div class="control-caption"><span>15℃</span><span>현재 배터리 온도</span><span>50℃</span></div>
           </div>
-          <button class="primary-btn" data-action="chargeFromBattery">AI 권장 SOC까지 맞춤 충전</button>
+          <button class="primary-btn" data-action="chargeFromBattery">로보킹 권장량까지 맞춤 충전</button>
         </div>
 
         <div class="panel chart-panel">
-          <div class="panel-head"><div class="panel-title">오늘 SOC 변화</div><div class="badge">고SOC 방치 감소</div></div>
+          <div class="panel-head"><div class="panel-title">오늘 배터리 변화</div><div class="badge">과충전 방지</div></div>
           <svg class="soc-chart" viewBox="0 0 340 165">
             <line class="grid-line" x1="30" y1="28" x2="330" y2="28"></line>
             <line class="grid-line" x1="30" y1="132" x2="330" y2="132"></line>
@@ -1214,11 +1214,11 @@ body,button,input,select{
           </svg>
           <div class="legend">
             <span><span class="dot" style="background:#eb6650"></span>기존 완충 방식</span>
-            <span><span class="dot" style="background:#4c9a43"></span>AI 가변 충전</span>
+            <span><span class="dot" style="background:#4c9a43"></span>맞춤 충전</span>
           </div>
         </div>
 
-        <div class="panel insight"><div class="insight-row"><div class="insight-icon">💡</div><div id="insightText">최근 청소 패턴을 분석한 결과, 오늘은 SOC 81%까지만 충전해도 예상 청소를 완료할 수 있습니다.</div></div></div>
+        <div class="panel insight"><div class="insight-row"><div class="insight-icon">💡</div><div id="insightText">최근 청소 패턴을 분석한 결과, 오늘은 배터리 81%까지만 충전해도 필요 청소를 완료할 수 있습니다.</div></div></div>
       </section>
 
       <section class="page" id="recordPage">
@@ -1242,14 +1242,14 @@ body,button,input,select{
           <div class="record-card"><div class="record-label">이번 주 청소 면적</div><div class="record-value"><span id="areaText">72</span>㎡</div></div>
           <div class="record-card"><div class="record-label">평균 청소 시간</div><div class="record-value"><span id="recordAvgText">38</span>분</div></div>
           <div class="record-card"><div class="record-label">고온 복귀</div><div class="record-value">0회</div></div>
-          <div class="record-card"><div class="record-label">AI 추천 수락</div><div class="record-value"><span id="acceptText">4</span>회</div></div>
+          <div class="record-card"><div class="record-label">맞춤 충전 수락</div><div class="record-value"><span id="acceptText">4</span>회</div></div>
         </div>
 
         <div class="panel events">
           <div class="panel-title">이벤트 기록</div>
           <div id="eventList">
-            <div class="event-item"><div class="event-time">14:20</div><div class="event-content"><strong>맞춤 충전 완료</strong><span>목표 SOC 81%에서 자동 충전을 종료했습니다.</span></div></div>
-            <div class="event-item"><div class="event-time">10:15</div><div class="event-content"><strong>사용자 패턴 분석</strong><span>거실 청소 예상 소비량 27%를 반영했습니다.</span></div></div>
+            <div class="event-item"><div class="event-time">14:20</div><div class="event-content"><strong>맞춤 충전 완료</strong><span>권장량 81%에서 자동으로 멈췄습니다.</span></div></div>
+            <div class="event-item"><div class="event-time">10:15</div><div class="event-content"><strong>사용자 패턴 분석</strong><span>거실 청소 필요 소비량 27%를 반영했습니다.</span></div></div>
             <div class="event-item"><div class="event-time">08:40</div><div class="event-content"><strong>배터리 상태 정상</strong><span>배터리 온도와 건강도가 안정 범위에 있습니다.</span></div></div>
           </div>
         </div>
@@ -1267,7 +1267,7 @@ body,button,input,select{
         </div>
 
         <div class="reward-grid">
-          <div class="reward-card"><div class="reward-icon">🥣</div><div class="reward-title">배터리 음식</div><div class="reward-desc">SOC를 12% 회복합니다.</div><button class="reward-btn" data-action="buyFood">50 코인</button></div>
+          <div class="reward-card"><div class="reward-icon">🥣</div><div class="reward-title">에너지 간식</div><div class="reward-desc">배터리를 12% 채워줘요.</div><button class="reward-btn" data-action="buyFood">50 코인</button></div>
           <div class="reward-card"><div class="reward-icon">🎀</div><div class="reward-title">빨간 리본</div><div class="reward-desc">로보킹을 꾸며주세요.</div><button class="reward-btn" data-action="ribbon">미리보기</button></div>
           <div class="reward-card"><div class="reward-icon">🧢</div><div class="reward-title">탐험가 모자</div><div class="reward-desc">청소 미션 전용 아이템입니다.</div><button class="reward-btn" data-action="hat">120 코인</button></div>
           <div class="reward-card"><div class="reward-icon">✨</div><div class="reward-title">반짝이 효과</div><div class="reward-desc">청소 완료 효과를 변경합니다.</div><button class="reward-btn" data-action="sparkle">효과 체험</button></div>
@@ -1301,7 +1301,7 @@ const mappingSteps=[
   {key:'floor',label:'바닥 타입 인식'},
   {key:'dirt',label:'오염도 기록'},
   {key:'obstacle',label:'장애물 수준 기록'},
-  {key:'soc',label:'실제 SOC 소모 기록'}
+  {key:'soc',label:'배터리 사용 기록'}
 ];
 
 const $=(id)=>document.getElementById(id);
@@ -1318,20 +1318,20 @@ function setGuide(message,tone="normal"){
   }
 }
 function guideForCurrentState(){
-  if(state.mapping)return "로보킹이 집 구조·구역 면적·바닥 타입·오염도를 학습 중이에요. 학습 주행 SOC가 함께 차감됩니다.";
-  if(!state.profileReady)return "<b>1단계</b> 1회차 학습 청소를 눌러 우리 집 프로필을 저장해 주세요.";
-  if(state.profileReady && !state.predicted)return "<b>2단계</b> 오늘 청소 조건을 선택한 뒤 AI 예측하기를 눌러 필요 SOC를 계산해 주세요.";
-  if(state.charging)return "목표 SOC <b>"+state.targetSoc+"%</b>까지만 맞춤 충전 중이에요. 충전이 끝나면 청소를 시작할 수 있습니다.";
-  if(state.cleaning)return "청소 중입니다. 종료 후 최소 <b>15%</b> 배터리가 남도록 SOC를 보호합니다.";
+  if(state.mapping)return "로보킹이 집 구조와 바닥 상태를 배우는 중이에요. 학습 중 배터리가 조금 사용됩니다.";
+  if(!state.profileReady)return "<b>1단계</b> 1회차 학습 청소를 눌러 우리 집 정보를 저장해 주세요.";
+  if(state.profileReady && !state.predicted)return "<b>2단계</b> 오늘 청소 조건을 선택한 뒤 로보킹에게 준비를 맡겨 주세요.";
+  if(state.charging)return "권장량 <b>"+state.targetSoc+"%</b>까지만 맞춤 충전 중이에요. 충전이 끝나면 청소를 시작할 수 있습니다.";
+  if(state.cleaning)return "청소 중이에요. 끝난 뒤에도 배터리가 너무 부족해지지 않도록 로보킹이 알아서 관리합니다.";
   if(state.celebrating || state.missionDone)return "청소가 완료됐어요. 기록 탭에서 청소 결과를 확인할 수 있습니다.";
-  if(state.predicted && state.soc<state.targetSoc)return "<b>3단계</b> 현재 SOC는 " + state.soc + "%이고 목표는 " + state.targetSoc + "%. 먼저 목표 SOC까지만 충전하면 청소할 수 있어요.";
-  if(state.predicted)return "<b>3단계</b> 현재 SOC로 청소 가능해요. 청소 미션 수행하기를 누르면 시작됩니다.";
+  if(state.predicted && state.soc<state.targetSoc)return "<b>3단계</b> 현재 배터리는 " + state.soc + "%이고 목표는 " + state.targetSoc + "%. 필요한 만큼만 충전하면 청소할 수 있어요.";
+  if(state.predicted)return "<b>3단계</b> 지금 배터리로 청소할 수 있어요. 청소 미션 수행하기를 누르면 시작됩니다.";
   return state.userGuide||"현재 상태를 확인 중입니다.";
 }
 
 // 배터리 보호 기준
 // - 청소 종료 후 최소 15%는 반드시 남긴다.
-// - 목표 충전 SOC는 배터리 수명 보호를 위해 최대 90%까지만 허용한다.
+// - 목표 충전 배터리는 배터리 수명 보호를 위해 최대 90%까지만 허용한다.
 // - 따라서 한 번에 안전하게 수행 가능한 최대 청소 소모량은 75%이다.
 const MIN_RESERVE_SOC=15;
 const MAX_CHARGE_SOC=90;
@@ -1342,7 +1342,7 @@ const expectedEndSoc=(startSoc,required)=>Math.round((Number(startSoc||0)-Number
 
 // 1회차 학습 청소는 전체 집을 완전 청소하는 단계가 아니라
 // 집 구조/구역/바닥/오염도 정보를 수집하는 시범 학습 주행으로 처리합니다.
-// 따라서 CSV의 전체 청소 예상 SOC를 그대로 차감하지 않고,
+// 따라서 기록의 전체 청소 필요 배터리를 그대로 차감하지 않고,
 // 학습 주행용 소비량으로 축소 계산하며 최소 잔량을 남깁니다.
 const MIN_SOC_AFTER_LEARNING=MIN_RESERVE_SOC;
 const MIN_LEARNING_SOC_USE=5;
@@ -1362,7 +1362,7 @@ const cleanModeLabels={dry:"건식",mop:"물걸레",both:"건식+물걸레"};
 const intensityLabels={fast:"빠른",standard:"표준",careful:"꼼꼼"};
 const todayStateLabels={normal:"평소와 같음",dust:"먼지 많음",pet:"반려동물 털 많음",obstacle:"바닥 물건 많음"};
 // 아래 선택값은 배율을 곱하는 보정계수가 아니라,
-// CSV 안에서 조건이 가장 가까운 머신러닝 예측 행을 찾기 위한 검색 조건으로 사용됩니다.
+// 기록 안에서 조건이 가장 가까운 우리 집 기록 준비 행을 찾기 위한 검색 조건으로 사용됩니다.
 const intensityAliases={fast:["약","중"],standard:["중","강"],careful:["강","터보"]};
 const todayStateAliases={normal:"학습 프로필 기준",dust:"오염도 높은 조건",pet:"오염도 높음 + 강한 흡입 조건",obstacle:"장애물 많은 조건"};
 
@@ -1370,7 +1370,7 @@ function pickRandomRun(candidates){
   if(!candidates || candidates.length===0)return null;
 
   // 현재 화면에 떠 있는 global_run_id와 같은 시나리오는 가능하면 제외
-  // 같은 조건으로 1회차 학습 청소를 다시 실행할 때 매번 다른 집 프로필이 나오게 하기 위함
+  // 같은 조건으로 1회차 학습 청소를 다시 실행할 때 매번 다른 집 정보이 나오게 하기 위함
   let pool = candidates;
   if(activeRun && activeRun.globalRunId && candidates.length>1){
     const filtered = candidates.filter(r=>String(r.globalRunId)!==String(activeRun.globalRunId));
@@ -1385,7 +1385,7 @@ function findRun(areaPyung, mopEnabled){
   const area = Number(areaPyung);
   const mop = Boolean(mopEnabled);
 
-  // 1순위: 사용자가 선택한 평수 + 청소방식이 모두 같은 CSV 시나리오 중 랜덤 선택
+  // 1순위: 사용자가 선택한 평수 + 청소방식이 모두 같은 기록 시나리오 중 랜덤 선택
   let candidates = predictionData.runs.filter(r=>Number(r.areaPyung)===area && Boolean(r.mopEnabled)===mop);
   let run = pickRandomRun(candidates);
 
@@ -1395,7 +1395,7 @@ function findRun(areaPyung, mopEnabled){
     run = pickRandomRun(candidates);
   }
 
-  // 3순위: 같은 평수도 없으면 전체 CSV 중 랜덤 선택
+  // 3순위: 같은 평수도 없으면 전체 기록 중 랜덤 선택
   if(!run){
     run = pickRandomRun(predictionData.runs);
   }
@@ -1430,8 +1430,8 @@ const state={
   intensityLabel:'표준',
   todayStateChoice:'normal',
   todayStateLabel:'평소와 같음',
-  matchNote:"CSV 머신러닝 예측값 사용",
-  matchBasis:"조건 매칭",
+  matchNote:"우리 집 기록으로 맞춤 준비",
+  matchBasis:"오늘 상태 반영",
   cleaningRemainingSoc:activeRun.home.requiredSoc,
   cleaningSegmentIndex:0,
   splitCleaning:false,
@@ -1439,7 +1439,7 @@ const state={
   chargeComplete:false,
   predicting:false,
   predicted:false,
-  userGuide:"1회차 학습 청소로 집 크기, 구역, 바닥, 오염도, SOC 기록을 저장해 주세요.",
+  userGuide:"1회차 학습 청소로 집 크기, 구역, 바닥, 오염도, 배터리 사용을 저장해 주세요.",
   userGuideTone:"normal",
   profileReady:false,
   mapping:false,
@@ -1492,7 +1492,7 @@ function render(){
   if(robotSocBadge){
     const socState=state.soc<15?"low":(state.soc<state.targetSoc?"need":"ok");
     robotSocBadge.className="robot-soc-badge "+socState;
-    robotSocBadge.innerHTML="<span>🔋 현재 SOC</span><b>"+state.soc+"%</b>";
+    robotSocBadge.innerHTML="<span>🔋 현재 배터리</span><b>"+state.soc+"%</b>";
   }
 
   renderPlan();renderHome();renderBattery();renderRecord();renderReward();
@@ -1610,7 +1610,7 @@ function scoreScenarioForChoices(scenario,choices,baseScenario){
   score+=suctionPreferenceScore(scenario,choices.intensity);
   score+=todayStateScore(scenario,choices.todayState,baseScenario);
 
-  // 1회차 학습한 우리 집 프로필과 최대한 가까운 후보를 우선합니다.
+  // 1회차 학습한 우리 집 정보과 최대한 가까운 후보를 우선합니다.
   if(Number(scenario.areaPyung)===Number(activeRun.home.areaPyung))score+=180;
   else score-=Math.abs(Number(scenario.areaPyung||0)-Number(activeRun.home.areaPyung||0))*4;
 
@@ -1633,7 +1633,7 @@ function findMlScenarioFromChoices(choices){
   const pool=scenarioPoolForChoices(choices);
   if(!pool.length){
     const fallback=Object.assign({},baseScenario);
-    fallback.matchNote="CSV 후보가 없어 1회차 학습 프로필 예측값을 사용";
+    fallback.matchNote="저장된 우리 집 기록을 기준으로 계산";
     return fallback;
   }
 
@@ -1659,11 +1659,11 @@ function findMlScenarioFromChoices(choices){
   scenario.todayStateChoice=choices.todayState;
   scenario.todayStateLabel=todayStateLabels[choices.todayState]||"평소와 같음";
   scenario.targetSoc=targetFromRequired(scenario.requiredSoc);
-  scenario.matchNote="선택 조건과 가장 가까운 CSV 머신러닝 예측값 사용";
-  scenario.matchBasis="청소방식·흡입모드·오염도·장애물 수준 조건 매칭";
+  scenario.matchNote="오늘 상태에 맞춰 로보킹이 준비";
+  scenario.matchBasis="청소 방식·오염도·장애물 상태 반영";
 
   if(choices.cleanMode==="both" && getCleanModeCandidateValue(scenario)!=="both"){
-    scenario.matchNote="건식+물걸레와 가장 가까운 물걸레 조건의 ML 예측값 사용";
+    scenario.matchNote="복합 청소에 가까운 물걸레 기록을 기준으로 계산";
   }
   return scenario;
 }
@@ -1691,8 +1691,8 @@ function syncScenarioToState(scenario){
   state.intensityLabel=scenario.intensityLabel||state.intensityLabel;
   state.todayStateChoice=scenario.todayStateChoice||state.todayStateChoice;
   state.todayStateLabel=scenario.todayStateLabel||state.todayStateLabel;
-  state.matchNote=scenario.matchNote||"CSV 머신러닝 예측값 사용";
-  state.matchBasis=scenario.matchBasis||"조건 매칭";
+  state.matchNote=scenario.matchNote||"우리 집 기록으로 맞춤 준비";
+  state.matchBasis=scenario.matchBasis||"오늘 상태 반영";
   state.cleaningRemainingSoc=Number(state.requiredSoc||0);
   state.cleaningSegmentIndex=0;
   state.splitCleaning=state.requiredSoc>MAX_SINGLE_PASS_USE;
@@ -1702,9 +1702,9 @@ function syncScenarioToState(scenario){
 }
 
 function predictSocFromConditions(){
-  if(state.cleaning||state.charging||state.mapping){showToast("학습/청소/충전이 끝난 뒤 다시 예측할 수 있어요.");return}
+  if(state.cleaning||state.charging||state.mapping){showToast("학습/청소/충전이 끝난 뒤 다시 준비할 수 있어요.");return}
   if(!state.profileReady){
-    setGuide("아직 집 프로필이 없어요. 먼저 1회차 학습 청소를 실행해 주세요.","warning");
+    setGuide("아직 집 정보이 없어요. 먼저 1회차 학습 청소를 실행해 주세요.","warning");
     showToast("먼저 1회차 학습 청소가 필요합니다.");
     $("speech").innerHTML="<strong style='color:#ef8c32'>아직 학습 전이에요!</strong><br>먼저 우리 집을 알려주세요.";
     $("modeChip").textContent="🏠 1회차 학습 필요";
@@ -1715,11 +1715,11 @@ function predictSocFromConditions(){
   const matchedScenario=findMlScenarioFromChoices(choices);
   const loading=$('predictLoading');
   state.predicting=true;
-  if(loading){loading.textContent="선택 조건과 가장 가까운 머신러닝 예측값을 CSV에서 찾는 중이에요...";loading.classList.add('active');}
-  $("speech").innerHTML="<strong style='color:#2f8b3a'>잠깐만요!</strong><br>조건에 맞는 ML 예측값을 찾고 있어요.";
-  $("modeChip").textContent="🤖 우리 집 기록 기반 AI 예측 중";
-  setGuide("선택한 조건과 가장 가까운 CSV 머신러닝 예측값을 찾고 있어요. 잠시만 기다려 주세요.","charging");
-  showToast("AI 예측 중: 조건에 맞는 SOC 값을 찾고 있어요.");
+  if(loading){loading.textContent="오늘 청소에 필요한 배터리를 계산하고 있어요...";loading.classList.add('active');}
+  $("speech").innerHTML="<strong style='color:#2f8b3a'>잠깐만요!</strong><br>오늘 청소에 필요한 만큼을 계산하고 있어요.";
+  $("modeChip").textContent="🤖 우리 집 기록으로 준비 중";
+  setGuide("오늘 상태를 반영해 필요한 충전량을 계산하고 있어요. 잠시만 기다려 주세요.","charging");
+  showToast("청소 준비 중: 필요한 배터리를 계산하고 있어요.");
 
   setTimeout(()=>{
     syncScenarioToState(matchedScenario);
@@ -1728,16 +1728,16 @@ function predictSocFromConditions(){
     state.chargeComplete=false;
     if(loading){
       const status=state.soc>=state.targetSoc?"바로 청소 가능":"충전 필요";
-      loading.textContent="예측 완료 · 예상 SOC "+fmtSoc(state.requiredSoc)+"% · 목표 SOC "+state.targetSoc+"% · "+status;
+      loading.textContent="준비 완료 · 필요한 배터리 "+fmtSoc(state.requiredSoc)+"% · 권장 충전량 "+state.targetSoc+"% · "+status;
       loading.classList.remove('active');
     }
     render();
-    const statusText=state.soc>=state.targetSoc?"바로 청소할 수 있어요":"목표 SOC까지 충전이 필요해요";
-    $("speech").innerHTML="<strong style='color:#2f8b3a'>예측 완료!</strong><br>목표 SOC "+state.targetSoc+"% · "+statusText;
-    $("modeChip").textContent="✅ AI 예측 완료 · "+state.selectedLabel;
-    addEvent("AI SOC 예측 완료",state.selectedLabel+" · 예상 SOC "+fmtSoc(state.requiredSoc)+"% · 목표 SOC "+state.targetSoc+"%.");
-    setGuide(statusText.includes("바로")?"AI 예측 완료! 현재 SOC로 바로 청소할 수 있어요. 아래 <b>청소 미션 수행하기</b> 버튼을 눌러 주세요.":"AI 예측 완료! 현재 SOC가 부족해요. 아래 버튼으로 <b>목표 SOC "+state.targetSoc+"%</b>까지만 충전해 주세요.", state.soc>=state.targetSoc?"done":"warning");
-    showToast("AI 예측 완료: 예상 "+fmtSoc(state.requiredSoc)+"%, 목표 "+state.targetSoc+"%입니다.");
+    const statusText=state.soc>=state.targetSoc?"바로 청소할 수 있어요":"권장량까지 충전이 필요해요";
+    $("speech").innerHTML="<strong style='color:#2f8b3a'>준비 완료!</strong><br>권장 충전량 "+state.targetSoc+"% · "+statusText;
+    $("modeChip").textContent="✅ 청소 준비 완료 · "+state.selectedLabel;
+    addEvent("청소 준비 완료",state.selectedLabel+" · 필요 배터리 "+fmtSoc(state.requiredSoc)+"% · 권장 충전량 "+state.targetSoc+"%.");
+    setGuide(statusText.includes("바로")?"준비 완료! 지금 배터리로 바로 청소할 수 있어요. 아래 <b>청소 미션 수행하기</b> 버튼을 눌러 주세요.":"준비 완료! 지금은 배터리가 조금 부족해요. 아래 버튼으로 <b>권장량 "+state.targetSoc+"%</b>까지만 충전해 주세요.", state.soc>=state.targetSoc?"done":"warning");
+    showToast("청소 준비 완료: 필요 배터리 "+fmtSoc(state.requiredSoc)+"%, 목표 "+state.targetSoc+"%입니다.");
   },900);
 }
 
@@ -1774,29 +1774,29 @@ function profileResultBody(){
   const recorded=Number(state.firstRunSocUsed||state.firstRunRequiredSoc||0);
   const used=Number(state.firstRunSocUsed||0);
   const socLine=state.firstRunSocEnough
-    ? "SOC 변화: <b>"+Math.round(startSoc)+"% → "+Math.round(endSoc)+"%</b>"
-    : "SOC 변화: <b>"+Math.round(startSoc)+"% → "+Math.round(endSoc)+"%</b> <small>(배터리 부족)</small>";
-  return "<b>우리 집 프로필 저장 완료</b><br><br>"
+    ? "배터리 변화: <b>"+Math.round(startSoc)+"% → "+Math.round(endSoc)+"%</b>"
+    : "배터리 변화: <b>"+Math.round(startSoc)+"% → "+Math.round(endSoc)+"%</b> <small>(배터리 부족)</small>";
+  return "<b>우리 집 우리 집 저장 완료</b><br><br>"
     +"집 크기: <b>"+activeRun.areaPyung+"평 · "+activeRun.home.cleaningAreaM2+"㎡</b><br>"
     +"구역: <b>5개</b><br>"
     +"바닥: <b>"+floorKindCount()+"종 혼합</b><br>"
     +"오염도: <b>"+dirtSummaryShort()+"</b><br>"
     +"장애물: <b>"+obstacleSummary()+"</b><br>"
-    +"학습 소모 SOC: <b>"+fmtSoc(recorded)+"%</b><br>"
+    +"학습 중 사용한 배터리: <b>"+fmtSoc(recorded)+"%</b><br>"
     +socLine+"<br>"
-    +"현재 SOC: <b>"+Math.round(state.soc)+"%</b><br><br>"
-    +"다음 단계: <b>AI 예측하기</b>";
+    +"현재 배터리: <b>"+Math.round(state.soc)+"%</b><br><br>"
+    +"다음 단계: <b>오늘 청소 준비하기</b>";
 }
 function startFirstMapping(){
   if(state.cleaning||state.charging||state.mapping){showToast("진행 중인 작업이 끝난 뒤 다시 시도해 주세요.");return}
 
   const startSoc=clamp(Math.round(Number(state.soc||0)),0,100);
   if(startSoc < MIN_SOC_AFTER_LEARNING + MIN_LEARNING_SOC_USE){
-    openModal("학습 전 충전이 필요해요","1회차 학습 청소 후에도 최소 <b>"+MIN_SOC_AFTER_LEARNING+"%</b>의 배터리를 남기도록 설정했어요.<br><br>현재 SOC가 <b>"+startSoc+"%</b>라서 먼저 충전한 뒤 학습 청소를 시작하는 것이 안전합니다.");
+    openModal("학습 전 충전이 필요해요","1회차 학습 청소 후에도 최소 <b>"+MIN_SOC_AFTER_LEARNING+"%</b>의 배터리를 남기도록 설정했어요.<br><br>현재 배터리가 <b>"+startSoc+"%</b>라서 먼저 충전한 뒤 학습 청소를 시작하는 것이 안전합니다.");
     return;
   }
 
-  // 현재 SOC 기준으로 학습 주행 후 최소 잔량을 남길 수 있는 CSV 시나리오를 우선 선택합니다.
+  // 현재 배터리 기준으로 학습 주행 후 최소 잔량을 남길 수 있는 기록 시나리오를 우선 선택합니다.
   const safeRuns=predictionData.runs.filter(r=>getLearningSocUse(r,startSoc)>0);
   activeRun=pickRandomRun(safeRuns.length?safeRuns:predictionData.runs) || predictionData.runs[0];
   syncScenarioToState(activeRun.home);
@@ -1820,8 +1820,8 @@ function startFirstMapping(){
   state.chargeComplete=false;
   state.celebrating=false;
   switchPage("homePage");
-  setGuide("학습 청소를 시작했어요. 집 구조와 구역 정보를 저장하고, 학습 주행 SOC가 함께 줄어듭니다.","charging");
-  showToast("학습 시작: 집 구조와 SOC 소모 기록을 저장합니다.");
+  setGuide("학습 청소를 시작했어요. 집 구조와 구역 정보를 저장하고, 학습 주행 배터리가 함께 줄어듭니다.","charging");
+  showToast("학습 시작: 집 구조와 배터리 사용 기록을 저장합니다.");
   render();
 
   let tick=0;
@@ -1849,12 +1849,12 @@ function startFirstMapping(){
       const intensitySelect=$("intensitySelect"); if(intensitySelect)intensitySelect.value='standard';
       const todayStateSelect=$("todayStateSelect"); if(todayStateSelect)todayStateSelect.value='normal';
       state.temperature=29;
-      const eventMsg="시작 SOC "+Math.round(startSoc)+"% → 현재 SOC "+Math.round(state.soc)+"% · 학습 소모 "+fmtSoc(learningUse)+"%";
+      const eventMsg="시작 배터리 "+Math.round(startSoc)+"% → 현재 배터리 "+Math.round(state.soc)+"% · 학습 소모 "+fmtSoc(learningUse)+"%";
       addEvent("1회차 학습 청소 완료",eventMsg);
       spawnEffect("🏠",8);spawnEffect("✨",9);
       render();
-      setGuide("우리 집 프로필 저장 완료! 이제 오늘 청소 조건을 선택하고 <b>AI 예측하기</b>를 눌러 주세요.","done");
-      showToast("프로필 저장 완료: 다음은 AI 예측하기입니다.");
+      setGuide("우리 집 우리 집 저장 완료! 이제 오늘 청소 조건을 선택하고 <b>오늘 청소 준비하기</b>를 눌러 주세요.","done");
+      showToast("우리 집 저장 완료: 다음은 오늘 청소 준비하기입니다.");
       setTimeout(()=>{render();},350);
     }
   },260);
@@ -1866,7 +1866,7 @@ function selectScenario(scope,zoneNumber=null){
     $("speech").innerHTML="<strong style='color:#ef8c32'>우리 집 학습이 먼저예요</strong><br>1회차 학습 청소를 시작해 주세요.";
     return;
   }
-  if(!state.predicted){setGuide("구역 선택 전 AI 예측하기를 먼저 눌러 SOC 값을 계산해 주세요.","warning");showToast("먼저 AI 예측하기를 눌러주세요.");return}
+  if(!state.predicted){setGuide("구역을 바꾸기 전 오늘 청소 준비를 먼저 완료해 주세요.","warning");showToast("먼저 오늘 청소 준비하기를 눌러주세요.");return}
   const scopeSelect=$('scopeSelect');
   if(scopeSelect)scopeSelect.value=scope==="home"?"home":String(zoneNumber||1);
   const choices=getPredictionChoices(scope,zoneNumber);
@@ -1875,24 +1875,24 @@ function selectScenario(scope,zoneNumber=null){
   render();
   const status=state.soc>=state.targetSoc?"청소 가능":"충전 필요";
   const loading=$('predictLoading');
-  if(loading)loading.textContent=state.selectedLabel+" 선택 · 예상 SOC "+fmtSoc(state.requiredSoc)+"% · 목표 SOC "+state.targetSoc+"% · "+status;
-  $("speech").innerHTML="<strong>"+state.selectedLabel+" 선택!</strong><br>목표 SOC "+state.targetSoc+"%로 업데이트했어요.";
-  $("modeChip").textContent="✨ "+state.selectedLabel+" AI 목표 SOC "+state.targetSoc+"%";
-  setGuide((state.soc>=state.targetSoc)?state.selectedLabel+" 예측값을 적용했어요. 현재 SOC로 청소 가능합니다.":state.selectedLabel+" 예측값을 적용했어요. 청소 전 목표 SOC까지 충전해 주세요.", state.soc>=state.targetSoc?"done":"warning");
-  showToast(state.selectedLabel+" 적용: 예상 "+fmtSoc(state.requiredSoc)+"%, 목표 "+state.targetSoc+"%입니다.");
+  if(loading)loading.textContent=state.selectedLabel+" 선택 · 필요 배터리 "+fmtSoc(state.requiredSoc)+"% · 권장 충전량 "+state.targetSoc+"% · "+status;
+  $("speech").innerHTML="<strong>"+state.selectedLabel+" 선택!</strong><br>권장 충전량 "+state.targetSoc+"%로 업데이트했어요.";
+  $("modeChip").textContent="✨ "+state.selectedLabel+" 권장 충전량 "+state.targetSoc+"%";
+  setGuide((state.soc>=state.targetSoc)?state.selectedLabel+" 준비값을 적용했어요. 현재 배터리로 청소 가능합니다.":state.selectedLabel+" 준비값을 적용했어요. 청소 전 권장량까지 충전해 주세요.", state.soc>=state.targetSoc?"done":"warning");
+  showToast(state.selectedLabel+" 적용: 필요 "+fmtSoc(state.requiredSoc)+"%, 목표 "+state.targetSoc+"%입니다.");
 }
 
 function openScenarioModal(){
   const enough=state.soc>=state.targetSoc;
   const title=enough?"배가 든든해요!":"아직 배고파요!";
   const scopeText=state.selectedScope==="home"?"집 전체 청소":state.selectedLabel+" 청소";
-  const conditionLine="청소 방식 <b>"+state.cleanModeLabel+"</b> · 청소 강도 <b>"+state.intensityLabel+"</b> · 오늘 상태 <b>"+state.todayStateLabel+"</b><br>예측 방식 <b>"+state.matchNote+"</b><br><br>";
+  const conditionLine="청소 방식 <b>"+state.cleanModeLabel+"</b> · 청소 강도 <b>"+state.intensityLabel+"</b> · 오늘 상태 <b>"+state.todayStateLabel+"</b><br>준비 방식 <b>"+state.matchNote+"</b><br><br>";
   const zoneLine=state.selectedScope==="zone"
-    ? "1회차 학습 결과, "+state.selectedLabel+"의 바닥 타입은 <b>"+(state.floorType||"정보 없음")+"</b>입니다.<br>오염도는 <b>"+(state.dirtLevel||"정보 없음")+"</b>, 흡입 모드는 <b>"+(state.suctionMode||"AI 자동")+"</b>로 기록됐어요.<br><br>"
-    : "1회차 학습으로 저장한 5개 구역 기록을 모두 합산해서 예측했어요.<br><br>";
+    ? "1회차 학습 결과, "+state.selectedLabel+"의 바닥 타입은 <b>"+(state.floorType||"정보 없음")+"</b>입니다.<br>오염도는 <b>"+(state.dirtLevel||"정보 없음")+"</b>, 흡입 모드는 <b>"+(state.suctionMode||"자동")+"</b>로 기록됐어요.<br><br>"
+    : "1회차 학습으로 저장한 5개 구역 기록을 모두 합산해서 준비했어요.<br><br>";
   const body=enough
-    ? scopeText+"를 선택했어요.<br><br>"+conditionLine+zoneLine+"예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>이고, 목표 SOC는 <b>"+state.targetSoc+"%</b>예요.<br>지금 SOC가 <b>"+state.soc+"%</b>라서 바로 청소를 시작할 수 있어요!"
-    : scopeText+"를 선택했어요.<br><br>"+conditionLine+zoneLine+"예상 SOC 소모량은 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>안전 마진 15%를 더해서 목표 SOC는 <b>"+state.targetSoc+"%</b>입니다.<br><br><b>목표 SOC까지만 충전하고 청소를 시작할게요.</b> 과충전은 줄이고 배터리는 오래 지켜볼게요!";
+    ? scopeText+"를 선택했어요.<br><br>"+conditionLine+zoneLine+"이번 청소에는 배터리가 <b>"+fmtSoc(state.requiredSoc)+"%</b>이고, 권장 충전량은 <b>"+state.targetSoc+"%</b>예요.<br>지금 배터리가 <b>"+state.soc+"%</b>라서 바로 청소를 시작할 수 있어요!"
+    : scopeText+"를 선택했어요.<br><br>"+conditionLine+zoneLine+"이번 청소에는 배터리가 <b>"+fmtSoc(state.requiredSoc)+"%</b>예요.<br>여유 배터리 15%를 더해서 권장 충전량은 <b>"+state.targetSoc+"%</b>입니다.<br><br><b>권장량까지만 충전하고 청소를 시작할게요.</b> 과충전은 줄이고 배터리는 오래 지켜볼게요!";
   if(enough){
     openModal(title,body);
   }else{
@@ -1939,18 +1939,18 @@ function renderPlan(){
     if(learnPill)learnPill.textContent="학습 중";
     if(learnStatus){
       const currentStep=mappingSteps[state.mappingStepIndex]||mappingSteps[0];
-      learnStatus.innerHTML=currentStep.label+" 중 · "+state.mappingProgress+"%<br><b>SOC "+Math.round(state.firstRunStartSoc)+"% → "+Math.round(state.soc)+"%</b>";
+      learnStatus.innerHTML=currentStep.label+" 중 · "+state.mappingProgress+"%<br><b>배터리 "+Math.round(state.firstRunStartSoc)+"% → "+Math.round(state.soc)+"%</b>";
     }
     if(learnBtn){learnBtn.textContent="로보킹이 집을 배우는 중...";learnBtn.disabled=true;}
     if(conditionPanel)conditionPanel.classList.add('locked-area');
   }else if(state.profileReady){
     if(learnPill)learnPill.textContent="프로필 저장됨";
-    if(learnStatus)learnStatus.innerHTML="프로필 저장 완료 · 현재 SOC "+Math.round(state.soc)+"% · "+activeRun.home.cleaningAreaM2+"㎡";
+    if(learnStatus)learnStatus.innerHTML="우리 집 저장 완료 · 현재 배터리 "+Math.round(state.soc)+"% · "+activeRun.home.cleaningAreaM2+"㎡";
     if(learnBtn){learnBtn.textContent="🔄 1회차 학습 다시 실행";learnBtn.disabled=false;learnBtn.classList.add('ready');}
     if(conditionPanel)conditionPanel.classList.remove('locked-area');
   }else{
     if(learnPill)learnPill.textContent="초기 학습";
-    if(learnStatus)learnStatus.textContent="시작 버튼을 누르면 집 프로필을 저장해요.";
+    if(learnStatus)learnStatus.textContent="시작 버튼을 누르면 집 정보를 저장해요.";
     if(learnBtn){learnBtn.textContent="🏠 1회차 학습 청소 시작";learnBtn.disabled=false;learnBtn.classList.remove('ready');}
     if(conditionPanel)conditionPanel.classList.remove('locked-area');
   }
@@ -1961,7 +1961,7 @@ function renderPlan(){
   if(predictBtn){
     predictBtn.disabled=!state.profileReady || state.mapping;
     predictBtn.style.opacity=(!state.profileReady || state.mapping)?'.55':'1';
-    predictBtn.textContent=state.profileReady?'🤖 AI 예측하기':'🤖 학습 후 AI 예측 가능';
+    predictBtn.textContent=state.profileReady?'🤖 오늘 청소 준비하기':'🤖 학습 후 청소 준비 가능';
   }
   if(conditionTitle){
     conditionTitle.textContent=state.profileReady?'오늘 청소 조건 선택':'1회차 학습 준비';
@@ -1975,7 +1975,7 @@ function renderPlan(){
   if(state.selectedScope==="home")$('scopeHome').classList.add('active');
   else if($('scopeZone'+state.selectedZone))$('scopeZone'+state.selectedZone).classList.add('active');
 
-  $('planModel').textContent=state.mapping?'1회차 학습 중':(!state.profileReady?'1회차 학습 전':(state.predicted?(predictionData.dataStatus==="csv"?state.modelName:"DEMO")+" 기반":"프로필 저장 완료"));
+  $('planModel').textContent=state.mapping?'집 배우는 중':(!state.profileReady?'처음 학습 전':(state.predicted?'로보킹 맞춤 준비':'우리 집 저장 완료'));
 
 
   if(startCleanPrimary){
@@ -1986,24 +1986,24 @@ function renderPlan(){
     }else if(!state.profileReady){
       startCleanPrimary.innerHTML='🏠 1회차 학습 청소가 먼저예요<small id="startCleanHint">집 구조를 저장한 뒤 청소할 수 있어요</small>';
     }else if(!state.predicted){
-      startCleanPrimary.innerHTML='🤖 AI 예측이 먼저예요<small id="startCleanHint">필요 SOC를 계산한 뒤 시작해요</small>';
+      startCleanPrimary.innerHTML='🤖 오늘 청소 준비가 먼저예요<small id="startCleanHint">필요한 배터리를 계산한 뒤 시작해요</small>';
     }else if(state.soc<state.targetSoc){
-      startCleanPrimary.innerHTML='🔋 목표 SOC까지 충전하고 청소하기<small id="startCleanHint">현재 '+state.soc+'% · 목표 '+state.targetSoc+'%</small>';
+      startCleanPrimary.innerHTML='🔋 필요한 만큼 충전하고 청소하기<small id="startCleanHint">현재 '+state.soc+'% · 권장 '+state.targetSoc+'%</small>';
     }else{
-      startCleanPrimary.innerHTML='🧹 청소 미션 수행하기<small id="startCleanHint">'+state.selectedLabel+' · 예상 소모 '+fmtSoc(state.requiredSoc)+'%</small>';
+      startCleanPrimary.innerHTML='🧹 청소 미션 수행하기<small id="startCleanHint">'+state.selectedLabel+' · 필요 배터리 '+fmtSoc(state.requiredSoc)+'%</small>';
     }
   }
 
   if(!state.profileReady){
     $('planTargetSoc').textContent='--';
-    $('planSummary').innerHTML="<div class='summary-card'><div class='summary-title'>학습 대기</div><div class='summary-row'><span class='summary-key'>상태</span><span class='summary-val'>집 프로필 없음</span></div><div class='summary-row'><span class='summary-key'>다음 단계</span><span class='summary-val green'>1회차 학습 시작</span></div></div>";
+    $('planSummary').innerHTML="<div class='summary-card'><div class='summary-title'>학습 대기</div><div class='summary-row'><span class='summary-key'>상태</span><span class='summary-val'>집 정보 없음</span></div><div class='summary-row'><span class='summary-key'>다음 단계</span><span class='summary-val green'>1회차 학습 시작</span></div></div>";
     $('planSocSub').textContent="학습 후 표시";
     return;
   }
   if(!state.predicted){
     $('planTargetSoc').textContent='--';
-    $('planSummary').innerHTML="<div class='summary-card'><div class='summary-title'>프로필 저장 완료</div><div class='summary-row'><span class='summary-key'>집 크기</span><span class='summary-val'>"+state.areaPyung+"평 · "+state.cleaningAreaM2+"㎡</span></div><div class='summary-row'><span class='summary-key'>학습 SOC</span><span class='summary-val em'>"+Math.round(state.firstRunStartSoc)+"% → "+Math.round(state.soc)+"%</span></div><div class='summary-row'><span class='summary-key'>다음 단계</span><span class='summary-val green'>AI 예측하기</span></div></div>";
-    $('planSocSub').textContent="예측 대기";
+    $('planSummary').innerHTML="<div class='summary-card'><div class='summary-title'>우리 집 저장 완료</div><div class='summary-row'><span class='summary-key'>집 크기</span><span class='summary-val'>"+state.areaPyung+"평 · "+state.cleaningAreaM2+"㎡</span></div><div class='summary-row'><span class='summary-key'>학습 중 사용</span><span class='summary-val em'>"+Math.round(state.firstRunStartSoc)+"% → "+Math.round(state.soc)+"%</span></div><div class='summary-row'><span class='summary-key'>다음 단계</span><span class='summary-val green'>오늘 청소 준비하기</span></div></div>";
+    $('planSocSub').textContent="준비 대기";
     return;
   }
 
@@ -2017,10 +2017,10 @@ function renderPlan(){
     +"<div class='summary-title'>"+scopeText+"</div>"
     +"<div class='summary-row'><span class='summary-key'>조건</span><span class='summary-val'>"+conditionDetail+"</span></div>"
     +"<div class='summary-row'><span class='summary-key'>프로필</span><span class='summary-val'>"+detail+"</span></div>"
-    +"<div class='summary-row'><span class='summary-key'>예상 SOC</span><span class='summary-val em'>"+fmtSoc(state.requiredSoc)+"%</span></div>"
-    +"<div class='summary-row'><span class='summary-key'>예측 방식</span><span class='summary-val green'>"+state.matchNote+"</span></div>"
+    +"<div class='summary-row'><span class='summary-key'>필요 배터리</span><span class='summary-val em'>"+fmtSoc(state.requiredSoc)+"%</span></div>"
+    +"<div class='summary-row'><span class='summary-key'>준비 방식</span><span class='summary-val green'>"+state.matchNote+"</span></div>"
     +"</div>";
-  $('planSocSub').textContent="예상 "+fmtSoc(state.requiredSoc)+"% + 마진 15%";
+  $('planSocSub').textContent="필요 "+fmtSoc(state.requiredSoc)+"% · 여유까지 반영";
 }
 
 function renderHome(){
@@ -2029,9 +2029,9 @@ function renderHome(){
   if(state.chargeComplete){
     room.classList.add("celebrate");
     $("speech").innerHTML="<strong>배불러요!</strong><br>이제 청소 가능해요!";
-    $("modeChip").textContent="💖 맞춤 충전 완료 · SOC "+state.soc+"%";
+    $("modeChip").textContent="💖 맞춤 충전 완료 · 배터리 "+state.soc+"%";
     $("batteryFace").textContent="😍";$("spark").textContent="💖";
-    $("batteryMessage").innerHTML="목표 SOC까지 채웠어요.<br>과충전 없이 준비 완료!";
+    $("batteryMessage").innerHTML="권장량까지 채웠어요.<br>과충전 없이 준비 완료!";
     $("timeTip").textContent=state.selectedLabel+" 청소를 시작할 수 있어요.";
   }else if(state.celebrating){
     room.classList.add("celebrate");
@@ -2042,41 +2042,41 @@ function renderHome(){
     room.classList.add("cleaning");
     const step=mappingSteps[state.mappingStepIndex]||mappingSteps[0];
     $("speech").innerHTML="<strong style='color:#2f8b3a'>우리 집을 배우는 중!</strong><br>"+step.label+" 중이에요.";
-    $("modeChip").textContent="🏠 학습 청소 · SOC "+Math.round(state.firstRunStartSoc)+"% → "+Math.round(state.soc)+"%";
+    $("modeChip").textContent="🏠 학습 청소 · 배터리 "+Math.round(state.firstRunStartSoc)+"% → "+Math.round(state.soc)+"%";
     $("batteryFace").textContent="🧭";$("spark").textContent="📡";
-    $("batteryMessage").innerHTML="학습 청소 중입니다.<br>SOC가 실제로 소모돼요.";
-    $("timeTip").textContent="학습 진행 "+state.mappingProgress+"% · 현재 SOC "+Math.round(state.soc)+"%";
+    $("batteryMessage").innerHTML="학습 청소 중입니다.<br>배터리가 실제로 소모돼요.";
+    $("timeTip").textContent="학습 진행 "+state.mappingProgress+"% · 현재 배터리 "+Math.round(state.soc)+"%";
   }else if(state.predicting){
-    $("speech").innerHTML="<strong style='color:#2f8b3a'>분석 중이에요!</strong><br>저장된 기록으로 SOC를 계산하고 있어요.";
-    $("modeChip").textContent="🤖 우리 집 기록 기반 AI 예측 중";
+    $("speech").innerHTML="<strong style='color:#2f8b3a'>분석 중이에요!</strong><br>저장된 기록으로 배터리를 계산하고 있어요.";
+    $("modeChip").textContent="🤖 우리 집 기록으로 준비 중";
     $("batteryFace").textContent="🤔";$("spark").textContent="✨";
   }else if(!state.profileReady){
     $("speech").innerHTML="<strong style='color:#ef8c32'>처음 만났어요!</strong><br>1회차 청소로 우리 집을 알려주세요.";
     $("modeChip").textContent="🏠 집 구조 학습 필요";
     $("batteryFace").textContent="🙂";$("spark").textContent="✨";
     $("batteryMessage").innerHTML="아직 우리 집 정보를 몰라요.<br>학습 청소가 필요합니다.";
-    $("timeTip").textContent="1회차 학습 후 AI 예측 가능";
+    $("timeTip").textContent="1회차 학습 후 청소 준비 가능";
   }else if(!state.predicted){
-    $("speech").innerHTML="<strong>집을 배웠어요!</strong><br>이제 필요한 SOC를 예측할게요.";
-    $("modeChip").textContent="✅ 우리 집 프로필 저장 완료";
+    $("speech").innerHTML="<strong>집을 배웠어요!</strong><br>이제 필요한 배터리를 준비할게요.";
+    $("modeChip").textContent="✅ 우리 집 우리 집 저장 완료";
     $("batteryFace").textContent="😊";$("spark").textContent="✨";
-    $("batteryMessage").innerHTML="집 구조 학습 완료!<br>AI 예측하기를 눌러주세요.";
-    $("timeTip").textContent="AI 예측 대기 중";
+    $("batteryMessage").innerHTML="집 구조 학습 완료!<br>오늘 청소 준비하기를 눌러주세요.";
+    $("timeTip").textContent="청소 준비 대기 중";
   }else if(state.cleaning){
     room.classList.add("cleaning");
     $("speech").innerHTML="<strong>열심히 청소 중이에요!</strong><br>진행률 "+state.progress+"%";
     $("modeChip").textContent="🧹 "+state.selectedLabel+" 청소 중 · "+state.progress+"%";
     $("batteryFace").textContent="🧹";
-    $("batteryMessage").innerHTML="청소 중입니다.<br>SOC와 시간이 변하고 있어요.";
+    $("batteryMessage").innerHTML="청소 중입니다.<br>로보킹이 청소하면서 배터리를 사용하고 있어요.";
     $("timeTip").textContent="청소 진행률 "+state.progress+"%";
     $("spark").textContent="💨";
   }else if(state.charging){
     room.classList.add("charging");
-    $("speech").innerHTML="<strong style='color:#e48627'>잠깐 쉬는 중이에요</strong><br>목표 SOC까지만 충전할게요.";
+    $("speech").innerHTML="<strong style='color:#e48627'>잠깐 쉬는 중이에요</strong><br>권장량까지만 충전할게요.";
     $("modeChip").textContent="⚡ "+state.selectedLabel+" 맞춤 충전 · "+state.soc+" → "+state.targetSoc+"%";
     $("batteryFace").textContent="😌";
     $("batteryMessage").innerHTML="충전 스테이션에서 쉬면서<br>필요한 만큼만 채우고 있어요.";
-    $("timeTip").textContent="현재 SOC "+state.soc+"% · 목표 "+state.targetSoc+"%";
+    $("timeTip").textContent="현재 배터리 "+state.soc+"% · 권장 "+state.targetSoc+"%";
     $("spark").textContent="⚡";
   }else if(state.soc<15){
     room.classList.add("low");
@@ -2087,19 +2087,19 @@ function renderHome(){
     $("timeTip").textContent="충전 후 청소를 시작해 주세요.";
     $("spark").textContent="💦";
   }else{
-    $("modeChip").textContent="✨ AI 목표 SOC "+state.targetSoc+"%";
+    $("modeChip").textContent="✨ 권장 충전량 "+state.targetSoc+"%";
     $("batteryFace").textContent=state.soc>90?"😮":"😊";
     $("spark").textContent="✨";
 
     if(state.soc < state.targetSoc){
       $("speech").innerHTML=
         "<strong style='color:#ef8c32'>아직 배고파요!</strong><br>"
-        + "목표 SOC "+state.targetSoc+"%까지만<br>충전하고 청소할게요.";
-      $("batteryMessage").innerHTML=state.selectedLabel+" 청소에는<br>약 "+fmtSoc(state.requiredSoc)+"% SOC가 필요해요.";
-      $("timeTip").textContent="현재 SOC "+state.soc+"% → 목표 SOC "+state.targetSoc+"%까지 충전 필요";
+        + "권장 충전량 "+state.targetSoc+"%까지만<br>충전하고 청소할게요.";
+      $("batteryMessage").innerHTML=state.selectedLabel+" 청소에는<br>약 "+fmtSoc(state.requiredSoc)+"% 배터리가 필요해요.";
+      $("timeTip").textContent="현재 배터리 "+state.soc+"% → 권장 충전량 "+state.targetSoc+"%까지 충전 필요";
     }else{
       $("speech").innerHTML="<strong>배가 든든해요!</strong><br>"+state.selectedLabel+" 청소를 준비할게요!";
-      $("batteryMessage").innerHTML="현재 SOC로 충분해요.<br>목표 SOC "+state.targetSoc+"% 이상입니다.";
+      $("batteryMessage").innerHTML="현재 배터리로 충분해요.<br>권장 충전량 "+state.targetSoc+"% 이상입니다.";
       $("timeTip").textContent="현재 배터리로 "+state.selectedLabel+" 청소가 가능합니다.";
     }
   }
@@ -2117,11 +2117,11 @@ function renderBattery(){
   $("tempLabel").textContent=state.temperature+"℃";
   $("tempSlider").value=state.temperature;
   if(!state.profileReady){
-    $("insightText").innerHTML="아직 1회차 학습 청소 전입니다. 집 구조와 구역 정보를 먼저 저장하면 AI SOC 예측을 시작할 수 있습니다.";
+    $("insightText").innerHTML="아직 1회차 학습 청소 전입니다. 집 구조와 구역 정보를 먼저 저장하면 오늘 청소 준비를 시작할 수 있습니다.";
   }else if(!state.predicted){
-    $("insightText").innerHTML="우리 집 프로필이 저장되었습니다. AI 예측하기를 누르면 1회차 청소 기록을 기준으로 다음 청소 목표 SOC를 계산합니다.";
+    $("insightText").innerHTML="우리 집 정보가 저장되었습니다. 오늘 청소 준비하기를 누르면 1회차 청소 기록을 기준으로 다음 청소 권장 충전량을 계산합니다.";
   }else{
-    $("insightText").innerHTML="<b>"+state.selectedLabel+"</b> · "+state.cleanModeLabel+" · "+state.intensityLabel+" · "+state.todayStateLabel+"<br>예상 SOC: <b>"+fmtSoc(state.requiredSoc)+"%</b> · 목표 SOC: <b>"+state.targetSoc+"%</b><br><b>"+state.matchNote+"</b> 기준입니다.";
+    $("insightText").innerHTML="<b>"+state.selectedLabel+"</b> · "+state.cleanModeLabel+" · "+state.intensityLabel+" · "+state.todayStateLabel+"<br>필요 배터리: <b>"+fmtSoc(state.requiredSoc)+"%</b> · 권장 충전량: <b>"+state.targetSoc+"%</b><br><b>"+state.matchNote+"</b> 기준이에요.";
   }
 
   const y=132-(state.targetSoc-15)/75*104;
@@ -2183,18 +2183,18 @@ function levelCheck(){if(state.exp>=100){state.exp-=100;state.level+=1;spawnEffe
 function addEvent(title,description){const row=document.createElement("div");row.className="event-item";row.innerHTML='<div class="event-time">지금</div><div class="event-content"><strong>'+title+'</strong><span>'+description+'</span></div>';$("eventList").prepend(row)}
 
 function petRobot(){if(state.cleaning){showToast("청소가 끝난 후 로보킹을 쓰다듬어 주세요.");return}state.heart=Math.min(100,state.heart+2);state.exp+=1;pulseRobot();spawnEffect("💖",7);levelCheck();render();showToast("로보킹의 기분이 좋아졌어요.")}
-function feedRobot(){if(state.food<=0){showToast("음식이 부족해요. 리워드에서 구매해 주세요.");return}state.food-=1;state.soc+=12;state.exp+=8;pulseRobot();spawnEffect("⚡",8);levelCheck();render();showToast("SOC가 12% 회복되었습니다.")}
+function feedRobot(){if(state.food<=0){showToast("음식이 부족해요. 리워드에서 구매해 주세요.");return}state.food-=1;state.soc+=12;state.exp+=8;pulseRobot();spawnEffect("⚡",8);levelCheck();render();showToast("배터리가 12% 회복되었습니다.")}
 function playRobot(){if(state.soc<5){showToast("배터리가 부족해서 놀 수 없어요.");return}state.soc-=3;state.exp+=5;pulseRobot();spawnEffect("💖",8);levelCheck();render();showToast("로보킹의 친밀도와 경험치가 올랐어요.")}
 function trainRobot(){if(state.soc<8){showToast("훈련 전에 충전이 필요해요.");return}state.soc-=6;state.health=Math.min(100,state.health+3);state.exp+=12;pulseRobot();spawnEffect("✨",8);levelCheck();render();showToast("로보킹이 훈련을 완료했습니다.")}
 function takePhoto(){pulseRobot();spawnEffect("📸",5);openModal("오늘의 사진","왕관을 쓴 로보킹의 사진을 촬영했습니다.<br><br>향후 장식 아이템과 청소 완료 장면을 사진첩에 저장할 수 있습니다.")}
 function decorateRobot(){spawnEffect("🎀",9);openModal("로보킹 꾸미기","현재 장착 아이템은 <b>황금 왕관</b>입니다.<br><br>리본, 탐험가 모자, 표정 스킨 등을 리워드 화면에서 확인할 수 있습니다.")}
 
 function showStatus(){
-  if(!state.profileReady){openModal("우리 집 학습 전","아직 1회차 학습 청소가 실행되지 않았어요.<br><br>로보킹이 집 구조, 구역별 면적, 바닥 타입, 오염도, 장애물 수준, SOC 소모 기록을 저장하면 AI 예측을 시작할 수 있습니다.");return}
-  if(!state.predicted){openModal("우리 집 프로필","1회차 학습 청소 기록이 저장됐어요.<br><br>"+profileResultBody()+"<br><br>다음 단계로 AI 예측하기를 눌러주세요.");return}
+  if(!state.profileReady){openModal("우리 집 학습 전","아직 1회차 학습 청소가 실행되지 않았어요.<br><br>로보킹이 집 구조, 구역별 면적, 바닥 타입, 오염도, 장애물 수준, 배터리 사용 기록을 저장하면 청소 준비을 시작할 수 있습니다.");return}
+  if(!state.predicted){openModal("우리 집 정보","1회차 학습 청소 기록이 저장됐어요.<br><br>"+profileResultBody()+"<br><br>다음 단계로 오늘 청소 준비하기를 눌러주세요.");return}
   const scopeText=state.selectedScope==="home"?"집 전체 청소":state.selectedLabel+" 청소";
   const zoneInfo=state.selectedScope==="zone"?"<br>바닥 타입 <b>"+(state.floorType||"정보 없음")+"</b><br>오염도 <b>"+(state.dirtLevel||"정보 없음")+"</b>":"";
-  openModal("AI SOC 예측 결과","저장된 프로필 <b>"+state.areaPyung+"평</b><br>선택 범위 <b>"+scopeText+"</b>"+zoneInfo+"<br>청소 방식 <b>"+state.cleanModeLabel+"</b><br>청소 강도 <b>"+state.intensityLabel+"</b><br>오늘 상태 <b>"+state.todayStateLabel+"</b><br>예측 방식 <b>"+state.matchNote+"</b><br>현재 SOC <b>"+state.soc+"%</b><br>예상 SOC 소모량 <b>"+fmtSoc(state.requiredSoc)+"%</b><br>AI 목표 SOC <b>"+state.targetSoc+"%</b><br><br>사용 모델: <b>"+state.modelName+"</b>");
+  openModal("청소 준비 결과","저장된 프로필 <b>"+state.areaPyung+"평</b><br>선택 범위 <b>"+scopeText+"</b>"+zoneInfo+"<br>청소 방식 <b>"+state.cleanModeLabel+"</b><br>청소 강도 <b>"+state.intensityLabel+"</b><br>오늘 상태 <b>"+state.todayStateLabel+"</b><br>로보킹이 우리 집 기록을 바탕으로 계산했어요.<br>현재 배터리 <b>"+state.soc+"%</b><br>필요 배터리 <b>"+fmtSoc(state.requiredSoc)+"%</b><br>권장량 <b>"+state.targetSoc+"%</b><br><br>로보킹이 우리 집 기록을 바탕으로 계산했어요");
 }
 
 function getRemainingCleaningSoc(){
@@ -2221,10 +2221,10 @@ function showSplitCleaningModal(){
   state.targetSoc=MAX_CHARGE_SOC;
   state.splitCleaning=true;
   render();
-  const body="예상 SOC 소모량이 <b>"+fmtSoc(remaining)+"%</b>라서 한 번에 청소하면 15% 잔량을 유지하기 어려워요.<br><br>"
-    +"배터리 보호 기준 때문에 최대 충전은 <b>"+MAX_CHARGE_SOC+"%</b>, 최소 잔량은 <b>"+MIN_RESERVE_SOC+"%</b>로 유지합니다.<br>"
-    +"따라서 1회 주행에서 안전하게 쓸 수 있는 SOC는 최대 <b>"+maxUseAt90+"%</b>입니다.<br><br>"
-    +"이번 청소는 <b>분할 청소 + 중간 충전</b>으로 진행할게요.";
+  const body="필요 배터리는 <b>"+fmtSoc(remaining)+"%</b>라서 한 번에 청소하면 15% 잔량을 유지하기 어려워요.<br><br>"
+    +"배터리를 오래 쓰기 위해 최대 충전은 <b>"+MAX_CHARGE_SOC+"%</b>, 최소 잔량은 <b>"+MIN_RESERVE_SOC+"%</b>로 유지합니다.<br>"
+    +"따라서 1회 주행에서 안전하게 쓸 수 있는 배터리는 최대 <b>"+maxUseAt90+"%</b>입니다.<br><br>"
+    +"이번 청소는 중간에 한 번 쉬어가며 이어서 진행할게요.";
   openModal("분할 청소가 필요해요",body,{
     showCancel:true,
     cancelText:"취소",
@@ -2246,9 +2246,9 @@ function showReserveChargeModal(autoStartAfterCharge=false){
   const endIfStartNow=expectedEndSoc(state.soc,remaining);
   state.targetSoc=needed;
   render();
-  const body=state.selectedLabel+" 청소를 지금 시작하면 종료 예상 SOC가 <b>"+fmtSoc(endIfStartNow)+"%</b>가 될 수 있어요.<br><br>"
-    +"배터리 보호를 위해 청소 후 최소 <b>"+MIN_RESERVE_SOC+"%</b>는 남겨야 합니다.<br>"
-    +"예상 소모 SOC <b>"+fmtSoc(remaining)+"%</b> + 최소 잔량 <b>"+MIN_RESERVE_SOC+"%</b> 기준으로 <b>"+needed+"%</b>까지 충전 후 시작할게요.";
+  const body=state.selectedLabel+" 지금 바로 시작하면 청소 후 배터리가 <b>"+fmtSoc(endIfStartNow)+"%</b>가 될 수 있어요.<br><br>"
+    +"배터리를 오래 쓰기 위해 청소 후 최소 <b>"+MIN_RESERVE_SOC+"%</b>는 남겨야 합니다.<br>"
+    +"필요 배터리 <b>"+fmtSoc(remaining)+"%</b> + 최소 잔량 <b>"+MIN_RESERVE_SOC+"%</b> 기준으로 <b>"+needed+"%</b>까지 충전 후 시작할게요.";
   openModal("충전이 먼저 필요해요",body,{
     showCancel:true,
     cancelText:"취소",
@@ -2267,11 +2267,11 @@ function showChargeChoiceModal(autoStartAfterCharge=false){
   state.targetSoc=needed;
   const endAfterCharge=expectedEndSoc(needed,remaining);
   const body=state.selectedLabel+" 청소를 선택했어요.<br><br>"
-    +(state.selectedScope==="zone"?state.selectedLabel+"의 바닥 타입은 <b>"+(state.floorType||"정보 없음")+"</b>입니다.<br>오염도는 <b>"+(state.dirtLevel||"정보 없음")+"</b>, 흡입 모드는 <b>"+(state.suctionMode||"AI 자동")+"</b>예요.<br><br>":"")
-    +"예상 SOC 소모량은 <b>"+fmtSoc(remaining)+"%</b>입니다.<br>"
-    +"청소 후 최소 <b>"+MIN_RESERVE_SOC+"%</b>를 남기기 위해 목표 SOC는 <b>"+needed+"%</b>예요.<br>"
-    +"목표 SOC로 시작하면 종료 예상 SOC는 약 <b>"+fmtSoc(endAfterCharge)+"%</b>입니다.<br><br>"
-    +"목표 SOC까지만 충전할까요?";
+    +(state.selectedScope==="zone"?state.selectedLabel+"의 바닥 타입은 <b>"+(state.floorType||"정보 없음")+"</b>입니다.<br>오염도는 <b>"+(state.dirtLevel||"정보 없음")+"</b>, 흡입 모드는 <b>"+(state.suctionMode||"자동")+"</b>예요.<br><br>":"")
+    +"이번 청소에는 배터리가 <b>"+fmtSoc(remaining)+"%</b>입니다.<br>"
+    +"청소 후 최소 <b>"+MIN_RESERVE_SOC+"%</b>를 남기기 위해 권장 충전량은 <b>"+needed+"%</b>예요.<br>"
+    +"이만큼 채우고 시작하면 청소 후 배터리는 약 <b>"+fmtSoc(endAfterCharge)+"%</b>입니다.<br><br>"
+    +"권장량까지만 충전할까요?";
   openModal("아직 배고파요!",body,{
     showCancel:true,
     cancelText:"취소",
@@ -2289,21 +2289,21 @@ function startCleaning(){
   if(state.charging){showToast("충전이 끝난 후 청소할게요.");return}
   if(state.mapping){showToast("1회차 학습이 끝난 뒤 청소할 수 있어요.");return}
   if(!state.profileReady){
-    setGuide("아직 집 프로필이 없어요. 먼저 1회차 학습 청소를 실행해 주세요.","warning");
+    setGuide("아직 집 정보이 없어요. 먼저 1회차 학습 청소를 실행해 주세요.","warning");
     showToast("먼저 1회차 학습 청소가 필요합니다.");
-    $("speech").innerHTML="<strong style='color:#ef8c32'>학습이 먼저예요</strong><br>집 프로필을 저장한 뒤 청소할 수 있어요.";
+    $("speech").innerHTML="<strong style='color:#ef8c32'>학습이 먼저예요</strong><br>집 정보를 저장한 뒤 청소할 수 있어요.";
     switchPage("homePage");
     return;
   }
   if(!state.predicted){
-    showToast("청소 전 AI 예측하기를 먼저 눌러주세요.");
-    $("speech").innerHTML="<strong style='color:#2f8b3a'>AI 예측이 필요해요</strong><br>필요한 SOC를 먼저 계산할게요.";
+    showToast("청소 전 오늘 청소 준비하기를 먼저 눌러주세요.");
+    $("speech").innerHTML="<strong style='color:#2f8b3a'>오늘 청소 준비가 필요해요</strong><br>필요한 배터리를 먼저 계산할게요.";
     switchPage("homePage");
     return;
   }
 
   const totalRequired=Math.max(0,Number(state.requiredSoc||0));
-  if(totalRequired<=0){showToast("예측 SOC를 다시 확인해 주세요.");return}
+  if(totalRequired<=0){showToast("오늘 청소 준비를 다시 실행해 주세요.");return}
 
   if(state.missionDone || state.progress>=100){
     resetCleaningMissionPlan();
@@ -2320,7 +2320,7 @@ function startCleaning(){
   const neededStart=targetFromRequired(remaining);
   state.targetSoc=neededStart;
 
-  // 청소 시작 전 Reserve SOC Guard
+  // 청소 시작 전 Reserve 배터리 Guard
   if(remaining<=MAX_SINGLE_PASS_USE && state.soc<neededStart){
     showReserveChargeModal(true);
     return;
@@ -2335,7 +2335,7 @@ function startCleaning(){
   let segmentUse=remaining;
   let segmentWillComplete=true;
 
-  // 분할 청소 중 첫 구간: 현재 SOC에서 15%를 남길 수 있는 만큼만 청소
+  // 분할 청소 중 첫 구간: 현재 배터리에서 15%를 남길 수 있는 만큼만 청소
   if(remaining>availableUse){
     segmentUse=availableUse;
     segmentWillComplete=false;
@@ -2384,12 +2384,12 @@ function startCleaning(){
       if(newRemaining>0.2){
         state.progress=endProgress;
         state.targetSoc=targetFromRequired(newRemaining);
-        addEvent("중간 충전 필요",state.selectedLabel+" 청소 중 15% 잔량 보호 기준에 도달하여 도킹했습니다. 남은 예상 SOC "+fmtSoc(newRemaining)+"%.");
+        addEvent("중간 충전 필요",state.selectedLabel+" 청소 중 15% 잔량 보호 기준에 도달하여 도킹했습니다. 남은 필요 배터리 "+fmtSoc(newRemaining)+"%.");
         render();
         $("speech").innerHTML="<strong style='color:#ef8c32'>잠시 쉬어갈게요</strong><br>남은 청소를 이어서 할 수 있어요.";
-        setGuide("배터리 보호 기준에 도달했어요. 남은 청소를 위해 중간 충전이 필요합니다.","warning");
-        showToast("중간 충전 필요: 15% 잔량 보호 기준에 도달했습니다.");
-        setTimeout(()=>openModal("중간 충전이 필요해요","배터리를 <b>"+MIN_RESERVE_SOC+"%</b> 이상 남기기 위해 청소를 잠시 멈췄어요.<br><br>현재 SOC <b>"+fmtSoc(state.soc)+"%</b><br>남은 예상 SOC <b>"+fmtSoc(newRemaining)+"%</b><br>다음 목표 SOC <b>"+state.targetSoc+"%</b><br><br>충전 후 남은 구역을 이어서 청소할게요.",{
+        setGuide("로보킹이 조금 배고파졌어요. 잠깐 쉬고 남은 청소를 이어갈게요.","warning");
+        showToast("로보킹이 잠깐 쉬어가려고 해요.");
+        setTimeout(()=>openModal("중간 충전이 필요해요","배터리를 <b>"+MIN_RESERVE_SOC+"%</b> 이상 남기기 위해 청소를 잠시 멈췄어요.<br><br>현재 배터리 <b>"+fmtSoc(state.soc)+"%</b><br>남은 필요 배터리 <b>"+fmtSoc(newRemaining)+"%</b><br>다음 권장량 <b>"+state.targetSoc+"%</b><br><br>충전 후 남은 구역을 이어서 청소할게요.",{
           showCancel:true,
           cancelText:"나중에",
           confirmText:"충전하고 이어서",
@@ -2408,13 +2408,13 @@ function startCleaning(){
       state.area=Math.round((state.area||0)+(state.cleaningAreaM2||0));
       state.average=Math.round((state.average+Math.max(15,Math.round(state.requiredSoc*1.4)))/2);
       levelCheck();
-      addEvent(state.selectedLabel+" 청소 완료","AI 예측 SOC "+fmtSoc(state.requiredSoc)+"%와 최소 잔량 "+MIN_RESERVE_SOC+"% 기준을 지키며 청소를 완료했습니다.");
+      addEvent(state.selectedLabel+" 청소 완료","필요 배터리 "+fmtSoc(state.requiredSoc)+"%와 최소 잔량 "+MIN_RESERVE_SOC+"% 기준을 지키며 청소를 완료했습니다.");
       spawnEffect("🎉",15);spawnEffect("⭐",9);
       render();
       $("speech").innerHTML="<strong style='color:#2f8b3a'>청소 완료!</strong><br>+50코인을 받았어요.";
-      $("modeChip").textContent="🏆 "+state.selectedLabel+" 완료 · 종료 SOC "+fmtSoc(state.soc)+"%";
-      setGuide("청소 완료! 종료 SOC는 <b>"+fmtSoc(state.soc)+"%</b>이고, 보상 +50코인이 지급됐어요.","done");
-      showToast("청소 완료: 종료 SOC "+fmtSoc(state.soc)+"%, +50코인 획득!");
+      $("modeChip").textContent="🏆 "+state.selectedLabel+" 완료 · 종료 배터리 "+fmtSoc(state.soc)+"%";
+      setGuide("청소 완료! 종료 배터리는 <b>"+fmtSoc(state.soc)+"%</b>이고, 보상 +50코인이 지급됐어요.","done");
+      showToast("청소 완료: 종료 배터리 "+fmtSoc(state.soc)+"%, +50코인 획득!");
       setTimeout(()=>{state.celebrating=false;render()},2200);
     }
   },320);
@@ -2428,9 +2428,9 @@ function chargeRobot(autoStart=false){
     state.chargeComplete=true;
     render();
     $("speech").innerHTML="<strong>배불러요!</strong><br>이제 "+state.selectedLabel+" 청소가 가능해요.";
-    $("modeChip").textContent="💖 목표 SOC 도달 · "+state.soc+"%";
-    setGuide("이미 목표 SOC에 도달했어요. 바로 청소를 시작할 수 있습니다.","done");
-    showToast("이미 목표 SOC입니다. 바로 청소할 수 있어요.");
+    $("modeChip").textContent="💖 권장량 도달 · "+state.soc+"%";
+    setGuide("이미 권장량에 도달했어요. 바로 청소를 시작할 수 있습니다.","done");
+    showToast("이미 권장 충전량입니다. 바로 청소할 수 있어요.");
     setTimeout(()=>{state.chargeComplete=false;render()},2600);
     return;
   }
@@ -2439,8 +2439,8 @@ function chargeRobot(autoStart=false){
   state.charging=true;
   state.chargeComplete=false;
   render();
-  setGuide("맞춤 충전을 시작했어요. 목표 SOC <b>"+state.targetSoc+"%</b>까지만 충전하고 자동으로 멈춥니다.","charging");
-  showToast("맞춤 충전 시작: 목표 "+state.targetSoc+"%까지만 충전합니다.");
+  setGuide("맞춤 충전을 시작했어요. 권장량 <b>"+state.targetSoc+"%</b>까지만 충전하고 자동으로 멈춥니다.","charging");
+  showToast("맞춤 충전 시작: 권장량 "+state.targetSoc+"%까지만 채웁니다.");
   const timer=setInterval(()=>{
     state.soc=Math.min(state.targetSoc,state.soc+2);
     state.temperature=Math.min(32,state.temperature+.1);
@@ -2452,20 +2452,20 @@ function chargeRobot(autoStart=false){
       state.temperature=29;
       state.acceptCount+=1;
       state.chargeComplete=true;
-      addEvent("맞춤 충전 완료",state.selectedLabel+" 목표 SOC "+state.targetSoc+"%에서 자동 충전을 종료했습니다.");
+      addEvent("맞춤 충전 완료",state.selectedLabel+" 권장 충전량 "+state.targetSoc+"%에서 자동 충전을 종료했습니다.");
       spawnEffect("💖",12);
       spawnEffect("✨",8);
       render();
-      $("speech").innerHTML="<strong>배불러요!</strong><br>목표 SOC "+state.targetSoc+"%까지 채웠어요.";
-      $("modeChip").textContent="💖 맞춤 충전 완료 · SOC "+state.soc+"%";
+      $("speech").innerHTML="<strong>배불러요!</strong><br>권장 충전량 "+state.targetSoc+"%까지 채웠어요.";
+      $("modeChip").textContent="💖 맞춤 충전 완료 · 배터리 "+state.soc+"%";
       setGuide("맞춤 충전 완료! 이제 아래 <b>청소 미션 수행하기</b> 버튼으로 청소를 시작할 수 있어요.","done");
-      showToast("충전 완료: 목표 SOC "+state.targetSoc+"% 도달, 청소 가능!");
+      showToast("충전 완료: 권장량 "+state.targetSoc+"% 도달, 청소 가능!");
       setTimeout(()=>{state.chargeComplete=false;render()},3200);
       if(autoStart){setTimeout(startCleaning,1000)}
     }
   },150);
 }
-function buyFood(){if(state.coins<50){showToast("코인이 부족해요.");return}state.coins-=50;state.food+=1;render();showToast("배터리 음식 1개를 구매했습니다.")}
+function buyFood(){if(state.coins<50){showToast("코인이 부족해요.");return}state.coins-=50;state.food+=1;render();showToast("에너지 간식 1개를 구매했습니다.")}
 
 const actions={
   startFirstMapping:startFirstMapping,
@@ -2486,7 +2486,7 @@ $("tempSlider").addEventListener("input",(event)=>{state.temperature=Number(even
     if(state.profileReady && state.predicted){
       state.predicted=false;
       const loading=$('predictLoading');
-      if(loading)loading.textContent="조건이 바뀌었어요. AI 예측하기를 다시 눌러주세요.";
+      if(loading)loading.textContent="조건이 바뀌었어요. 오늘 청소 준비하기를 다시 눌러주세요.";
       render();
     }
   });
