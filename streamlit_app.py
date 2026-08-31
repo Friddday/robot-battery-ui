@@ -1221,6 +1221,41 @@ body,button,input,select{
   stroke-linecap:round;
   stroke-dasharray:5 6;
 }
+.map-legend{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin-top:7px;
+  padding:6px 7px;
+  border-radius:999px;
+  background:rgba(255,250,235,.88);
+  border:1px solid rgba(124,83,43,.10);
+  color:#68472d;
+  font-size:9.5px;
+  line-height:1;
+  font-weight:900;
+  white-space:nowrap;
+}
+.map-legend-title{color:#4b3324;font-weight:950;}
+.map-legend-item{
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+}
+.map-dot{
+  display:inline-block;
+  width:9px;
+  height:9px;
+  border-radius:999px;
+  border:1px solid rgba(80,50,28,.14);
+  box-shadow:0 1px 2px rgba(72,43,19,.10);
+}
+.dot-clean{background:#cfeec0;}
+.dot-normal{background:#ffe08a;}
+.dot-dusty{background:#ffb169;}
+.dot-focus{background:#ff7d68;}
+
 
 /* ===== Home simplification: one main clean-prep button, no extra lower cards ===== */
 .scope-buttons,
@@ -2330,46 +2365,81 @@ function getDisplayZoneCount(){
   }
   return actual || expected;
 }
-function mapRoom(x,y,w,h,rx,fill,label,sub,dashed=false){
+function getZoneByNumber(zoneNo){
+  const zones=(activeRun && activeRun.zones) ? activeRun.zones : [];
+  return zones.find(z=>Number(z.zone)===Number(zoneNo)) || zones[zoneNo-1] || null;
+}
+function normalizeDirtCode(zone){
+  if(!zone)return 2;
+  const code=Number(zone.dirtCode || zone.dirtLevelCode || 0);
+  if(Number.isFinite(code) && code>0)return code;
+
+  const text=String(zone.dirtLevel || zone.dirt || "").toLowerCase();
+  if(text.includes("매우") || text.includes("심함") || text.includes("높") || text.includes("heavy") || text.includes("high"))return 4;
+  if(text.includes("중") || text.includes("보통") || text.includes("normal") || text.includes("medium"))return 2;
+  if(text.includes("낮") || text.includes("깨끗") || text.includes("low") || text.includes("clean"))return 1;
+  return 2;
+}
+function getDirtVisual(zoneNo){
+  const zone=getZoneByNumber(zoneNo);
+  const code=normalizeDirtCode(zone);
+
+  // 사용자에게는 숫자가 아니라 '바닥 상태' 색으로 보여줍니다.
+  if(code<=1)return {fill:"#cfeec0", label:"깨끗"};
+  if(code<=2)return {fill:"#ffe08a", label:"보통"};
+  if(code<=3)return {fill:"#ffb169", label:"먼지"};
+  return {fill:"#ff7d68", label:"집중"};
+}
+function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
+  const visual=getDirtVisual(zoneNo);
   return "<g>"
-    +"<rect class='map-room"+(dashed?" dashed":"")+"' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"' fill='"+fill+"'></rect>"
-    +"<text class='map-room-label' x='"+(x+w/2)+"' y='"+(y+h/2-5)+"'>"+label+"</text>"
-    +(sub?"<text class='map-room-sub' x='"+(x+w/2)+"' y='"+(y+h/2+12)+"'>"+sub+"</text>":"")
+    +"<rect class='map-room"+(dashed?" dashed":"")+"' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"' fill='"+visual.fill+"'></rect>"
+    +"<text class='map-room-label' x='"+(x+w/2)+"' y='"+(y+h/2-7)+"'>"+label+"</text>"
+    +"<text class='map-room-sub' x='"+(x+w/2)+"' y='"+(y+h/2+11)+"'>영역 "+zoneNo+"</text>"
     +"</g>";
 }
 function getMapSvg(type){
   let rooms="";
   if(type==="small"){
-    rooms += mapRoom(18,18,112,54,12,"#d9efbd","거실","영역 1");
-    rooms += mapRoom(134,18,92,54,12,"#ffd27a","주방","영역 2");
-    rooms += mapRoom(18,76,130,68,12,"#ffa46a","침실","영역 3");
-    rooms += mapRoom(152,76,74,68,12,"#b6d9f8","현관","영역 4",true);
+    rooms += mapRoom(18,18,112,54,12,1,"거실");
+    rooms += mapRoom(134,18,92,54,12,2,"주방");
+    rooms += mapRoom(18,76,130,68,12,3,"침실");
+    rooms += mapRoom(152,76,74,68,12,4,"현관",true);
     return "<svg class='home-map-svg' viewBox='0 0 244 162' role='img' aria-label='소형 집 구조 맵'>"
       +"<path class='map-route' d='M42 48 C94 48, 112 96, 176 108'></path>"
       +rooms+"</svg>";
   }
   if(type==="medium"){
-    rooms += mapRoom(14,14,92,50,12,"#d9efbd","침실","영역 1");
-    rooms += mapRoom(110,14,112,50,12,"#ffd27a","주방","영역 2");
-    rooms += mapRoom(14,68,124,58,12,"#ffa46a","거실","영역 3");
-    rooms += mapRoom(142,68,80,58,12,"#b6d9f8","카펫","영역 4",true);
-    rooms += mapRoom(14,130,92,32,10,"#cfe9ac","현관","영역 5");
-    rooms += mapRoom(110,130,112,32,10,"#f8df95","다용도","영역 6");
+    rooms += mapRoom(14,14,92,50,12,1,"침실");
+    rooms += mapRoom(110,14,112,50,12,2,"주방");
+    rooms += mapRoom(14,68,124,58,12,3,"거실");
+    rooms += mapRoom(142,68,80,58,12,4,"카펫",true);
+    rooms += mapRoom(14,130,92,32,10,5,"현관");
+    rooms += mapRoom(110,130,112,32,10,6,"다용도");
     return "<svg class='home-map-svg' viewBox='0 0 236 174' role='img' aria-label='중형 집 구조 맵'>"
       +"<path class='map-route' d='M48 42 C96 52, 114 94, 182 98 C170 128, 118 138, 64 146'></path>"
       +rooms+"</svg>";
   }
-  rooms += mapRoom(12,12,72,44,11,"#d9efbd","침실1","영역 1");
-  rooms += mapRoom(88,12,72,44,11,"#e6f3c6","침실2","영역 2");
-  rooms += mapRoom(164,12,70,44,11,"#ffd27a","주방","영역 3");
-  rooms += mapRoom(12,60,106,58,12,"#ffa46a","거실","영역 4");
-  rooms += mapRoom(122,60,58,58,12,"#cfe9ac","현관","영역 5");
-  rooms += mapRoom(184,60,50,58,12,"#b6d9f8","카펫","영역 6",true);
-  rooms += mapRoom(12,122,106,38,10,"#f6c78b","서재","영역 7");
-  rooms += mapRoom(122,122,112,38,10,"#f8df95","다용도","영역 8");
+  rooms += mapRoom(12,12,72,44,11,1,"침실1");
+  rooms += mapRoom(88,12,72,44,11,2,"침실2");
+  rooms += mapRoom(164,12,70,44,11,3,"주방");
+  rooms += mapRoom(12,60,106,58,12,4,"거실");
+  rooms += mapRoom(122,60,58,58,12,5,"현관");
+  rooms += mapRoom(184,60,50,58,12,6,"카펫",true);
+  rooms += mapRoom(12,122,106,38,10,7,"서재");
+  rooms += mapRoom(122,122,112,38,10,8,"다용도");
   return "<svg class='home-map-svg' viewBox='0 0 246 172' role='img' aria-label='대형 집 구조 맵'>"
     +"<path class='map-route' d='M46 34 C96 44, 146 36, 202 36 C174 76, 162 98, 210 92 C166 126, 102 142, 54 140'></path>"
     +rooms+"</svg>";
+}
+function getDirtLegendHtml(){
+  return "<div class='map-legend' aria-label='바닥 상태 색상 안내'>"
+    +"<span class='map-legend-title'>바닥 상태</span>"
+    +"<span class='map-legend-item'><i class='map-dot dot-clean'></i>깨끗</span>"
+    +"<span class='map-legend-item'><i class='map-dot dot-normal'></i>보통</span>"
+    +"<span class='map-legend-item'><i class='map-dot dot-dusty'></i>먼지</span>"
+    +"<span class='map-legend-item'><i class='map-dot dot-focus'></i>집중</span>"
+    +"</div>";
 }
 function getLearnedMapHtml(){
   try{console.log('[LG ROBO CARE] area/actual/expected zones', state.areaPyung, getActualZoneCount(), getExpectedZoneCount(state.areaPyung));}catch(e){}
@@ -2380,6 +2450,7 @@ function getLearnedMapHtml(){
   return "<div class='home-map-card'>"
     +"<div class='home-map-head'><div class='home-map-badge'>"+sizeLabel+" · "+zoneCount+"개 영역</div></div>"
     +"<div class='home-map-img-wrap'>"+getMapSvg(type)+"</div>"
+    +getDirtLegendHtml()
     +"</div>";
 }
 function refreshScopeSelect(){
