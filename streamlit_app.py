@@ -1121,6 +1121,18 @@ body,button,input,select{
   #homePage .room .mode-chip{top:118px!important;}
   .robot-soc-badge{right:60px;bottom:105px;}
 }
+
+
+/* ===== Home simplification: one main clean-prep button, no extra lower cards ===== */
+.scope-buttons,
+.selected-plan,
+.start-clean-primary,
+.actions,
+.home-cards{display:none!important;}
+.condition-panel{margin-bottom:0!important;}
+.predict-btn{position:relative;z-index:30;}
+#flowGuide{margin-top:9px;}
+
 </style>
 </head>
 
@@ -1546,8 +1558,8 @@ function guideForCurrentState(){
   if(state.charging)return "로보킹이 잠깐 쉬면서 힘을 채우고 있어요. 필요한 만큼 채우면 알아서 멈춰요.";
   if(state.cleaning)return "청소 중이에요. 배터리가 무리하지 않도록 로보킹이 알아서 조절하고 있어요.";
   if(state.celebrating || state.missionDone)return "청소가 끝났어요! 로보킹이 배터리를 아끼며 마무리했어요.";
-  if(state.predicted && state.soc<state.targetSoc)return "<b>3단계</b> 지금은 로보킹이 조금 더 힘을 채우면 좋아요. 아래 버튼을 누르면 필요한 만큼만 충전하고 출발해요.";
-  if(state.predicted)return "<b>3단계</b> 지금 바로 출동할 수 있어요. 청소 미션 수행하기를 눌러 주세요.";
+  if(state.predicted && state.soc<state.targetSoc)return "<b>3단계</b> 준비가 끝났어요. 같은 버튼을 한 번 더 누르면 필요한 만큼만 충전하고 바로 출발해요.";
+  if(state.predicted)return "<b>3단계</b> 지금 바로 출동할 수 있어요. 같은 버튼을 한 번 더 누르면 바로 청소를 시작해요.";
   return state.userGuide||"현재 상태를 확인 중입니다.";
 }
 
@@ -1960,6 +1972,22 @@ function syncScenarioToState(scenario){
 
 function predictSocFromConditions(){
   if(state.cleaning||state.charging||state.mapping){showToast("학습/청소/충전이 끝난 뒤 다시 준비할 수 있어요.");return}
+
+  // 오늘 청소 준비가 끝난 뒤에는 같은 버튼이 바로 실행 버튼 역할을 합니다.
+  // 사용자가 화면 아래로 다시 스크롤하지 않도록, 준비 버튼 하나에서 충전/청소까지 이어집니다.
+  if(state.profileReady && state.predicted && !state.predicting){
+    if(state.soc < state.targetSoc){
+      if(Number(state.requiredSoc||0)>MAX_SINGLE_PASS_USE && state.soc<MAX_CHARGE_SOC){
+        showSplitCleaningModal();
+      }else{
+        chargeRobot(true);
+      }
+    }else{
+      startCleaning();
+    }
+    return;
+  }
+
   if(!state.profileReady){
     setGuide("아직 로보킹이 우리 집을 잘 몰라요. 먼저 1회차 학습 청소를 시작해 주세요.","warning");
     showToast("먼저 로보킹에게 우리 집을 알려주세요.");
@@ -1993,7 +2021,7 @@ function predictSocFromConditions(){
     $("speech").innerHTML="<strong style='color:#2f8b3a'>준비 완료!</strong><br>"+statusText;
     $("modeChip").textContent="✅ 청소 준비 완료 · "+state.selectedLabel;
     addEvent("청소 준비 완료",state.selectedLabel+" 청소를 위해 로보킹이 필요한 만큼 준비했어요.");
-    setGuide(statusText.includes("바로")?"준비 완료! 지금 바로 출동할 수 있어요. 아래 <b>청소 미션 수행하기</b> 버튼을 눌러 주세요.":"준비 완료! 로보킹이 조금만 더 힘을 채우면 좋아요. 아래 버튼으로 충전하고 시작해 주세요.", state.soc>=state.targetSoc?"done":"warning");
+    setGuide(statusText.includes("바로")?"준비 완료! 같은 버튼을 한 번 더 누르면 바로 출동해요.":"준비 완료! 같은 버튼을 한 번 더 누르면 필요한 만큼만 충전하고 출발해요.", state.soc>=state.targetSoc?"done":"warning");
     showToast("청소 준비 완료! 로보킹이 오늘 청소 준비를 마쳤어요.");
   },900);
 }
@@ -2216,9 +2244,21 @@ function renderPlan(){
   if(predictionInputs)predictionInputs.style.display=state.profileReady?'block':'none';
 
   if(predictBtn){
-    predictBtn.disabled=!state.profileReady || state.mapping;
-    predictBtn.style.opacity=(!state.profileReady || state.mapping)?'.55':'1';
-    predictBtn.textContent=state.profileReady?'🤖 오늘 청소 준비하기':'🤖 학습 후 청소 준비 가능';
+    const mainBtnDisabled=!state.profileReady || state.mapping || state.predicting || state.cleaning || state.charging;
+    predictBtn.disabled=mainBtnDisabled;
+    predictBtn.style.opacity=mainBtnDisabled?'.55':'1';
+
+    if(!state.profileReady){
+      predictBtn.textContent='🤖 학습 후 청소 준비 가능';
+    }else if(state.predicting){
+      predictBtn.textContent='🤖 오늘 청소 준비 중...';
+    }else if(!state.predicted){
+      predictBtn.textContent='🤖 오늘 청소 준비하기';
+    }else if(state.soc<state.targetSoc){
+      predictBtn.textContent='🔋 충전하고 청소하기';
+    }else{
+      predictBtn.textContent='🧹 바로 청소하기';
+    }
   }
   if(conditionTitle){
     conditionTitle.textContent=state.profileReady?'오늘 청소 조건 선택':'1회차 학습 준비';
@@ -2836,7 +2876,7 @@ function chargeRobot(autoStart=false){
       render();
       $("speech").innerHTML="<strong>배불러요!</strong><br>출동할 준비가 됐어요!";
       $("modeChip").textContent="💖 충전 완료 · 출동 준비";
-      setGuide("충전 완료! 이제 아래 <b>청소 미션 수행하기</b> 버튼으로 출동할 수 있어요.","done");
+      setGuide("충전 완료! 로보킹이 곧 바로 출동할게요.","done");
       showToast("충전 완료! 이제 로보킹이 출동할 수 있어요.");
       setTimeout(()=>{state.chargeComplete=false;render()},3200);
       if(autoStart){setTimeout(startCleaning,1000)}
