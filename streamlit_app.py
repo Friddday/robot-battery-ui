@@ -1202,14 +1202,14 @@ body,button,input,select{
 }
 .map-room-label{
   fill:#64472f;
-  font-size:14px;
+  font-size:13px;
   font-weight:950;
   text-anchor:middle;
   dominant-baseline:middle;
 }
 .map-room-sub{
   fill:#8a6744;
-  font-size:10px;
+  font-size:9.4px;
   font-weight:850;
   text-anchor:middle;
   dominant-baseline:middle;
@@ -2419,10 +2419,18 @@ function getDirtVisual(zoneNo){
 }
 function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
   const visual=getDirtVisual(zoneNo);
+
+  // 방 크기가 작아도 글자가 네모칸 밖으로 나가지 않도록
+  // 박스 높이/너비에 따라 글자 크기와 위치를 자동 조정합니다.
+  const labelSize = h < 38 ? 11 : (w < 62 ? 11 : 13.2);
+  const subSize = h < 38 ? 8.2 : 9.6;
+  const labelY = y + h * 0.42;
+  const subY = y + h * 0.67;
+
   return "<g>"
     +"<rect class='map-room"+(dashed?" dashed":"")+"' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"' fill='"+visual.fill+"'></rect>"
-    +"<text class='map-room-label' x='"+(x+w/2)+"' y='"+(y+h/2-7)+"'>"+label+"</text>"
-    +"<text class='map-room-sub' x='"+(x+w/2)+"' y='"+(y+h/2+11)+"'>영역 "+zoneNo+"</text>"
+    +"<text class='map-room-label' style='font-size:"+labelSize+"px' x='"+(x+w/2)+"' y='"+labelY+"'>"+label+"</text>"
+    +"<text class='map-room-sub' style='font-size:"+subSize+"px' x='"+(x+w/2)+"' y='"+subY+"'>영역 "+zoneNo+"</text>"
     +"</g>";
 }
 function getMapSvg(type){
