@@ -455,7 +455,7 @@ button,input{font-family:inherit} button{cursor:pointer}
 .brand{font-size:9px;font-weight:900;letter-spacing:1.4px}
 .app-title{margin-top:3px;font-size:23px;font-weight:900}
 .coin-pill{display:flex;align-items:center;gap:5px;padding:8px 12px;border:1px solid rgba(255,255,255,.17);border-radius:18px;background:rgba(255,255,255,.13);font-size:12px;font-weight:900}
-.nav{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px}
+.nav{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:12px}
 .nav-btn{padding:8px 3px;border:0;border-radius:14px;background:transparent;color:rgba(255,255,255,.72);font-size:10px;font-weight:900;transition:.2s}
 .nav-btn.active{background:#4d291c;color:#fff;box-shadow:0 4px 9px rgba(0,0,0,.18)}
 .nav-btn:active{transform:scale(.95)}
@@ -546,6 +546,17 @@ button,input{font-family:inherit} button{cursor:pointer}
 .record-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.record-card{min-height:90px;padding:14px;border:1px solid rgba(136,87,40,.14);border-radius:16px;background:rgba(255,248,231,.96);box-shadow:var(--shadow)}.record-label{color:#6e503a;font-size:9px;font-weight:900}.record-value{margin-top:7px;color:#31241b;font-size:23px;font-weight:900}
 .events{margin-top:9px;padding:15px 14px}.event-item{display:grid;grid-template-columns:43px 1fr;gap:8px;padding:11px 0;border-bottom:1px solid rgba(122,87,51,.12)}.event-item:last-child{border-bottom:0}.event-time{color:#946c43;font-size:9px;font-weight:900}.event-content strong{display:block;margin-bottom:3px;font-size:10px}.event-content span{color:#785a43;font-size:9px;line-height:1.4;font-weight:700}
 
+
+/* Event page placeholder */
+.event-hero{padding:16px 14px;margin-bottom:9px;background:linear-gradient(145deg,#fff8e8,#f5dfa9)}
+.event-hero-title{font-size:18px;font-weight:950;color:#4b3324;margin-bottom:8px}
+.event-hero-desc{font-size:12px;line-height:1.55;font-weight:800;color:#76533b}
+.event-placeholder-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.event-placeholder-card{min-height:112px;padding:14px;border-radius:16px;background:rgba(255,248,231,.96);box-shadow:var(--shadow);border:1px solid rgba(136,87,40,.14)}
+.event-placeholder-icon{font-size:30px;margin-bottom:8px}
+.event-placeholder-title{font-size:13px;font-weight:950;color:#4b3324}
+.event-placeholder-text{margin-top:5px;font-size:11px;line-height:1.45;font-weight:800;color:#7b5a3e}
+
 /* Reward */
 .level-panel{padding:17px 15px;text-align:center;background:linear-gradient(145deg,#fff3cc,#ffd98a)}.level-robot{font-size:72px;animation:float 2s ease-in-out infinite}.level-number{margin-top:5px;font-size:25px;font-weight:900}.level-track{height:11px;margin:12px 10px 5px;overflow:hidden;border-radius:10px;background:rgba(126,85,39,.18)}.level-fill{width:55%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff7f35,#ffd244)}.level-caption{font-size:9px;font-weight:900}
 .reward-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.reward-card{min-height:125px;padding:14px;border:1px solid rgba(136,87,40,.14);border-radius:16px;background:rgba(255,248,231,.97);box-shadow:var(--shadow);text-align:center}.reward-icon{font-size:38px}.reward-title{margin-top:7px;font-size:11px;font-weight:900}.reward-desc{margin-top:4px;color:#775943;font-size:8px;line-height:1.4;font-weight:800}.reward-btn{width:100%;margin-top:9px;padding:8px;border:0;border-radius:10px;background:#f0dfbc;color:#5c422f;font-size:9px;font-weight:900}
@@ -617,7 +628,7 @@ body,button,input,select{font-size:15px!important;}
 .brand{font-size:13px!important;}
 .app-title{font-size:32px!important;}
 .coin-pill{font-size:17px!important;padding:10px 14px!important;}
-.nav{gap:8px!important;margin-top:14px!important;}
+.nav{gap:6px!important;margin-top:14px!important;}
 .nav-btn{font-size:14px!important;min-height:42px!important;padding:9px 4px!important;}
 .section-kicker{font-size:12px!important;}
 .section-title{font-size:30px!important;}
@@ -737,8 +748,8 @@ body,button,input,select{
 .brand{font-size:11px!important;letter-spacing:1.2px!important;}
 .app-title{font-size:29px!important;line-height:1.08!important;}
 .coin-pill{font-size:14px!important;padding:9px 13px!important;}
-.nav{margin-top:11px!important;gap:8px!important;}
-.nav-btn{font-size:12px!important;min-height:36px!important;padding:8px 4px!important;border-radius:16px!important;}
+.nav{margin-top:11px!important;gap:6px!important;}
+.nav-btn{font-size:11px!important;min-height:36px!important;padding:8px 2px!important;border-radius:16px!important;}
 #homePage .room{
   flex:0 0 330px!important;
   height:330px!important;
@@ -1130,6 +1141,7 @@ body,button,input,select{
         <button class="nav-btn active" data-page="homePage">홈</button>
         <button class="nav-btn" data-page="batteryPage">배터리</button>
         <button class="nav-btn" data-page="recordPage">기록</button>
+        <button class="nav-btn" data-page="eventPage">이벤트</button>
         <button class="nav-btn" data-page="rewardPage">리워드</button>
       </nav>
     </header>
@@ -1388,6 +1400,42 @@ body,button,input,select{
             <div class="event-item"><div class="event-time">14:20</div><div class="event-content"><strong>맞춤 충전 완료</strong><span>필요한 만큼만 채우고 자동으로 멈췄습니다.</span></div></div>
             <div class="event-item"><div class="event-time">10:15</div><div class="event-content"><strong>청소 준비 완료</strong><span>거실 상태에 맞춰 로보킹이 준비했습니다.</span></div></div>
             <div class="event-item"><div class="event-time">08:40</div><div class="event-content"><strong>배터리 컨디션 정상</strong><span>배터리 온도와 건강도가 안정 범위에 있습니다.</span></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="eventPage">
+        <div class="section-kicker">EVENT</div>
+        <div class="section-title">이벤트</div>
+
+        <div class="panel event-hero">
+          <div class="event-hero-title">이벤트 페이지 준비 중</div>
+          <div class="event-hero-desc">
+            이 페이지는 팀원이 추가로 수정할 공간이에요.<br>
+            앞으로 부품 상태 확인, 배터리 케어 내역, 출퇴근 맞춤 청소, 미션, 사진첩 같은 기능을 이곳에 확장할 수 있어요.
+          </div>
+        </div>
+
+        <div class="event-placeholder-grid">
+          <div class="event-placeholder-card">
+            <div class="event-placeholder-icon">🧩</div>
+            <div class="event-placeholder-title">부품 상태 확인</div>
+            <div class="event-placeholder-text">필터, 브러시, 물걸레 패드 상태를 보여줄 예정이에요.</div>
+          </div>
+          <div class="event-placeholder-card">
+            <div class="event-placeholder-icon">📌</div>
+            <div class="event-placeholder-title">케어 이벤트 기록</div>
+            <div class="event-placeholder-text">배터리를 어떻게 아껴 썼는지 내역으로 남길 예정이에요.</div>
+          </div>
+          <div class="event-placeholder-card">
+            <div class="event-placeholder-icon">🚶</div>
+            <div class="event-placeholder-title">출퇴근 맞춤 청소</div>
+            <div class="event-placeholder-text">사용자의 생활 패턴에 맞춘 청소 예약 기능을 넣을 수 있어요.</div>
+          </div>
+          <div class="event-placeholder-card">
+            <div class="event-placeholder-icon">📷</div>
+            <div class="event-placeholder-title">미션·사진첩</div>
+            <div class="event-placeholder-text">오늘의 미션과 분실물 사진첩을 연결할 수 있어요.</div>
           </div>
         </div>
       </section>
@@ -2859,7 +2907,7 @@ const actions={
   predictSoc:predictSocFromConditions,
   selectHome:()=>selectScenario("home"),selectZone1:()=>selectScenario("zone",1),selectZone2:()=>selectScenario("zone",2),selectZone3:()=>selectScenario("zone",3),selectZone4:()=>selectScenario("zone",4),selectZone5:()=>selectScenario("zone",5),
   pet:petRobot,feed:feedRobot,play:playRobot,train:trainRobot,photo:takePhoto,clean:startCleaning,charge:chargeRobot,status:showStatus,
-  record:()=>switchPage("recordPage"),decorate:decorateRobot,shop:()=>switchPage("rewardPage"),chargeFromBattery:()=>{switchPage("homePage");setTimeout(chargeRobot,220)},buyFood:buyFood,
+  record:()=>switchPage("recordPage"),event:()=>switchPage("eventPage"),decorate:decorateRobot,shop:()=>switchPage("rewardPage"),chargeFromBattery:()=>{switchPage("homePage");setTimeout(chargeRobot,220)},buyFood:buyFood,
   itemRibbon:()=>handleRewardItem("ribbon"),itemHat:()=>handleRewardItem("hat"),itemBunny:()=>handleRewardItem("bunny"),itemCat:()=>handleRewardItem("cat"),itemSparkle:()=>handleRewardItem("sparkle"),
   rewardTabItems:()=>switchRewardTab("items"),rewardTabCoupons:()=>switchRewardTab("coupons"),
   couponLg5:()=>handleCoupon("lg5"),couponCleanKit:()=>handleCoupon("cleanKit"),couponBatteryCare:()=>handleCoupon("batteryCare"),couponMoveIn:()=>handleCoupon("moveIn"),
