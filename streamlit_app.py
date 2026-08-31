@@ -2420,29 +2420,23 @@ function getDirtVisual(zoneNo){
 function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
   const visual=getDirtVisual(zoneNo);
 
-  // 작은 칸에서는 두 줄 텍스트가 겹치기 쉬워서
-  // 방 이름은 중앙에 크게, 영역 번호는 우측 상단 작은 배지로 분리합니다.
+  // 모든 구역을 같은 스타일로 보이게:
+  // 방 이름은 중앙, 영역 번호는 우측 상단 동그라미 배지로 통일
   const compact = h < 42 || w < 66;
-  const labelSize = compact ? 11.8 : 13.2;
-  const labelY = compact ? y + h * 0.56 : y + h * 0.40;
-  const subY = y + h * 0.68;
+  const labelSize = compact ? 11.6 : 13.0;
+  const labelY = compact ? y + h * 0.57 : y + h * 0.54;
   const badgeR = compact ? 8 : 9;
-  const badgeX = x + w - badgeR - 5;
-  const badgeY = y + badgeR + 5;
+  const badgeX = x + w - badgeR - 6;
+  const badgeY = y + badgeR + 6;
+  const badgeFont = compact ? 7.8 : 8.8;
 
   let html = "<g>"
-    +"<rect class='map-room"+(dashed?" dashed":"")+"' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"' fill='"+visual.fill+"'></rect>";
+    +"<rect class='map-room"+(dashed?" dashed":"")+"' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"' fill='"+visual.fill+"'></rect>"
+    +"<circle cx='"+badgeX+"' cy='"+badgeY+"' r='"+badgeR+"' fill='rgba(255,255,255,.82)'></circle>"
+    +"<text class='map-room-sub' style='font-size:"+badgeFont+"px' x='"+badgeX+"' y='"+(badgeY+0.5)+"'>"+zoneNo+"</text>"
+    +"<text class='map-room-label' style='font-size:"+labelSize+"px' x='"+(x+w/2)+"' y='"+labelY+"'>"+label+"</text>"
+    +"</g>";
 
-  if(compact){
-    html += "<circle cx='"+badgeX+"' cy='"+badgeY+"' r='"+badgeR+"' fill='rgba(255,255,255,.72)'></circle>"
-      +"<text class='map-room-sub' style='font-size:7.8px' x='"+badgeX+"' y='"+(badgeY+0.5)+"'>"+zoneNo+"</text>"
-      +"<text class='map-room-label' style='font-size:"+labelSize+"px' x='"+(x+w/2)+"' y='"+labelY+"'>"+label+"</text>";
-  }else{
-    html += "<text class='map-room-label' style='font-size:"+labelSize+"px' x='"+(x+w/2)+"' y='"+labelY+"'>"+label+"</text>"
-      +"<text class='map-room-sub' style='font-size:9.4px' x='"+(x+w/2)+"' y='"+subY+"'>영역 "+zoneNo+"</text>";
-  }
-
-  html += "</g>";
   return html;
 }
 function getMapSvg(type){
