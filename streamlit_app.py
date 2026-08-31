@@ -2420,18 +2420,30 @@ function getDirtVisual(zoneNo){
 function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
   const visual=getDirtVisual(zoneNo);
 
-  // 방 크기가 작아도 글자가 네모칸 밖으로 나가지 않도록
-  // 박스 높이/너비에 따라 글자 크기와 위치를 자동 조정합니다.
-  const labelSize = h < 38 ? 11 : (w < 62 ? 11 : 13.2);
-  const subSize = h < 38 ? 8.2 : 9.6;
-  const labelY = y + h * 0.42;
-  const subY = y + h * 0.67;
+  // 작은 칸에서는 두 줄 텍스트가 겹치기 쉬워서
+  // 방 이름은 중앙에 크게, 영역 번호는 우측 상단 작은 배지로 분리합니다.
+  const compact = h < 42 || w < 66;
+  const labelSize = compact ? 11.8 : 13.2;
+  const labelY = compact ? y + h * 0.56 : y + h * 0.40;
+  const subY = y + h * 0.68;
+  const badgeR = compact ? 8 : 9;
+  const badgeX = x + w - badgeR - 5;
+  const badgeY = y + badgeR + 5;
 
-  return "<g>"
-    +"<rect class='map-room"+(dashed?" dashed":"")+"' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"' fill='"+visual.fill+"'></rect>"
-    +"<text class='map-room-label' style='font-size:"+labelSize+"px' x='"+(x+w/2)+"' y='"+labelY+"'>"+label+"</text>"
-    +"<text class='map-room-sub' style='font-size:"+subSize+"px' x='"+(x+w/2)+"' y='"+subY+"'>영역 "+zoneNo+"</text>"
-    +"</g>";
+  let html = "<g>"
+    +"<rect class='map-room"+(dashed?" dashed":"")+"' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"' fill='"+visual.fill+"'></rect>";
+
+  if(compact){
+    html += "<circle cx='"+badgeX+"' cy='"+badgeY+"' r='"+badgeR+"' fill='rgba(255,255,255,.72)'></circle>"
+      +"<text class='map-room-sub' style='font-size:7.8px' x='"+badgeX+"' y='"+(badgeY+0.5)+"'>"+zoneNo+"</text>"
+      +"<text class='map-room-label' style='font-size:"+labelSize+"px' x='"+(x+w/2)+"' y='"+labelY+"'>"+label+"</text>";
+  }else{
+    html += "<text class='map-room-label' style='font-size:"+labelSize+"px' x='"+(x+w/2)+"' y='"+labelY+"'>"+label+"</text>"
+      +"<text class='map-room-sub' style='font-size:9.4px' x='"+(x+w/2)+"' y='"+subY+"'>영역 "+zoneNo+"</text>";
+  }
+
+  html += "</g>";
+  return html;
 }
 function getMapSvg(type){
   let rooms="";
