@@ -1,4 +1,3 @@
-import base64
 import json
 from pathlib import Path
 
@@ -130,35 +129,8 @@ st.markdown(
 
 BASE_DIR = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
 DATA_DIR = BASE_DIR / "data"
-ASSETS_DIR = BASE_DIR / "assets"
 HOME_PRED_PATH = DATA_DIR / "home_model_predictions.csv"
 ZONE_PRED_PATH = DATA_DIR / "zone_model_predictions.csv"
-
-# 1회차 학습 완료 후 표시할 평형별 대표 매핑 이미지
-# GitHub에는 아래 파일명으로 업로드하면 됩니다.
-# assets/mapping_small.png   -> 소형: 18, 24평
-# assets/mapping_medium.png  -> 중형: 33, 40, 49평
-# assets/mapping_large.png   -> 대형: 59, 69, 72평
-MAP_IMAGE_FILES = {
-    "small": ASSETS_DIR / "mapping_small.png",
-    "medium": ASSETS_DIR / "mapping_medium.png",
-    "large": ASSETS_DIR / "mapping_large.png",
-}
-
-
-def _image_to_data_url(path: Path):
-    if not path.exists():
-        return ""
-    suffix = path.suffix.lower().replace(".", "")
-    mime = "jpeg" if suffix in ["jpg", "jpeg"] else "png"
-    encoded = base64.b64encode(path.read_bytes()).decode("utf-8")
-    return f"data:image/{mime};base64,{encoded}"
-
-
-MAP_IMAGE_DATA = {
-    key: _image_to_data_url(path)
-    for key, path in MAP_IMAGE_FILES.items()
-}
 
 # 데모용 현재 배터리. 실제 제품에서는 로봇/앱에서 받은 현재 배터리로 교체하면 됩니다.
 CURRENT_SOC = 80
@@ -385,27 +357,27 @@ def make_prediction_payload(home_df, zone_df):
                 zdf = zone_df[zone_df["global_run_id"].astype(str) == str(gid)].copy()
                 if "zone" in zdf.columns:
                     zdf = zdf.sort_values("zone")
-                for idx, (_, zrow) in enumerate(zdf.head(5).iterrows(), start=1):
+                for idx, (_, zrow) in enumerate(zdf.iterrows(), start=1):
                     zone = _build_zone_scenario(zrow, idx, home)
                     # home의 청소방식과 일관되게 표시
                     zone["cleaningType"] = home["cleaningType"]
                     zone["mopEnabled"] = home["mopEnabled"]
                     zones.append(zone)
 
-            if len(zones) >= 5:
+            if len(zones) >= 1:
                 runs.append({
                     "globalRunId": gid,
                     "areaPyung": home["areaPyung"],
                     "mopEnabled": home["mopEnabled"],
                     "cleaningType": home["cleaningType"],
                     "home": home,
-                    "zones": zones[:5],
+                    "zones": zones,
                 })
 
     # home 기록가 없고 zone 기록만 있을 때도 최소 동작하도록 처리
     if not runs and zone_df is not None and len(zone_df) > 0 and "global_run_id" in zone_df.columns:
         for gid, zdf in zone_df.groupby("global_run_id"):
-            if len(zdf) < 5:
+            if len(zdf) < 1:
                 continue
             if "zone" in zdf.columns:
                 zdf = zdf.sort_values("zone")
@@ -422,7 +394,7 @@ def make_prediction_payload(home_df, zone_df):
                 "dirtLevel": "평균", "dirtCode": 0, "dirtMaxCode": 0, "suctionMode": "자동", "suctionCode": 0, "suctionMaxCode": 0
             }
             zones = []
-            for idx, (_, zrow) in enumerate(zdf.head(5).iterrows(), start=1):
+            for idx, (_, zrow) in enumerate(zdf.iterrows(), start=1):
                 zone = _build_zone_scenario(zrow, idx, dummy_home)
                 dummy_required += zone["requiredSoc"]
                 zones.append(zone)
@@ -456,7 +428,6 @@ home_pred_df = load_prediction_csv(str(HOME_PRED_PATH))
 zone_pred_df = load_prediction_csv(str(ZONE_PRED_PATH))
 ui_prediction_data = make_prediction_payload(home_pred_df, zone_pred_df)
 UI_PREDICTION_JSON = json.dumps(ui_prediction_data, ensure_ascii=False)
-MAP_IMAGE_JSON = json.dumps(MAP_IMAGE_DATA, ensure_ascii=False)
 
 APP_HTML = r"""
 <!doctype html>
@@ -1077,88 +1048,6 @@ body,button,input,select{
 @keyframes decoPop{from{opacity:0;transform:translateX(-50%) translateY(8px) scale(.7)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
 @keyframes decoTwinkle{0%,100%{opacity:.45;transform:scale(.88) rotate(-8deg)}50%{opacity:1;transform:scale(1.12) rotate(8deg)}}
 
-
-/* ===== Learned home map card ===== */
-.home-map-card{
-  width:100%;
-  padding:8px;
-  margin-top:8px;
-  border-radius:15px;
-  background:rgba(255,255,255,.68);
-  border:1px solid rgba(124,83,43,.14);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.48);
-}
-.home-map-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:8px;
-  margin-bottom:6px;
-}
-.home-map-title{
-  color:#4b3324;
-  font-size:12px;
-  line-height:1.25;
-  font-weight:950;
-}
-.home-map-badge{
-  flex:0 0 auto;
-  padding:4px 8px;
-  border-radius:999px;
-  background:#e8f5dc;
-  color:#2f8b3a;
-  font-size:10px;
-  line-height:1;
-  font-weight:950;
-  white-space:nowrap;
-}
-.home-map-img-wrap{
-  position:relative;
-  overflow:hidden;
-  width:100%;
-  min-height:138px;
-  border-radius:14px;
-  background:linear-gradient(145deg,#f6e3ba,#fff7e4);
-  border:1px solid rgba(124,83,43,.12);
-}
-.home-map-img{
-  display:block;
-  width:100%;
-  height:160px;
-  object-fit:cover;
-  object-position:center;
-}
-.home-map-caption{
-  margin-top:6px;
-  color:#7b5a3e;
-  font-size:11px;
-  line-height:1.45;
-  font-weight:850;
-}
-.home-map-fallback{
-  position:relative;
-  width:100%;
-  height:160px;
-  overflow:hidden;
-  border-radius:14px;
-  background:#fff4d8;
-}
-.fallback-room{
-  position:absolute;
-  display:grid;
-  place-items:center;
-  color:#6a4d36;
-  font-size:11px;
-  font-weight:950;
-  border:2px solid rgba(255,255,255,.92);
-  box-shadow:0 4px 10px rgba(71,43,20,.12);
-}
-.fallback-room.r1{left:8%;top:8%;width:31%;height:28%;background:#d7edb9;border-radius:12px 12px 4px 12px;}
-.fallback-room.r2{left:41%;top:8%;width:48%;height:28%;background:#ffd178;border-radius:12px 12px 12px 4px;}
-.fallback-room.r3{left:8%;top:38%;width:50%;height:37%;background:#ff9f64;border-radius:6px 4px 4px 12px;}
-.fallback-room.r4{left:60%;top:38%;width:29%;height:37%;background:#a9d3f7;border-radius:4px 12px 12px 4px;border-style:dashed;}
-.fallback-room.r5{left:25%;top:77%;width:40%;height:18%;background:#cfe9ac;border-radius:4px 4px 12px 12px;}
-
 /* ===== Room status cleanup: avoid speech overlap + show current robot 배터리 ===== */
 #homePage .room .mode-chip{
   top:125px!important;
@@ -1233,6 +1122,93 @@ body,button,input,select{
   .robot-soc-badge{right:60px;bottom:105px;}
 }
 
+
+
+/* ===== SVG learned home map card ===== */
+.home-map-card{
+  width:100%;
+  padding:8px;
+  margin-top:8px;
+  border-radius:15px;
+  background:rgba(255,255,255,.68);
+  border:1px solid rgba(124,83,43,.14);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.48);
+}
+.home-map-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:6px;
+}
+.home-map-title{
+  color:#4b3324;
+  font-size:12px;
+  line-height:1.25;
+  font-weight:950;
+}
+.home-map-badge{
+  flex:0 0 auto;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#e8f5dc;
+  color:#2f8b3a;
+  font-size:10px;
+  line-height:1;
+  font-weight:950;
+  white-space:nowrap;
+}
+.home-map-img-wrap{
+  position:relative;
+  overflow:hidden;
+  width:100%;
+  min-height:152px;
+  border-radius:14px;
+  background:linear-gradient(145deg,#f6e3ba,#fff7e4);
+  border:1px solid rgba(124,83,43,.12);
+}
+.home-map-svg{
+  display:block;
+  width:100%;
+  height:168px;
+}
+.home-map-caption{
+  margin-top:6px;
+  color:#7b5a3e;
+  font-size:11px;
+  line-height:1.45;
+  font-weight:850;
+}
+.map-room{
+  stroke:#fffdf4;
+  stroke-width:4;
+  filter:drop-shadow(0 3px 4px rgba(67,42,20,.13));
+}
+.map-room.dashed{
+  stroke-dasharray:8 5;
+  stroke:#fffdf4;
+}
+.map-room-label{
+  fill:#64472f;
+  font-size:13px;
+  font-weight:950;
+  text-anchor:middle;
+  dominant-baseline:middle;
+}
+.map-room-sub{
+  fill:#8a6744;
+  font-size:9px;
+  font-weight:850;
+  text-anchor:middle;
+  dominant-baseline:middle;
+}
+.map-route{
+  fill:none;
+  stroke:rgba(255,255,255,.82);
+  stroke-width:3;
+  stroke-linecap:round;
+  stroke-dasharray:5 6;
+}
 
 /* ===== Home simplification: one main clean-prep button, no extra lower cards ===== */
 .scope-buttons,
@@ -1339,7 +1315,7 @@ body,button,input,select{
                 <div class="condition-help first-learn-note compact-note">
                   <div class="note-title">저장 항목</div>
                   <div class="profile-mini-grid">
-                    <span>집 크기</span><span>5개 구역</span><span>면적</span>
+                    <span>집 크기</span><span>청소 영역</span><span>면적</span>
                     <span>바닥 타입</span><span>오염도</span><span>배터리 사용</span>
                   </div>
                   <div class="note-caption">처음 청소하며 우리 집 환경을 저장해요.</div>
@@ -1620,7 +1596,6 @@ body,button,input,select{
 "use strict";
 
 const predictionData = __UI_PREDICTION_DATA__;
-const mapImages = __MAP_IMAGE_DATA__;
 let activeRun = null;
 const mappingSteps=[
   {key:'map',label:'집 구조 매핑'},
@@ -1839,6 +1814,7 @@ const state={
 };
 
 function populateConditionSelectors(){
+  refreshScopeSelect();
   const cleanModeSelect=$('cleanModeSelect');
   if(cleanModeSelect)cleanModeSelect.value=activeRun.mopEnabled?'mop':'dry';
   const scopeSelect=$('scopeSelect');
@@ -2197,6 +2173,7 @@ function startFirstMapping(){
   const safeRuns=predictionData.runs.filter(r=>getLearningSocUse(r,startSoc)>0);
   activeRun=pickRandomRun(safeRuns.length?safeRuns:predictionData.runs) || predictionData.runs[0];
   syncScenarioToState(activeRun.home);
+  refreshScopeSelect();
 
   const fullRequiredSoc=Number(activeRun.home.requiredSoc||0);
   const learningUse=getLearningSocUse(activeRun,startSoc);
@@ -2310,24 +2287,85 @@ function getHomeSizeLabel(areaPyung){
   if(type==="medium")return "중형";
   return "대형";
 }
+function getExpectedZoneCount(areaPyung){
+  const type=getHomeSizeType(areaPyung);
+  if(type==="small")return 4;
+  if(type==="medium")return 6;
+  return 8;
+}
+function getZoneCount(){
+  if(activeRun && activeRun.zones && activeRun.zones.length)return activeRun.zones.length;
+  return getExpectedZoneCount(activeRun && activeRun.areaPyung ? activeRun.areaPyung : state.areaPyung);
+}
+function mapRoom(x,y,w,h,rx,fill,label,sub,dashed=false){
+  return "<g>"
+    +"<rect class='map-room"+(dashed?" dashed":"")+"' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"' fill='"+fill+"'></rect>"
+    +"<text class='map-room-label' x='"+(x+w/2)+"' y='"+(y+h/2-5)+"'>"+label+"</text>"
+    +(sub?"<text class='map-room-sub' x='"+(x+w/2)+"' y='"+(y+h/2+12)+"'>"+sub+"</text>":"")
+    +"</g>";
+}
+function getMapSvg(type){
+  let rooms="";
+  if(type==="small"){
+    rooms += mapRoom(18,18,112,54,12,"#d9efbd","거실","영역 1");
+    rooms += mapRoom(134,18,92,54,12,"#ffd27a","주방","영역 2");
+    rooms += mapRoom(18,76,130,68,12,"#ffa46a","침실","영역 3");
+    rooms += mapRoom(152,76,74,68,12,"#b6d9f8","현관","영역 4",true);
+    return "<svg class='home-map-svg' viewBox='0 0 244 162' role='img' aria-label='소형 집 구조 맵'>"
+      +"<path class='map-route' d='M42 48 C94 48, 112 96, 176 108'></path>"
+      +rooms+"</svg>";
+  }
+  if(type==="medium"){
+    rooms += mapRoom(14,14,92,50,12,"#d9efbd","침실","영역 1");
+    rooms += mapRoom(110,14,112,50,12,"#ffd27a","주방","영역 2");
+    rooms += mapRoom(14,68,124,58,12,"#ffa46a","거실","영역 3");
+    rooms += mapRoom(142,68,80,58,12,"#b6d9f8","카펫","영역 4",true);
+    rooms += mapRoom(14,130,92,32,10,"#cfe9ac","현관","영역 5");
+    rooms += mapRoom(110,130,112,32,10,"#f8df95","다용도","영역 6");
+    return "<svg class='home-map-svg' viewBox='0 0 236 174' role='img' aria-label='중형 집 구조 맵'>"
+      +"<path class='map-route' d='M48 42 C96 52, 114 94, 182 98 C170 128, 118 138, 64 146'></path>"
+      +rooms+"</svg>";
+  }
+  rooms += mapRoom(12,12,72,44,11,"#d9efbd","침실1","영역 1");
+  rooms += mapRoom(88,12,72,44,11,"#e6f3c6","침실2","영역 2");
+  rooms += mapRoom(164,12,70,44,11,"#ffd27a","주방","영역 3");
+  rooms += mapRoom(12,60,106,58,12,"#ffa46a","거실","영역 4");
+  rooms += mapRoom(122,60,58,58,12,"#cfe9ac","현관","영역 5");
+  rooms += mapRoom(184,60,50,58,12,"#b6d9f8","카펫","영역 6",true);
+  rooms += mapRoom(12,122,106,38,10,"#f6c78b","서재","영역 7");
+  rooms += mapRoom(122,122,112,38,10,"#f8df95","다용도","영역 8");
+  return "<svg class='home-map-svg' viewBox='0 0 246 172' role='img' aria-label='대형 집 구조 맵'>"
+    +"<path class='map-route' d='M46 34 C96 44, 146 36, 202 36 C174 76, 162 98, 210 92 C166 126, 102 142, 54 140'></path>"
+    +rooms+"</svg>";
+}
 function getLearnedMapHtml(){
   const area=(activeRun && activeRun.areaPyung) ? activeRun.areaPyung : state.areaPyung;
   const type=getHomeSizeType(area);
   const sizeLabel=getHomeSizeLabel(area);
-  const zoneCount=(activeRun && activeRun.zones && activeRun.zones.length) ? activeRun.zones.length : 0;
-  const imgSrc=mapImages && mapImages[type] ? mapImages[type] : "";
-  const imgHtml=imgSrc
-    ? "<img class='home-map-img' src='"+imgSrc+"' alt='우리 집 매핑 이미지'>"
-    : "<div class='home-map-fallback'><div class='fallback-room r1'>침실</div><div class='fallback-room r2'>주방</div><div class='fallback-room r3'>거실</div><div class='fallback-room r4'>집중 구역</div><div class='fallback-room r5'>현관</div></div>";
+  const zoneCount=getZoneCount();
   return "<div class='home-map-card'>"
     +"<div class='home-map-head'><div class='home-map-title'>우리 집 구조를 기억했어요</div><div class='home-map-badge'>"+sizeLabel+" · "+zoneCount+"개 영역</div></div>"
-    +"<div class='home-map-img-wrap'>"+imgHtml+"</div>"
+    +"<div class='home-map-img-wrap'>"+getMapSvg(type)+"</div>"
     +"<div class='home-map-caption'>로보킹이 집 크기와 바닥 상태를 바탕으로 청소 영역을 나눠 저장했어요.</div>"
     +"</div>";
+}
+function refreshScopeSelect(){
+  const scopeSelect=$('scopeSelect');
+  if(!scopeSelect || !activeRun || !activeRun.zones)return;
+  const before=scopeSelect.value || "home";
+  let html="<option value='home'>집 전체</option>";
+  activeRun.zones.forEach((z,idx)=>{
+    const no=Number(z.zone || idx+1);
+    html += "<option value='"+no+"'>"+no+"영역</option>";
+  });
+  scopeSelect.innerHTML=html;
+  const values=Array.from(scopeSelect.options).map(o=>o.value);
+  scopeSelect.value=values.includes(before)?before:"home";
 }
 
 function renderPlan(){
   if(!$('planSummary'))return;
+  refreshScopeSelect();
   const conditionPanel=$('conditionPanel');
   const predictBtn=$('predictBtn');
   const conditionTitle=$('conditionTitle');
@@ -3090,7 +3128,7 @@ function handleCoupon(key){
 const actions={
   startFirstMapping:startFirstMapping,
   predictSoc:predictSocFromConditions,
-  selectHome:()=>selectScenario("home"),selectZone1:()=>selectScenario("zone",1),selectZone2:()=>selectScenario("zone",2),selectZone3:()=>selectScenario("zone",3),selectZone4:()=>selectScenario("zone",4),selectZone5:()=>selectScenario("zone",5),
+  selectHome:()=>selectScenario("home"),selectZone1:()=>selectScenario("zone",1),selectZone2:()=>selectScenario("zone",2),selectZone3:()=>selectScenario("zone",3),selectZone4:()=>selectScenario("zone",4),selectZone5:()=>selectScenario("zone",5),selectZone6:()=>selectScenario("zone",6),selectZone7:()=>selectScenario("zone",7),selectZone8:()=>selectScenario("zone",8),
   pet:petRobot,feed:feedRobot,play:playRobot,train:trainRobot,photo:takePhoto,clean:startCleaning,charge:chargeRobot,status:showStatus,
   record:()=>switchPage("recordPage"),event:()=>switchPage("eventPage"),decorate:decorateRobot,shop:()=>switchPage("rewardPage"),chargeFromBattery:()=>{switchPage("homePage");setTimeout(chargeRobot,220)},buyFood:buyFood,
   itemRibbon:()=>handleRewardItem("ribbon"),itemHat:()=>handleRewardItem("hat"),itemBunny:()=>handleRewardItem("bunny"),itemCat:()=>handleRewardItem("cat"),itemSparkle:()=>handleRewardItem("sparkle"),
@@ -3161,6 +3199,5 @@ render();
 """
 
 APP_HTML = APP_HTML.replace("__UI_PREDICTION_DATA__", UI_PREDICTION_JSON)
-APP_HTML = APP_HTML.replace("__MAP_IMAGE_DATA__", MAP_IMAGE_JSON)
 
 components.html(APP_HTML, height=1010, scrolling=False)
