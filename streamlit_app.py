@@ -1,3 +1,4 @@
+import base64
 import json
 from pathlib import Path
 
@@ -129,8 +130,35 @@ st.markdown(
 
 BASE_DIR = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
 DATA_DIR = BASE_DIR / "data"
+ASSETS_DIR = BASE_DIR / "assets"
 HOME_PRED_PATH = DATA_DIR / "home_model_predictions.csv"
 ZONE_PRED_PATH = DATA_DIR / "zone_model_predictions.csv"
+
+# 1회차 학습 완료 후 표시할 평형별 대표 매핑 이미지
+# GitHub에는 아래 파일명으로 업로드하면 됩니다.
+# assets/mapping_small.png   -> 소형: 18, 24평
+# assets/mapping_medium.png  -> 중형: 33, 40, 49평
+# assets/mapping_large.png   -> 대형: 59, 69, 72평
+MAP_IMAGE_FILES = {
+    "small": ASSETS_DIR / "mapping_small.png",
+    "medium": ASSETS_DIR / "mapping_medium.png",
+    "large": ASSETS_DIR / "mapping_large.png",
+}
+
+
+def _image_to_data_url(path: Path):
+    if not path.exists():
+        return ""
+    suffix = path.suffix.lower().replace(".", "")
+    mime = "jpeg" if suffix in ["jpg", "jpeg"] else "png"
+    encoded = base64.b64encode(path.read_bytes()).decode("utf-8")
+    return f"data:image/{mime};base64,{encoded}"
+
+
+MAP_IMAGE_DATA = {
+    key: _image_to_data_url(path)
+    for key, path in MAP_IMAGE_FILES.items()
+}
 
 # 데모용 현재 배터리. 실제 제품에서는 로봇/앱에서 받은 현재 배터리로 교체하면 됩니다.
 CURRENT_SOC = 80
@@ -428,6 +456,7 @@ home_pred_df = load_prediction_csv(str(HOME_PRED_PATH))
 zone_pred_df = load_prediction_csv(str(ZONE_PRED_PATH))
 ui_prediction_data = make_prediction_payload(home_pred_df, zone_pred_df)
 UI_PREDICTION_JSON = json.dumps(ui_prediction_data, ensure_ascii=False)
+MAP_IMAGE_JSON = json.dumps(MAP_IMAGE_DATA, ensure_ascii=False)
 
 APP_HTML = r"""
 <!doctype html>
@@ -1048,6 +1077,88 @@ body,button,input,select{
 @keyframes decoPop{from{opacity:0;transform:translateX(-50%) translateY(8px) scale(.7)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
 @keyframes decoTwinkle{0%,100%{opacity:.45;transform:scale(.88) rotate(-8deg)}50%{opacity:1;transform:scale(1.12) rotate(8deg)}}
 
+
+/* ===== Learned home map card ===== */
+.home-map-card{
+  width:100%;
+  padding:8px;
+  margin-top:8px;
+  border-radius:15px;
+  background:rgba(255,255,255,.68);
+  border:1px solid rgba(124,83,43,.14);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.48);
+}
+.home-map-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:6px;
+}
+.home-map-title{
+  color:#4b3324;
+  font-size:12px;
+  line-height:1.25;
+  font-weight:950;
+}
+.home-map-badge{
+  flex:0 0 auto;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#e8f5dc;
+  color:#2f8b3a;
+  font-size:10px;
+  line-height:1;
+  font-weight:950;
+  white-space:nowrap;
+}
+.home-map-img-wrap{
+  position:relative;
+  overflow:hidden;
+  width:100%;
+  min-height:138px;
+  border-radius:14px;
+  background:linear-gradient(145deg,#f6e3ba,#fff7e4);
+  border:1px solid rgba(124,83,43,.12);
+}
+.home-map-img{
+  display:block;
+  width:100%;
+  height:160px;
+  object-fit:cover;
+  object-position:center;
+}
+.home-map-caption{
+  margin-top:6px;
+  color:#7b5a3e;
+  font-size:11px;
+  line-height:1.45;
+  font-weight:850;
+}
+.home-map-fallback{
+  position:relative;
+  width:100%;
+  height:160px;
+  overflow:hidden;
+  border-radius:14px;
+  background:#fff4d8;
+}
+.fallback-room{
+  position:absolute;
+  display:grid;
+  place-items:center;
+  color:#6a4d36;
+  font-size:11px;
+  font-weight:950;
+  border:2px solid rgba(255,255,255,.92);
+  box-shadow:0 4px 10px rgba(71,43,20,.12);
+}
+.fallback-room.r1{left:8%;top:8%;width:31%;height:28%;background:#d7edb9;border-radius:12px 12px 4px 12px;}
+.fallback-room.r2{left:41%;top:8%;width:48%;height:28%;background:#ffd178;border-radius:12px 12px 12px 4px;}
+.fallback-room.r3{left:8%;top:38%;width:50%;height:37%;background:#ff9f64;border-radius:6px 4px 4px 12px;}
+.fallback-room.r4{left:60%;top:38%;width:29%;height:37%;background:#a9d3f7;border-radius:4px 12px 12px 4px;border-style:dashed;}
+.fallback-room.r5{left:25%;top:77%;width:40%;height:18%;background:#cfe9ac;border-radius:4px 4px 12px 12px;}
+
 /* ===== Room status cleanup: avoid speech overlap + show current robot 배터리 ===== */
 #homePage .room .mode-chip{
   top:125px!important;
@@ -1509,6 +1620,7 @@ body,button,input,select{
 "use strict";
 
 const predictionData = __UI_PREDICTION_DATA__;
+const mapImages = __MAP_IMAGE_DATA__;
 let activeRun = null;
 const mappingSteps=[
   {key:'map',label:'집 구조 매핑'},
@@ -2185,6 +2297,35 @@ function openScenarioModal(){
   }
 }
 
+
+function getHomeSizeType(areaPyung){
+  const area=Number(areaPyung||0);
+  if(area<=24)return "small";
+  if(area<=49)return "medium";
+  return "large";
+}
+function getHomeSizeLabel(areaPyung){
+  const type=getHomeSizeType(areaPyung);
+  if(type==="small")return "소형";
+  if(type==="medium")return "중형";
+  return "대형";
+}
+function getLearnedMapHtml(){
+  const area=(activeRun && activeRun.areaPyung) ? activeRun.areaPyung : state.areaPyung;
+  const type=getHomeSizeType(area);
+  const sizeLabel=getHomeSizeLabel(area);
+  const zoneCount=(activeRun && activeRun.zones && activeRun.zones.length) ? activeRun.zones.length : 0;
+  const imgSrc=mapImages && mapImages[type] ? mapImages[type] : "";
+  const imgHtml=imgSrc
+    ? "<img class='home-map-img' src='"+imgSrc+"' alt='우리 집 매핑 이미지'>"
+    : "<div class='home-map-fallback'><div class='fallback-room r1'>침실</div><div class='fallback-room r2'>주방</div><div class='fallback-room r3'>거실</div><div class='fallback-room r4'>집중 구역</div><div class='fallback-room r5'>현관</div></div>";
+  return "<div class='home-map-card'>"
+    +"<div class='home-map-head'><div class='home-map-title'>우리 집 구조를 기억했어요</div><div class='home-map-badge'>"+sizeLabel+" · "+zoneCount+"개 영역</div></div>"
+    +"<div class='home-map-img-wrap'>"+imgHtml+"</div>"
+    +"<div class='home-map-caption'>로보킹이 집 크기와 바닥 상태를 바탕으로 청소 영역을 나눠 저장했어요.</div>"
+    +"</div>";
+}
+
 function renderPlan(){
   if(!$('planSummary'))return;
   const conditionPanel=$('conditionPanel');
@@ -2211,12 +2352,16 @@ function renderPlan(){
   }
 
   if(learnSteps){
-    learnSteps.innerHTML=mappingSteps.map((s,i)=>{
-      let cls='learn-step';
-      if(state.profileReady || i<state.mappingStepIndex)cls+=' done';
-      else if(state.mapping && i===state.mappingStepIndex)cls+=' active';
-      return '<div class="'+cls+'">'+s.label+'</div>';
-    }).join('');
+    if(state.profileReady && !state.mapping){
+      learnSteps.innerHTML=getLearnedMapHtml();
+    }else{
+      learnSteps.innerHTML=mappingSteps.map((s,i)=>{
+        let cls='learn-step';
+        if(state.profileReady || i<state.mappingStepIndex)cls+=' done';
+        else if(state.mapping && i===state.mappingStepIndex)cls+=' active';
+        return '<div class="'+cls+'">'+s.label+'</div>';
+      }).join('');
+    }
   }
   if(learnFill)learnFill.style.width=(state.profileReady?100:state.mappingProgress)+'%';
 
@@ -2230,7 +2375,7 @@ function renderPlan(){
     if(conditionPanel)conditionPanel.classList.add('locked-area');
   }else if(state.profileReady){
     if(learnPill)learnPill.textContent="프로필 저장됨";
-    if(learnStatus)learnStatus.innerHTML="우리 집 저장 완료 · 현재 배터리 "+Math.round(state.soc)+"% · "+activeRun.home.cleaningAreaM2+"㎡";
+    if(learnStatus)learnStatus.innerHTML="매핑 완료 · "+getHomeSizeLabel(activeRun.areaPyung)+" 집 구조를 저장했어요.";
     if(learnBtn){learnBtn.textContent="🔄 1회차 학습 다시 실행";learnBtn.disabled=false;learnBtn.classList.add('ready');}
     if(conditionPanel)conditionPanel.classList.remove('locked-area');
   }else{
@@ -3016,5 +3161,6 @@ render();
 """
 
 APP_HTML = APP_HTML.replace("__UI_PREDICTION_DATA__", UI_PREDICTION_JSON)
+APP_HTML = APP_HTML.replace("__MAP_IMAGE_DATA__", MAP_IMAGE_JSON)
 
 components.html(APP_HTML, height=1010, scrolling=False)
