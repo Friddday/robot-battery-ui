@@ -63,6 +63,12 @@ st.markdown(
 .learn-desc{font-size:10px;line-height:1.55;}
 .learn-status{font-size:10px;line-height:1.5;}
 .learn-steps{gap:6px;}
+.learn-steps.map-ready{
+  display:block!important;
+  grid-template-columns:1fr!important;
+  width:100%!important;
+}
+
 .learn-step{font-size:9.5px;padding:6px 5px;}
 .learn-btn{font-size:12px;min-height:39px;}
 .condition-panel{padding:11px;border-radius:15px;}
@@ -1125,27 +1131,37 @@ body,button,input,select{
 
 
 /* ===== SVG learned home map card ===== */
+
+.learn-steps.map-ready,
+#learnSteps.map-ready{
+  display:block!important;
+  grid-template-columns:1fr!important;
+  gap:0!important;
+  width:100%!important;
+}
+#learnSteps.map-ready .home-map-card{
+  width:100%!important;
+  max-width:none!important;
+}
+
 .home-map-card{
   width:100%;
-  padding:8px;
+  padding:6px;
   margin-top:8px;
-  border-radius:15px;
-  background:rgba(255,255,255,.68);
+  border-radius:16px;
+  background:rgba(255,255,255,.72);
   border:1px solid rgba(124,83,43,.14);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.48);
 }
 .home-map-head{
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:flex-end;
   gap:8px;
-  margin-bottom:6px;
+  margin-bottom:5px;
 }
 .home-map-title{
-  color:#4b3324;
-  font-size:12px;
-  line-height:1.25;
-  font-weight:950;
+  display:none;
 }
 .home-map-badge{
   flex:0 0 auto;
@@ -1162,7 +1178,7 @@ body,button,input,select{
   position:relative;
   overflow:hidden;
   width:100%;
-  min-height:152px;
+  min-height:210px;
   border-radius:14px;
   background:linear-gradient(145deg,#f6e3ba,#fff7e4);
   border:1px solid rgba(124,83,43,.12);
@@ -1170,14 +1186,10 @@ body,button,input,select{
 .home-map-svg{
   display:block;
   width:100%;
-  height:168px;
+  height:220px;
 }
 .home-map-caption{
-  margin-top:6px;
-  color:#7b5a3e;
-  font-size:11px;
-  line-height:1.45;
-  font-weight:850;
+  display:none;
 }
 .map-room{
   stroke:#fffdf4;
@@ -1190,14 +1202,14 @@ body,button,input,select{
 }
 .map-room-label{
   fill:#64472f;
-  font-size:13px;
+  font-size:14px;
   font-weight:950;
   text-anchor:middle;
   dominant-baseline:middle;
 }
 .map-room-sub{
   fill:#8a6744;
-  font-size:9px;
+  font-size:10px;
   font-weight:850;
   text-anchor:middle;
   dominant-baseline:middle;
@@ -2344,9 +2356,8 @@ function getLearnedMapHtml(){
   const sizeLabel=getHomeSizeLabel(area);
   const zoneCount=getZoneCount();
   return "<div class='home-map-card'>"
-    +"<div class='home-map-head'><div class='home-map-title'>우리 집 구조를 기억했어요</div><div class='home-map-badge'>"+sizeLabel+" · "+zoneCount+"개 영역</div></div>"
+    +"<div class='home-map-head'><div class='home-map-badge'>"+sizeLabel+" · "+zoneCount+"개 영역</div></div>"
     +"<div class='home-map-img-wrap'>"+getMapSvg(type)+"</div>"
-    +"<div class='home-map-caption'>로보킹이 집 크기와 바닥 상태를 바탕으로 청소 영역을 나눠 저장했어요.</div>"
     +"</div>";
 }
 function refreshScopeSelect(){
@@ -2391,8 +2402,10 @@ function renderPlan(){
 
   if(learnSteps){
     if(state.profileReady && !state.mapping){
+      learnSteps.classList.add('map-ready');
       learnSteps.innerHTML=getLearnedMapHtml();
     }else{
+      learnSteps.classList.remove('map-ready');
       learnSteps.innerHTML=mappingSteps.map((s,i)=>{
         let cls='learn-step';
         if(state.profileReady || i<state.mappingStepIndex)cls+=' done';
@@ -2413,7 +2426,7 @@ function renderPlan(){
     if(conditionPanel)conditionPanel.classList.add('locked-area');
   }else if(state.profileReady){
     if(learnPill)learnPill.textContent="프로필 저장됨";
-    if(learnStatus)learnStatus.innerHTML="매핑 완료 · "+getHomeSizeLabel(activeRun.areaPyung)+" 집 구조를 저장했어요.";
+    if(learnStatus)learnStatus.innerHTML="매핑 완료 · "+getHomeSizeLabel(activeRun.areaPyung)+" 집 구조 저장";
     if(learnBtn){learnBtn.textContent="🔄 1회차 학습 다시 실행";learnBtn.disabled=false;learnBtn.classList.add('ready');}
     if(conditionPanel)conditionPanel.classList.remove('locked-area');
   }else{
