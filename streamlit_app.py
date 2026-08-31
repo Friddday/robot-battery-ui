@@ -1869,7 +1869,17 @@ function render(){
 
 function getScenario(scope,zoneNumber=null){
   if(scope==="home")return activeRun.home;
-  return activeRun.zones.find(z=>Number(z.zone)===Number(zoneNumber)) || activeRun.zones[zoneNumber-1] || activeRun.home;
+  const zones=(activeRun && activeRun.zones) ? activeRun.zones : [];
+  const direct=zones.find(z=>Number(z.zone)===Number(zoneNumber)) || zones[zoneNumber-1];
+  if(direct)return direct;
+
+  // 혹시 예전 CSV/캐시로 해당 영역 데이터가 아직 없으면 가장 가까운 영역 데이터를 임시로 사용합니다.
+  // 새 4/6/8구역 CSV로 교체되면 실제 해당 영역 데이터가 자동으로 잡힙니다.
+  if(zones.length){
+    const idx=Math.min(Math.max(Number(zoneNumber||1)-1,0),zones.length-1);
+    return zones[idx];
+  }
+  return activeRun.home;
 }
 
 function getPredictionChoices(scopeOverride=null,zoneOverride=null){
@@ -2305,9 +2315,20 @@ function getExpectedZoneCount(areaPyung){
   if(type==="medium")return 6;
   return 8;
 }
-function getZoneCount(){
-  if(activeRun && activeRun.zones && activeRun.zones.length)return activeRun.zones.length;
-  return getExpectedZoneCount(activeRun && activeRun.areaPyung ? activeRun.areaPyung : state.areaPyung);
+function getActualZoneCount(){
+  return (activeRun && activeRun.zones && activeRun.zones.length) ? activeRun.zones.length : 0;
+}
+function getDisplayZoneCount(){
+  const area=(activeRun && activeRun.areaPyung) ? activeRun.areaPyung : state.areaPyung;
+  const expected=getExpectedZoneCount(area);
+  const actual=getActualZoneCount();
+
+  // 새 데이터셋은 평수 규모에 따라 4/6/8개 영역이 기준입니다.
+  // 기존 5구역 CSV가 남아 있거나 Streamlit 캐시가 섞여도 화면 표시는 평수 기준으로 자동 보정합니다.
+  if(expected && actual!==expected){
+    return expected;
+  }
+  return actual || expected;
 }
 function mapRoom(x,y,w,h,rx,fill,label,sub,dashed=false){
   return "<g>"
@@ -2351,10 +2372,11 @@ function getMapSvg(type){
     +rooms+"</svg>";
 }
 function getLearnedMapHtml(){
+  try{console.log('[LG ROBO CARE] area/actual/expected zones', state.areaPyung, getActualZoneCount(), getExpectedZoneCount(state.areaPyung));}catch(e){}
   const area=(activeRun && activeRun.areaPyung) ? activeRun.areaPyung : state.areaPyung;
   const type=getHomeSizeType(area);
   const sizeLabel=getHomeSizeLabel(area);
-  const zoneCount=getZoneCount();
+  const zoneCount=getDisplayZoneCount();
   return "<div class='home-map-card'>"
     +"<div class='home-map-head'><div class='home-map-badge'>"+sizeLabel+" · "+zoneCount+"개 영역</div></div>"
     +"<div class='home-map-img-wrap'>"+getMapSvg(type)+"</div>"
@@ -2362,17 +2384,23 @@ function getLearnedMapHtml(){
 }
 function refreshScopeSelect(){
   const scopeSelect=$('scopeSelect');
-  if(!scopeSelect || !activeRun || !activeRun.zones)return;
+  if(!scopeSelect)return;
+
+  const area=(activeRun && activeRun.areaPyung) ? activeRun.areaPyung : state.areaPyung;
+  const expected=getExpectedZoneCount(area);
+  const actual=(activeRun && activeRun.zones && activeRun.zones.length) ? activeRun.zones.length : expected;
+  const count=Math.max(expected, actual || 0);
   const before=scopeSelect.value || "home";
+
   let html="<option value='home'>집 전체</option>";
-  activeRun.zones.forEach((z,idx)=>{
-    const no=Number(z.zone || idx+1);
-    html += "<option value='"+no+"'>"+no+"영역</option>";
-  });
+  for(let i=1;i<=count;i++){
+    html += "<option value='"+i+"'>"+i+"영역</option>";
+  }
   scopeSelect.innerHTML=html;
   const values=Array.from(scopeSelect.options).map(o=>o.value);
   scopeSelect.value=values.includes(before)?before:"home";
 }
+
 
 function renderPlan(){
   if(!$('planSummary'))return;
