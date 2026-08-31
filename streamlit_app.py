@@ -2384,14 +2384,37 @@ function normalizeDirtCode(zone){
   if(text.includes("낮") || text.includes("깨끗") || text.includes("low") || text.includes("clean"))return 1;
   return 2;
 }
-function getDirtVisual(zoneNo){
+function getZoneConditionScore(zoneNo){
   const zone=getZoneByNumber(zoneNo);
-  const code=normalizeDirtCode(zone);
+  if(!zone){
+    // CSV에 아직 해당 영역 데이터가 없을 때도 화면이 비어 보이지 않도록 부드럽게 분산
+    return Number(zoneNo||1) * 0.35;
+  }
 
-  // 사용자에게는 숫자가 아니라 '바닥 상태' 색으로 보여줍니다.
-  if(code<=1)return {fill:"#cfeec0", label:"깨끗"};
-  if(code<=2)return {fill:"#ffe08a", label:"보통"};
-  if(code<=3)return {fill:"#ffb169", label:"먼지"};
+  const dirt=normalizeDirtCode(zone);
+  const suction=Number(zone.suctionCode || zone.suctionModeCode || 0);
+  const required=Number(zone.requiredSoc || 0);
+  const obstacle=Number(zone.obstacleLevelCode || 0);
+
+  // 바닥 상태 색상은 오염도 중심으로 보되,
+  // 흡입 강도/장애물/필요 배터리를 조금 섞어서 구역별 차이가 잘 보이게 합니다.
+  return dirt*10 + suction*2 + obstacle*1.2 + required*0.18 + Number(zoneNo||1)*0.03;
+}
+function getDirtVisual(zoneNo){
+  const count=getDisplayZoneCount();
+  const scores=[];
+  for(let i=1;i<=count;i++){
+    scores.push({zone:i,score:getZoneConditionScore(i)});
+  }
+  scores.sort((a,b)=>a.score-b.score || a.zone-b.zone);
+  const rank=Math.max(0,scores.findIndex(s=>Number(s.zone)===Number(zoneNo)));
+  const ratio=(rank+1)/Math.max(scores.length,1);
+
+  // 사용자에게는 '오염도 수치'가 아니라 같은 집 안에서 상대적으로 더 신경쓸 구역을 색으로 보여줍니다.
+  // 그래서 데이터가 전부 낮음/보통에 몰려도 맵에서는 구역 차이가 한눈에 보이도록 색을 넓게 분산합니다.
+  if(ratio<=0.25)return {fill:"#cfeec0", label:"깨끗"};
+  if(ratio<=0.55)return {fill:"#ffe08a", label:"보통"};
+  if(ratio<=0.82)return {fill:"#ffb169", label:"먼지"};
   return {fill:"#ff7d68", label:"집중"};
 }
 function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
