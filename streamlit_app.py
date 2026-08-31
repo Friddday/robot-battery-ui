@@ -1225,31 +1225,35 @@ body,button,input,select{
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:8px;
-  margin-top:7px;
-  padding:6px 7px;
-  border-radius:999px;
-  background:rgba(255,250,235,.88);
-  border:1px solid rgba(124,83,43,.10);
+  flex-wrap:wrap;
+  gap:7px 10px;
+  margin-top:8px;
+  padding:8px 8px;
+  border-radius:14px;
+  background:rgba(255,250,235,.92);
+  border:1px solid rgba(124,83,43,.13);
   color:#68472d;
-  font-size:9.5px;
-  line-height:1;
-  font-weight:900;
-  white-space:nowrap;
+  font-size:12px;
+  line-height:1.15;
+  font-weight:950;
 }
-.map-legend-title{color:#4b3324;font-weight:950;}
+.map-legend-title{
+  color:#4b3324;
+  font-weight:1000;
+  margin-right:2px;
+}
 .map-legend-item{
   display:inline-flex;
   align-items:center;
-  gap:3px;
+  gap:5px;
 }
 .map-dot{
   display:inline-block;
-  width:9px;
-  height:9px;
+  width:12px;
+  height:12px;
   border-radius:999px;
-  border:1px solid rgba(80,50,28,.14);
-  box-shadow:0 1px 2px rgba(72,43,19,.10);
+  border:1px solid rgba(80,50,28,.16);
+  box-shadow:0 1px 2px rgba(72,43,19,.12);
 }
 .dot-clean{background:#cfeec0;}
 .dot-normal{background:#ffe08a;}
