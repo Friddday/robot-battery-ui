@@ -1453,42 +1453,29 @@ body,button,input,select{
   transition:opacity .18s ease, filter .18s ease, stroke-width .18s ease;
 }
 .map-room-group.planned .map-room{
-  stroke:#ffffff;
-  stroke-width:5.5;
-  filter:drop-shadow(0 4px 5px rgba(76,45,20,.18));
+  stroke:#36b04a;
+  stroke-width:5.2;
+  filter:drop-shadow(0 0 3px rgba(54,176,74,.35));
+  animation:plannedGreenBlink 1.15s ease-in-out infinite;
 }
 .map-room-group.dirty-selected .map-room{
-  stroke:#ffd84d;
-  stroke-width:4.2;
-  filter:drop-shadow(0 0 5px rgba(255,216,77,.48));
-  animation:dirtyZoneGlow 1.25s ease-in-out infinite;
+  stroke:#36b04a;
+  stroke-width:5.2;
+  filter:drop-shadow(0 0 3px rgba(54,176,74,.35));
+  animation:plannedGreenBlink 1.05s ease-in-out infinite;
 }
-.map-dirty-ring{
-  fill:none;
-  stroke:#ffe681;
-  stroke-width:3.2;
-  stroke-dasharray:7 6;
-  filter:drop-shadow(0 0 4px rgba(255,230,129,.62));
-  animation:dirtyRingDash 1.2s linear infinite;
-  pointer-events:none;
-}
+.map-dirty-ring,
 .map-dirty-spark{
-  fill:#f6b800;
-  font-size:13px;
-  font-weight:950;
-  text-anchor:middle;
-  dominant-baseline:middle;
-  filter:drop-shadow(0 1px 2px rgba(255,255,255,.85));
-  pointer-events:none;
+  display:none!important;
 }
 .map-room-group.dimmed .map-room{
   opacity:.28;
   filter:grayscale(.35);
 }
 .map-room-group.cleaning-zone .map-room{
-  animation:mapZonePulse 1.05s ease-in-out infinite;
-  stroke:#37a447;
-  stroke-width:7;
+  animation:plannedGreenBlink .9s ease-in-out infinite;
+  stroke:#27a844;
+  stroke-width:6.2;
 }
 .map-room-group.completed .map-room{
   opacity:.62;
@@ -1506,15 +1493,10 @@ body,button,input,select{
   text-anchor:middle;
   dominant-baseline:middle;
 }
-.map-route{
-  opacity:0;
-}
+.map-route,
 .map-route.active-route{
-  opacity:1;
-  stroke:rgba(61,164,76,.78);
-  stroke-width:4;
-  stroke-dasharray:7 8;
-  animation:routeDash 1.15s linear infinite;
+  opacity:0!important;
+  display:none!important;
 }
 .map-action-hint.status-ready{
   border-color:rgba(73,163,68,.22);
@@ -1610,6 +1592,18 @@ body,button,input,select{
 @keyframes dirtyRingDash{
   from{stroke-dashoffset:24}
   to{stroke-dashoffset:0}
+}
+@keyframes plannedGreenBlink{
+  0%,100%{
+    stroke:#36b04a;
+    stroke-width:4.2;
+    filter:drop-shadow(0 0 2px rgba(54,176,74,.25));
+  }
+  50%{
+    stroke:#20c949;
+    stroke-width:6.4;
+    filter:drop-shadow(0 0 6px rgba(54,176,74,.55));
+  }
 }
 
 
@@ -2908,8 +2902,7 @@ function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
       +"<line class='map-no-go-line' x1='"+(x+10)+"' y1='"+(y+10)+"' x2='"+(x+w-10)+"' y2='"+(y+h-10)+"'></line>"
       +"<line class='map-no-go-line' x1='"+(x+w-10)+"' y1='"+(y+10)+"' x2='"+(x+10)+"' y2='"+(y+h-10)+"'></line>";
   }else if(state.smartCleanMode==="dirty" && state.mapMode!=="noGo" && (state.selectedDirtyZones||[]).includes(Number(zoneNo))){
-    html += "<rect class='map-dirty-ring' x='"+(x+4)+"' y='"+(y+4)+"' width='"+(w-8)+"' height='"+(h-8)+"' rx='"+Math.max(6,rx-2)+"'></rect>"
-      +"<text class='map-dirty-spark' x='"+(x+13)+"' y='"+(y+15)+"'>✦</text>";
+    // 더러운 곳만 모드에서는 별도 아이콘 없이 초록색 테두리만 깜빡이게 표시합니다.
   }
 
   html += "<circle cx='"+badgeX+"' cy='"+badgeY+"' r='"+badgeR+"' fill='rgba(255,255,255,.82)'></circle>"
@@ -2973,7 +2966,7 @@ function getMapActionHtml(){
   let readyClass=state.predicted?" status-ready":"";
   if(state.mapMode==="noGo")hint="지도에서 <b>청소하지 않을 영역</b>을 눌러주세요.";
   else if(noGoCount>0)hint="금지구역 "+noGoCount+"곳은 빼고 준비해요.";
-  else if(state.smartCleanMode==="dirty")hint="노란빛 영역만 골라뒀어요. 청소하기를 누르면 그곳만 청소해요.";
+  else if(state.smartCleanMode==="dirty")hint="초록 테두리 영역만 골라뒀어요. 청소하기를 누르면 그곳만 청소해요.";
   else if(state.smartCleanMode==="auto")hint="로보킹이 알아서 준비했어요.";
 
   return "<div class='map-action-row'>"
