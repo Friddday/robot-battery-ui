@@ -2868,12 +2868,13 @@ function getMapZoneClass(zoneNo){
   const planned=getPlannedZoneNumbers();
   const selected=state.selectedDirtyZones || [];
   const completed=state.completedZones || [];
+  const dirtyHighlightOn = state.smartCleanMode==="dirty" && state.mapMode!=="noGo";
 
   if(noGo.includes(n))classes.push("no-go");
   else{
     if(planned.includes(n))classes.push("planned");
-    if(state.smartCleanMode==="dirty" && selected.includes(n))classes.push("dirty-selected");
-    if(state.smartCleanMode==="dirty" && selected.length && !selected.includes(n))classes.push("dimmed");
+    if(dirtyHighlightOn && selected.includes(n))classes.push("dirty-selected");
+    if(dirtyHighlightOn && selected.length && !selected.includes(n))classes.push("dimmed");
     if(state.cleaning && Number(state.currentCleaningZone)===n)classes.push("cleaning-zone");
     if(completed.includes(n))classes.push("completed");
   }
@@ -2906,7 +2907,7 @@ function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
     html += "<rect class='map-no-go-shade' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"'></rect>"
       +"<line class='map-no-go-line' x1='"+(x+10)+"' y1='"+(y+10)+"' x2='"+(x+w-10)+"' y2='"+(y+h-10)+"'></line>"
       +"<line class='map-no-go-line' x1='"+(x+w-10)+"' y1='"+(y+10)+"' x2='"+(x+10)+"' y2='"+(y+h-10)+"'></line>";
-  }else if(state.smartCleanMode==="dirty" && (state.selectedDirtyZones||[]).includes(Number(zoneNo))){
+  }else if(state.smartCleanMode==="dirty" && state.mapMode!=="noGo" && (state.selectedDirtyZones||[]).includes(Number(zoneNo))){
     html += "<rect class='map-dirty-ring' x='"+(x+4)+"' y='"+(y+4)+"' width='"+(w-8)+"' height='"+(h-8)+"' rx='"+Math.max(6,rx-2)+"'></rect>"
       +"<text class='map-dirty-spark' x='"+(x+13)+"' y='"+(y+15)+"'>✦</text>";
   }
@@ -2972,7 +2973,7 @@ function getMapActionHtml(){
   let readyClass=state.predicted?" status-ready":"";
   if(state.mapMode==="noGo")hint="지도에서 <b>청소하지 않을 영역</b>을 눌러주세요.";
   else if(noGoCount>0)hint="금지구역 "+noGoCount+"곳은 빼고 준비해요.";
-  else if(state.smartCleanMode==="dirty")hint="빛나는 영역만 골라뒀어요. 청소하기를 누르면 그곳만 청소해요.";
+  else if(state.smartCleanMode==="dirty")hint="빛나는 영역만 청소해요. 다른 모드를 누르면 강조가 꺼져요.";
   else if(state.smartCleanMode==="auto")hint="로보킹이 알아서 준비했어요.";
 
   return "<div class='map-action-row'>"
@@ -3664,9 +3665,9 @@ function aiAutoClean(){
   state.manualReady=false;
   state.manualKey="";
   state.selectedDirtyZones=[];
-  state.cleaningZones=[];
   state.completedZones=[];
   state.currentCleaningZone=null;
+  state.cleaningZones=[];
 
   const cleanable=getCleanableZones();
   if(!cleanable.length){showToast("청소할 수 있는 영역이 없어요. 금지구역을 줄여주세요.");return}
@@ -3716,6 +3717,11 @@ function toggleNoGoMode(){
 
   state.mapMode = state.mapMode==="noGo" ? "view" : "noGo";
   if(state.mapMode==="noGo"){
+    state.smartCleanMode="auto";
+    state.selectedDirtyZones=[];
+    state.completedZones=[];
+    state.currentCleaningZone=null;
+    state.cleaningZones=getCleanableZones().map(z=>Number(z.zone));
     setGuide("청소하지 않을 영역을 지도에서 눌러주세요. 다시 누르면 해제돼요.","warning");
     showToast("금지구역 설정: 지도에서 제외할 영역을 눌러주세요.");
   }else{
@@ -3747,6 +3753,9 @@ function handleMapZoneTap(element){
     state.manualKey="";
     state.smartCleanMode="auto";
     state.selectedDirtyZones=[];
+    state.completedZones=[];
+    state.currentCleaningZone=null;
+    state.cleaningZones=getCleanableZones().map(z=>Number(z.zone));
     render();
     return;
   }
