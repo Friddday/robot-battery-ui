@@ -1221,6 +1221,51 @@ body,button,input,select{
   stroke-linecap:round;
   stroke-dasharray:5 6;
 }
+.map-room-group{cursor:pointer;}
+.map-room-group .map-room{transition:opacity .18s ease, filter .18s ease;}
+.map-room-group.no-go .map-room{opacity:.42;filter:grayscale(.35);}
+.map-no-go-shade{fill:rgba(255,255,255,.48);}
+.map-no-go-line{stroke:#8b6f57;stroke-width:4;stroke-linecap:round;opacity:.72;}
+.map-action-row{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:7px;
+  margin-top:8px;
+}
+.map-action-btn{
+  min-height:38px;
+  border:0;
+  border-radius:13px;
+  background:#fff4d8;
+  color:#68472d;
+  font-size:11.5px;
+  font-weight:950;
+  box-shadow:inset 0 0 0 1px rgba(135,88,43,.16);
+  cursor:pointer;
+}
+.map-action-btn.active{
+  color:#fff;
+  background:linear-gradient(135deg,#50ae48,#77c75b);
+  box-shadow:0 7px 12px rgba(67,126,56,.20);
+}
+.map-action-btn.danger.active{
+  background:linear-gradient(135deg,#f07a54,#f7a13e);
+  box-shadow:0 7px 12px rgba(190,93,45,.20);
+}
+.map-action-hint{
+  margin-top:7px;
+  padding:7px 9px;
+  border-radius:12px;
+  background:rgba(255,250,235,.92);
+  border:1px solid rgba(124,83,43,.10);
+  color:#6f4f36;
+  font-size:11px;
+  line-height:1.38;
+  font-weight:850;
+  text-align:center;
+}
+.map-action-hint b{color:#2f8b3a;}
+
 .map-legend{
   display:flex;
   align-items:center;
@@ -1858,6 +1903,10 @@ const state={
   equippedItems:initialCloset.equipped,
   rewardTab:"items",
   ownedCoupons:initialCoupons,
+  noGoZones:[],
+  mapMode:"view",
+  smartCleanMode:"auto",
+  selectedDirtyZones:[],
   temperature:29,health:100,heart:100,
   level:13,exp:55,coins:50,food:1,cleaning:false,charging:false,
   celebrating:false,progress:0,missionDone:false,cleanCount:0,
@@ -2419,6 +2468,7 @@ function getDirtVisual(zoneNo){
 }
 function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
   const visual=getDirtVisual(zoneNo);
+  const isNoGo=state.noGoZones && state.noGoZones.includes(Number(zoneNo));
 
   // 모든 구역을 같은 스타일로 보이게:
   // 방 이름은 중앙, 영역 번호는 우측 상단 동그라미 배지로 통일
@@ -2429,12 +2479,20 @@ function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
   const badgeX = x + w - badgeR - 6;
   const badgeY = y + badgeR + 6;
   const badgeFont = compact ? 7.8 : 8.8;
+  const centerX=x+w/2;
 
-  let html = "<g>"
-    +"<rect class='map-room"+(dashed?" dashed":"")+"' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"' fill='"+visual.fill+"'></rect>"
-    +"<circle cx='"+badgeX+"' cy='"+badgeY+"' r='"+badgeR+"' fill='rgba(255,255,255,.82)'></circle>"
+  let html = "<g class='map-room-group"+(isNoGo?" no-go":"")+"' data-action='mapZone' data-zone='"+zoneNo+"'>"
+    +"<rect class='map-room"+(dashed?" dashed":"")+"' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"' fill='"+visual.fill+"'></rect>";
+
+  if(isNoGo){
+    html += "<rect class='map-no-go-shade' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"'></rect>"
+      +"<line class='map-no-go-line' x1='"+(x+10)+"' y1='"+(y+10)+"' x2='"+(x+w-10)+"' y2='"+(y+h-10)+"'></line>"
+      +"<line class='map-no-go-line' x1='"+(x+w-10)+"' y1='"+(y+10)+"' x2='"+(x+10)+"' y2='"+(y+h-10)+"'></line>";
+  }
+
+  html += "<circle cx='"+badgeX+"' cy='"+badgeY+"' r='"+badgeR+"' fill='rgba(255,255,255,.82)'></circle>"
     +"<text class='map-room-sub' style='font-size:"+badgeFont+"px' x='"+badgeX+"' y='"+(badgeY+0.5)+"'>"+zoneNo+"</text>"
-    +"<text class='map-room-label' style='font-size:"+labelSize+"px' x='"+(x+w/2)+"' y='"+labelY+"'>"+label+"</text>"
+    +"<text class='map-room-label' style='font-size:"+labelSize+"px' x='"+centerX+"' y='"+labelY+"'>"+(isNoGo?"금지":label)+"</text>"
     +"</g>";
 
   return html;
@@ -2482,6 +2540,22 @@ function getDirtLegendHtml(){
     +"<span class='map-legend-item'><i class='map-dot dot-focus'></i>집중</span>"
     +"</div>";
 }
+function getMapActionHtml(){
+  const noGoCount=(state.noGoZones||[]).length;
+  const noGoText=noGoCount>0 ? "금지 "+noGoCount : "금지구역";
+  let hint="원하는 방식만 고르면 로보킹이 알아서 준비해요.";
+  if(state.mapMode==="noGo")hint="지도에서 <b>청소하지 않을 영역</b>을 눌러주세요.";
+  else if(noGoCount>0)hint="금지구역 "+noGoCount+"곳은 빼고 청소해요.";
+  else if(state.smartCleanMode==="dirty")hint="먼지가 많은 곳부터 먼저 청소해요.";
+  else if(state.smartCleanMode==="auto")hint="로보킹이 오늘 상태에 맞춰 알아서 청소해요.";
+
+  return "<div class='map-action-row'>"
+    +"<button class='map-action-btn"+(state.smartCleanMode==="auto" && state.mapMode!=="noGo"?" active":"")+"' data-action='aiAutoClean'>✨ AI 자동청소</button>"
+    +"<button class='map-action-btn"+(state.smartCleanMode==="dirty" && state.mapMode!=="noGo"?" active":"")+"' data-action='dirtyOnlyClean'>🔥 더러운 곳만</button>"
+    +"<button class='map-action-btn danger"+(state.mapMode==="noGo"?" active":"")+"' data-action='toggleNoGoMode'>🚫 "+noGoText+"</button>"
+    +"</div>"
+    +"<div class='map-action-hint'>"+hint+"</div>";
+}
 function getLearnedMapHtml(){
   try{console.log('[LG ROBO CARE] area/actual/expected zones', state.areaPyung, getActualZoneCount(), getExpectedZoneCount(state.areaPyung));}catch(e){}
   const area=(activeRun && activeRun.areaPyung) ? activeRun.areaPyung : state.areaPyung;
@@ -2492,6 +2566,7 @@ function getLearnedMapHtml(){
     +"<div class='home-map-head'><div class='home-map-badge'>"+sizeLabel+" · "+zoneCount+"개 영역</div></div>"
     +"<div class='home-map-img-wrap'>"+getMapSvg(type)+"</div>"
     +getDirtLegendHtml()
+    +getMapActionHtml()
     +"</div>";
 }
 function refreshScopeSelect(){
@@ -3038,6 +3113,154 @@ function showChargeChoiceModal(autoStartAfterCharge=false){
   });
 }
 
+
+function getCleanableZones(){
+  const blocked=state.noGoZones || [];
+  const zones=(activeRun && activeRun.zones) ? activeRun.zones : [];
+  return zones.filter(z=>!blocked.includes(Number(z.zone)));
+}
+function makeAggregateScenario(zones,label,mode){
+  const areaSum=zones.reduce((sum,z)=>sum+Number(z.cleaningAreaM2||0),0);
+  const requiredSum=zones.reduce((sum,z)=>sum+Number(z.requiredSoc||0),0);
+  const highest=zones.slice().sort((a,b)=>getZoneConditionScore(b.zone)-getZoneConditionScore(a.zone))[0] || activeRun.home;
+  return {
+    scope:"home",
+    zone:null,
+    label:label,
+    globalRunId:activeRun.home.globalRunId,
+    areaPyung:activeRun.home.areaPyung,
+    cleaningAreaM2:Math.round(areaSum*10)/10,
+    requiredSoc:Math.round(requiredSum*10)/10,
+    targetSoc:targetFromRequired(requiredSum),
+    modelName:activeRun.home.modelName,
+    cleaningType:activeRun.home.cleaningType,
+    cleaningTypeCode:activeRun.home.cleaningTypeCode,
+    mopEnabled:activeRun.home.mopEnabled,
+    obstacleLevel:activeRun.home.obstacleLevel,
+    obstacleLevelCode:activeRun.home.obstacleLevelCode,
+    floorType:highest.floorType || activeRun.home.floorType,
+    dirtLevel:highest.dirtLevel || activeRun.home.dirtLevel,
+    dirtCode:highest.dirtCode || activeRun.home.dirtCode,
+    suctionMode:highest.suctionMode || activeRun.home.suctionMode,
+    suctionCode:highest.suctionCode || activeRun.home.suctionCode,
+    cleanModeChoice:state.cleanModeChoice,
+    cleanModeLabel:state.cleanModeLabel,
+    intensityChoice:state.intensityChoice,
+    intensityLabel:state.intensityLabel,
+    todayStateChoice:state.todayStateChoice,
+    todayStateLabel:state.todayStateLabel,
+    matchNote:mode==="dirty"?"먼지가 많은 곳만 골라 준비":"금지구역은 빼고 알아서 준비",
+    matchBasis:"우리 집 매핑 정보 반영"
+  };
+}
+function prepareScenarioAndShow(scenario,message,tone="done"){
+  syncScenarioToState(scenario);
+  state.predicted=true;
+  state.predicting=false;
+  state.chargeComplete=false;
+  state.cleaningRemainingSoc=Number(state.requiredSoc||0);
+  state.progress=0;
+  render();
+  const canNow=state.soc>=state.targetSoc;
+  $("speech").innerHTML="<strong style='color:#2f8b3a'>준비 완료!</strong><br>"+(canNow?"바로 출동할 수 있어요.":"잠깐 충전하고 출발할게요.");
+  $("modeChip").textContent="✅ "+state.selectedLabel+" 준비 완료";
+  setGuide(message,canNow?tone:"warning");
+  showToast(message.replace(/<[^>]*>/g,""));
+}
+function aiAutoClean(){
+  if(!state.profileReady){showToast("먼저 1회차 학습 청소를 시작해 주세요.");return}
+  if(state.mapping||state.cleaning||state.charging){showToast("진행 중인 작업이 끝난 뒤 선택할 수 있어요.");return}
+  state.mapMode="view";
+  state.smartCleanMode="auto";
+  state.selectedDirtyZones=[];
+
+  const cleanable=getCleanableZones();
+  if(!cleanable.length){showToast("청소할 수 있는 영역이 없어요. 금지구역을 줄여주세요.");return}
+  const scenario=(state.noGoZones && state.noGoZones.length>0)
+    ? makeAggregateScenario(cleanable,"AI 자동청소","auto")
+    : Object.assign({},activeRun.home,{
+        label:"AI 자동청소",
+        scope:"home",
+        matchNote:"오늘 상태에 맞춰 로보킹이 준비",
+        matchBasis:"우리 집 매핑 정보 반영",
+        cleanModeChoice:state.cleanModeChoice,
+        cleanModeLabel:state.cleanModeLabel,
+        intensityChoice:state.intensityChoice,
+        intensityLabel:state.intensityLabel,
+        todayStateChoice:state.todayStateChoice,
+        todayStateLabel:state.todayStateLabel
+      });
+  scenario.targetSoc=targetFromRequired(scenario.requiredSoc);
+  prepareScenarioAndShow(scenario,"AI 자동청소 준비 완료! 로보킹이 알아서 청소할게요.","done");
+}
+function dirtyOnlyClean(){
+  if(!state.profileReady){showToast("먼저 1회차 학습 청소를 시작해 주세요.");return}
+  if(state.mapping||state.cleaning||state.charging){showToast("진행 중인 작업이 끝난 뒤 선택할 수 있어요.");return}
+  state.mapMode="view";
+  state.smartCleanMode="dirty";
+
+  const cleanable=getCleanableZones();
+  if(!cleanable.length){showToast("청소할 수 있는 영역이 없어요. 금지구역을 줄여주세요.");return}
+
+  const sorted=cleanable.slice().sort((a,b)=>getZoneConditionScore(b.zone)-getZoneConditionScore(a.zone));
+  const count=Math.min(Math.max(1,Math.ceil(sorted.length*0.35)),3);
+  const picked=sorted.slice(0,count).sort((a,b)=>Number(a.zone)-Number(b.zone));
+  state.selectedDirtyZones=picked.map(z=>Number(z.zone));
+
+  const scenario=makeAggregateScenario(picked,"더러운 곳만","dirty");
+  prepareScenarioAndShow(scenario,"더 신경 쓸 곳만 골랐어요. 이 영역부터 깨끗하게 청소할게요.","done");
+}
+function toggleNoGoMode(){
+  if(!state.profileReady){showToast("먼저 1회차 학습 청소를 시작해 주세요.");return}
+  if(state.mapping||state.cleaning||state.charging){showToast("진행 중인 작업이 끝난 뒤 설정할 수 있어요.");return}
+
+  state.mapMode = state.mapMode==="noGo" ? "view" : "noGo";
+  if(state.mapMode==="noGo"){
+    setGuide("청소하지 않을 영역을 지도에서 눌러주세요. 다시 누르면 해제돼요.","warning");
+    showToast("금지구역 설정: 지도에서 제외할 영역을 눌러주세요.");
+  }else{
+    const count=(state.noGoZones||[]).length;
+    setGuide(count>0?"금지구역 "+count+"곳을 빼고 청소할 수 있어요.":"금지구역 설정을 마쳤어요.","done");
+    showToast(count>0?"금지구역 "+count+"곳을 저장했어요.":"금지구역 설정을 마쳤어요.");
+  }
+  render();
+}
+function handleMapZoneTap(element){
+  const zoneNo=Number(element && element.dataset ? element.dataset.zone : element);
+  if(!zoneNo)return;
+  if(!state.profileReady){showToast("1회차 학습 후 지도에서 선택할 수 있어요.");return}
+
+  if(state.mapMode==="noGo"){
+    const list=state.noGoZones || [];
+    const idx=list.indexOf(zoneNo);
+    if(idx>=0){
+      list.splice(idx,1);
+      showToast(zoneNo+"번 영역 금지구역을 해제했어요.");
+    }else{
+      list.push(zoneNo);
+      list.sort((a,b)=>a-b);
+      showToast(zoneNo+"번 영역은 청소하지 않을게요.");
+    }
+    state.noGoZones=list;
+    state.predicted=false;
+    state.smartCleanMode="auto";
+    state.selectedDirtyZones=[];
+    render();
+    return;
+  }
+
+  // 보기 모드에서는 구역을 누르면 해당 영역만 빠르게 준비합니다.
+  const zone=getScenario("zone",zoneNo);
+  if(!zone){showToast("이 영역 정보를 찾지 못했어요.");return}
+  const choices=getPredictionChoices("zone",zoneNo);
+  const matchedScenario=findMlScenarioFromChoices(choices);
+  matchedScenario.label=zoneNo+"번 영역";
+  state.smartCleanMode="zone";
+  state.selectedDirtyZones=[];
+  prepareScenarioAndShow(matchedScenario,zoneNo+"번 영역만 청소할 준비를 마쳤어요.","done");
+}
+
+
 function startCleaning(){
   if(state.cleaning){showToast("이미 청소 중이에요.");return}
   if(state.charging){showToast("충전이 끝난 후 청소할게요.");return}
@@ -3281,6 +3504,7 @@ function handleCoupon(key){
 const actions={
   startFirstMapping:startFirstMapping,
   predictSoc:predictSocFromConditions,
+  aiAutoClean:aiAutoClean,dirtyOnlyClean:dirtyOnlyClean,toggleNoGoMode:toggleNoGoMode,mapZone:handleMapZoneTap,
   selectHome:()=>selectScenario("home"),selectZone1:()=>selectScenario("zone",1),selectZone2:()=>selectScenario("zone",2),selectZone3:()=>selectScenario("zone",3),selectZone4:()=>selectScenario("zone",4),selectZone5:()=>selectScenario("zone",5),selectZone6:()=>selectScenario("zone",6),selectZone7:()=>selectScenario("zone",7),selectZone8:()=>selectScenario("zone",8),
   pet:petRobot,feed:feedRobot,play:playRobot,train:trainRobot,photo:takePhoto,clean:startCleaning,charge:chargeRobot,status:showStatus,
   record:()=>switchPage("recordPage"),event:()=>switchPage("eventPage"),decorate:decorateRobot,shop:()=>switchPage("rewardPage"),chargeFromBattery:()=>{switchPage("homePage");setTimeout(chargeRobot,220)},buyFood:buyFood,
@@ -3290,7 +3514,7 @@ const actions={
   ribbon:()=>handleRewardItem("ribbon"),sparkle:()=>handleRewardItem("sparkle"),hat:()=>handleRewardItem("hat")
 };
 
-document.addEventListener("click",(event)=>{const nav=event.target.closest("[data-page]");if(nav){switchPage(nav.dataset.page);return}const action=event.target.closest("[data-action]");if(action&&typeof actions[action.dataset.action]==="function"){actions[action.dataset.action]()}});
+document.addEventListener("click",(event)=>{const nav=event.target.closest("[data-page]");if(nav){switchPage(nav.dataset.page);return}const action=event.target.closest("[data-action]");if(action&&typeof actions[action.dataset.action]==="function"){actions[action.dataset.action](action,event)}});
 // 1회차 학습 청소는 핵심 CTA라서, 이벤트 위임/터치/겹침 이슈가 있어도 반드시 동작하도록 여러 경로로 직접 연결합니다.
 let lastLearnClickAt=0;
 function triggerLearnButton(event){
