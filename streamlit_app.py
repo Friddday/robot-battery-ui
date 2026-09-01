@@ -1377,7 +1377,64 @@ body,button,input,select{
 .manual-action-row .predict-btn{
   margin-top:0!important;
 }
+.manual-combo-btn{
+  width:100%;
+  min-height:46px!important;
+  margin-top:10px!important;
+  border-radius:14px!important;
+  font-size:13px!important;
+  font-weight:950!important;
+  background:linear-gradient(90deg,#41a346,#79c75a)!important;
+  color:#fff!important;
+  box-shadow:0 7px 12px rgba(67,126,56,.22)!important;
+}
+.manual-combo-btn.running{
+  background:linear-gradient(90deg,#f69028,#f9b047)!important;
+}
 
+
+
+
+/* ===== Top learning / clean action buttons alignment ===== */
+.learn-actions.ready{
+  grid-template-columns:1fr 1fr!important;
+  align-items:stretch!important;
+}
+.learn-actions.ready .learn-btn,
+.learn-actions.ready .clean-execute-btn{
+  width:100%!important;
+  height:48px!important;
+  min-height:48px!important;
+  padding:0 8px!important;
+  border-radius:14px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  line-height:1.18!important;
+  white-space:normal!important;
+  word-break:keep-all!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+}
+.learn-actions.ready .learn-btn{
+  background:linear-gradient(90deg,#41a346,#79c75a)!important;
+  color:#fff!important;
+  font-size:12.5px!important;
+  font-weight:950!important;
+  box-shadow:0 7px 12px rgba(67,126,56,.20)!important;
+}
+.learn-actions.ready .clean-execute-btn{
+  background:linear-gradient(90deg,#f69028,#f9b047)!important;
+  color:#fff!important;
+  font-size:13px!important;
+  font-weight:950!important;
+  box-shadow:0 7px 12px rgba(210,117,35,.22)!important;
+}
+.learn-actions.ready .clean-execute-btn:disabled{
+  opacity:.62!important;
+  filter:grayscale(.08)!important;
+}
 
 /* ===== Home simplification: one main clean-prep button, no extra lower cards ===== */
 .scope-buttons,
@@ -1477,7 +1534,7 @@ body,button,input,select{
               <div class="learn-steps" id="learnSteps"></div>
               <div class="learn-actions" id="learnActions">
                 <button type="button" class="learn-btn" id="learnBtn" data-action="startFirstMapping" onpointerdown="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);" onmousedown="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);" ontouchstart="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);" onclick="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);">🏠 1회차 학습 청소 시작</button>
-                <button type="button" class="clean-execute-btn" id="cleanExecuteBtn" data-action="executeTopClean" style="display:none;">🧹 청소 실행하기</button>
+                <button type="button" class="clean-execute-btn" id="cleanExecuteBtn" data-action="executeTopClean" style="display:none;">🧹 청소하기</button>
               </div>
             </div>
             <div class="condition-panel" id="conditionPanel">
@@ -1495,7 +1552,7 @@ body,button,input,select{
               </div>
 
               <div id="predictionInputs" style="display:none;">
-                <div class="condition-help">세부 조건을 직접 고르고 싶을 때 사용해요. 적용 후 바로 청소할 수 있어요.</div>
+                <div class="condition-help">세부 조건을 직접 고르면 로보킹이 준비부터 청소까지 이어서 진행해요.</div>
                 <div class="predict-condition-grid">
                   <label for="scopeSelect">청소 범위</label>
                   <select class="condition-select" id="scopeSelect">
@@ -1528,10 +1585,7 @@ body,button,input,select{
                 </div>
               </div>
 
-              <div class="manual-action-row" id="manualActionRow">
-                <button class="predict-btn" id="predictBtn" data-action="predictSoc">✍️ 선택 조건 적용</button>
-                <button class="manual-clean-btn" id="manualCleanBtn" data-action="manualCleanAndGo">🧹 청소하기</button>
-              </div>
+              <button class="predict-btn manual-combo-btn" id="predictBtn" data-action="manualCleanAndGo">🔥 선택 조건으로 준비하고 청소하기</button>
               <div class="predict-loading" id="predictLoading">1회차 학습 청소가 끝나면 오늘 청소 준비를 할 수 있어요.</div>
               <div class="flow-guide" id="flowGuide"><span class="guide-step">현재 단계</span>1회차 학습 청소로 집 정보를 먼저 저장해 주세요.</div>
             </div>
@@ -2297,7 +2351,7 @@ function predictSocFromConditions(autoExecuteAfter=false){
     $("speech").innerHTML="<strong style='color:#2f8b3a'>준비 완료!</strong><br>"+statusText;
     $("modeChip").textContent="✅ 청소 준비 완료 · "+state.selectedLabel;
     addEvent("청소 준비 완료",state.selectedLabel+" 청소를 위해 로보킹이 필요한 만큼 준비했어요.");
-    setGuide(statusText.includes("바로")?"준비 완료! 옆의 청소하기 버튼을 누르면 바로 출동해요.":"준비 완료! 옆의 청소하기 버튼을 누르면 필요한 만큼만 채우고 출발해요.", state.soc>=state.targetSoc?"done":"warning");
+    setGuide(statusText.includes("바로")?"준비 완료! 바로 출동할게요.":"준비 완료! 필요한 만큼만 채우고 바로 출발할게요.", state.soc>=state.targetSoc?"done":"warning");
     showToast("청소 준비 완료! 로보킹이 오늘 청소 준비를 마쳤어요.");
     if(autoExecuteAfter){
       setTimeout(()=>executeTopClean(),260);
@@ -2726,7 +2780,7 @@ function renderPlan(){
   }else if(state.profileReady){
     if(learnPill)learnPill.textContent="프로필 저장됨";
     if(learnStatus)learnStatus.innerHTML="매핑 완료 · "+getHomeSizeLabel(activeRun.areaPyung)+" 집 구조 저장";
-    if(learnBtn){learnBtn.textContent="🔄 1회차 학습 다시 실행";learnBtn.disabled=false;learnBtn.classList.add('ready');}
+    if(learnBtn){learnBtn.textContent="🔄 학습 다시 실행";learnBtn.disabled=false;learnBtn.classList.add('ready');}
     if(conditionPanel)conditionPanel.classList.remove('locked-area');
   }else{
     if(learnPill)learnPill.textContent="초기 학습";
@@ -2750,55 +2804,40 @@ function renderPlan(){
     }else if(state.charging){
       cleanExecuteBtn.textContent='🔋 충전 중...';
     }else if(!state.predicted){
-      cleanExecuteBtn.textContent='🧹 청소 실행하기';
+      cleanExecuteBtn.textContent='🧹 청소하기';
     }else if(state.soc<state.targetSoc){
-      cleanExecuteBtn.textContent='🔋 충전하고 청소';
+      cleanExecuteBtn.textContent='🔋 충전 후 청소';
     }else{
-      cleanExecuteBtn.textContent='🧹 바로 청소하기';
+      cleanExecuteBtn.textContent='🧹 바로 청소';
     }
   }
 
 
   if(predictBtn){
     const mainBtnDisabled=!state.profileReady || state.mapping || state.predicting || state.cleaning || state.charging;
+    const key=getManualSelectionKey();
+    const manualReady=state.profileReady && state.predicted && state.smartCleanMode==="manual" && state.manualReady && state.manualKey===key;
+
     predictBtn.disabled=mainBtnDisabled;
     predictBtn.style.opacity=mainBtnDisabled?'.55':'1';
+    predictBtn.classList.toggle('running',state.predicting||state.charging||state.cleaning);
 
     if(!state.profileReady){
       predictBtn.textContent='🤖 학습 후 사용 가능';
     }else if(state.predicting){
-      predictBtn.textContent='🤖 조건 적용 중...';
-    }else if(state.predicted){
-      predictBtn.textContent='✍️ 선택 조건 다시 적용';
-    }else{
-      predictBtn.textContent='✍️ 선택 조건으로 준비';
-    }
-  }
-  if(manualCleanBtn){
-    const key=getManualSelectionKey();
-    const manualReady=state.profileReady && state.predicted && state.smartCleanMode==="manual" && state.manualReady && state.manualKey===key;
-    const disabled=!state.profileReady || state.mapping || state.predicting || state.cleaning || state.charging;
-    manualCleanBtn.disabled=disabled;
-    manualCleanBtn.classList.toggle('ready',manualReady);
-    manualCleanBtn.style.opacity=disabled?'.55':'1';
-
-    if(!state.profileReady){
-      manualCleanBtn.textContent='학습 후 가능';
-    }else if(state.predicting){
-      manualCleanBtn.textContent='준비 중...';
-    }else if(state.cleaning){
-      manualCleanBtn.textContent='청소 중...';
+      predictBtn.textContent='🤖 준비 중...';
     }else if(state.charging){
-      manualCleanBtn.textContent='충전 중...';
+      predictBtn.textContent='🔋 충전 중...';
+    }else if(state.cleaning){
+      predictBtn.textContent='🧹 청소 중...';
     }else if(manualReady && state.soc<state.targetSoc){
-      manualCleanBtn.textContent='충전하고 청소';
+      predictBtn.textContent='🔋 선택 조건으로 충전하고 청소하기';
     }else if(manualReady){
-      manualCleanBtn.textContent='바로 청소하기';
+      predictBtn.textContent='🧹 선택 조건으로 바로 청소하기';
     }else{
-      manualCleanBtn.textContent='청소하기';
+      predictBtn.textContent='🔥 선택 조건으로 준비하고 청소하기';
     }
   }
-
   if(conditionPanel){
     conditionPanel.classList.toggle('manual-mode',state.profileReady);
   }
@@ -3413,12 +3452,15 @@ function manualCleanAndGo(){
   const key=getManualSelectionKey();
   const manualReady=state.predicted && state.smartCleanMode==="manual" && state.manualReady && state.manualKey===key;
 
-  // 조건을 바꿨거나 아직 적용하지 않았다면, 선택 조건을 적용한 뒤 바로 충전/청소까지 이어갑니다.
+  // 조건이 아직 적용되지 않았거나 바뀌었다면:
+  // 1) 선택 조건으로 청소 준비
+  // 2) 준비가 끝나면 자동으로 충전/청소까지 이어짐
   if(!manualReady){
     predictSocFromConditions(true);
     return;
   }
 
+  // 이미 같은 조건으로 준비되어 있으면 바로 충전/청소 실행
   executeTopClean();
 }
 
