@@ -1395,6 +1395,193 @@ body,button,input,select{
 
 
 
+
+/* ===== Home WOW features: station motion, route, map progress, prep cards ===== */
+.room:after{
+  content:"";
+  position:absolute;
+  z-index:6;
+  left:92px;
+  bottom:92px;
+  width:54px;
+  height:15px;
+  border-radius:999px;
+  background:rgba(64,42,26,.18);
+  opacity:0;
+  transform:scale(.7);
+  transition:.25s ease;
+}
+.room.returning:after,
+.room.docked:after{
+  opacity:1;
+  transform:scale(1);
+}
+.room.returning .robot{
+  animation:robotReturnStation .95s ease-in-out forwards!important;
+}
+.room.docked .robot,
+.room.charging .robot{
+  animation:robotDockBreath 1.15s ease-in-out infinite!important;
+  transform:translateX(calc(-50% - 105px)) translateY(-38px) scale(.72)!important;
+}
+.room.departing .robot{
+  animation:robotDepartStation .85s ease-in-out forwards!important;
+}
+.room.charging .charge-ring,
+.room.docked .charge-ring{
+  left:104px!important;
+  bottom:69px!important;
+  width:118px!important;
+  height:74px!important;
+  opacity:.92!important;
+  animation:ringSpin 1.05s linear infinite!important;
+}
+.room.cleaning .clean-path,
+.room.route-preview .clean-path{
+  opacity:1;
+}
+.room.route-preview .clean-fill{
+  width:64%!important;
+  animation:pathPreviewPulse 1.7s ease-in-out infinite;
+}
+.room.docked .clean-path,
+.room.returning .clean-path{
+  opacity:.28;
+}
+.map-room-group{cursor:pointer;}
+.map-room-group .map-room{
+  transition:opacity .18s ease, filter .18s ease, stroke-width .18s ease;
+}
+.map-room-group.planned .map-room{
+  stroke:#ffffff;
+  stroke-width:5.5;
+  filter:drop-shadow(0 4px 5px rgba(76,45,20,.18));
+}
+.map-room-group.dirty-selected .map-room{
+  stroke:#fff7c8;
+  stroke-width:6.5;
+  filter:drop-shadow(0 4px 7px rgba(238,121,42,.32));
+}
+.map-room-group.dimmed .map-room{
+  opacity:.46;
+  filter:grayscale(.16);
+}
+.map-room-group.cleaning-zone .map-room{
+  animation:mapZonePulse 1.05s ease-in-out infinite;
+  stroke:#37a447;
+  stroke-width:7;
+}
+.map-room-group.completed .map-room{
+  opacity:.62;
+}
+.map-room-group.no-go .map-room{
+  opacity:.40;
+  filter:grayscale(.42);
+}
+.map-no-go-shade{fill:rgba(255,255,255,.52);}
+.map-no-go-line{stroke:#6b5543;stroke-width:4.5;stroke-linecap:round;opacity:.78;}
+.map-check{
+  fill:#2f8b3a;
+  font-size:14px;
+  font-weight:950;
+  text-anchor:middle;
+  dominant-baseline:middle;
+}
+.map-route.active-route{
+  stroke:rgba(61,164,76,.78);
+  stroke-width:4;
+  stroke-dasharray:7 8;
+  animation:routeDash 1.15s linear infinite;
+}
+.map-action-hint.status-ready{
+  border-color:rgba(73,163,68,.22);
+  background:#f3ffe9;
+}
+.map-recommend-card{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-top:7px;
+  padding:8px 9px;
+  border-radius:13px;
+  background:linear-gradient(135deg,#fffaf0,#f9e5b9);
+  border:1px solid rgba(124,83,43,.12);
+  color:#60452f;
+  font-size:11px;
+  line-height:1.38;
+  font-weight:900;
+}
+.map-recommend-card .rec-icon{
+  flex:0 0 auto;
+  display:grid;
+  place-items:center;
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  background:#fff4d8;
+  box-shadow:inset 0 0 0 1px rgba(124,83,43,.13);
+}
+.map-prep-card{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:6px;
+  align-items:center;
+  margin-top:7px;
+  padding:8px 10px;
+  border-radius:13px;
+  background:rgba(255,255,255,.74);
+  border:1px solid rgba(124,83,43,.12);
+}
+.map-prep-title{
+  color:#4b3324;
+  font-size:11.5px;
+  line-height:1.35;
+  font-weight:950;
+}
+.map-prep-sub{
+  margin-top:2px;
+  color:#7b5a3e;
+  font-size:10px;
+  line-height:1.35;
+  font-weight:850;
+}
+.map-prep-badge{
+  padding:5px 8px;
+  border-radius:999px;
+  color:#fff;
+  background:#ef8c32;
+  font-size:10px;
+  font-weight:950;
+  white-space:nowrap;
+}
+@keyframes robotReturnStation{
+  0%{transform:translateX(-50%) translateY(0) scale(1) rotate(0)}
+  55%{transform:translateX(calc(-50% - 72px)) translateY(-14px) scale(.88) rotate(-4deg)}
+  100%{transform:translateX(calc(-50% - 105px)) translateY(-38px) scale(.72) rotate(0)}
+}
+@keyframes robotDepartStation{
+  0%{transform:translateX(calc(-50% - 105px)) translateY(-38px) scale(.72)}
+  65%{transform:translateX(calc(-50% - 40px)) translateY(-12px) scale(.9) rotate(3deg)}
+  100%{transform:translateX(-50%) translateY(0) scale(1)}
+}
+@keyframes robotDockBreath{
+  0%,100%{transform:translateX(calc(-50% - 105px)) translateY(-38px) scale(.72)}
+  50%{transform:translateX(calc(-50% - 105px)) translateY(-43px) scale(.75)}
+}
+@keyframes pathPreviewPulse{
+  0%,100%{opacity:.55}
+  50%{opacity:1}
+}
+@keyframes mapZonePulse{
+  0%,100%{filter:drop-shadow(0 4px 6px rgba(55,164,71,.22))}
+  50%{filter:drop-shadow(0 4px 10px rgba(55,164,71,.58))}
+}
+@keyframes routeDash{
+  from{stroke-dashoffset:36}
+  to{stroke-dashoffset:0}
+}
+
+
 /* ===== Top learning / clean action buttons alignment ===== */
 .learn-actions.ready{
   grid-template-columns:1fr 1fr!important;
@@ -2042,6 +2229,10 @@ const state={
   selectedDirtyZones:[],
   manualReady:false,
   manualKey:"",
+  robotMotion:"idle",
+  cleaningZones:[],
+  currentCleaningZone:null,
+  completedZones:[],
   temperature:29,health:100,heart:100,
   level:13,exp:55,coins:50,food:1,cleaning:false,charging:false,
   celebrating:false,progress:0,missionDone:false,cleanCount:0,
@@ -2336,6 +2527,9 @@ function predictSocFromConditions(autoExecuteAfter=false){
     state.smartCleanMode="manual";
     state.mapMode="view";
     state.selectedDirtyZones=[];
+    state.cleaningZones=getCleaningZonesForCurrentPlan();
+    state.completedZones=[];
+    state.currentCleaningZone=null;
     state.manualReady=true;
     state.manualKey=currentManualKey;
     state.predicted=true;
@@ -2568,6 +2762,41 @@ function normalizeDirtCode(zone){
   if(text.includes("낮") || text.includes("깨끗") || text.includes("low") || text.includes("clean"))return 1;
   return 2;
 }
+function getCleanableZones(){
+  const blocked=state.noGoZones || [];
+  const zones=(activeRun && activeRun.zones) ? activeRun.zones : [];
+  return zones.filter(z=>!blocked.includes(Number(z.zone)));
+}
+function getPlannedZoneNumbers(){
+  const blocked=state.noGoZones || [];
+  if(state.cleaningZones && state.cleaningZones.length){
+    return state.cleaningZones.filter(n=>!blocked.includes(Number(n))).map(Number);
+  }
+  if(state.smartCleanMode==="dirty" && state.selectedDirtyZones && state.selectedDirtyZones.length){
+    return state.selectedDirtyZones.filter(n=>!blocked.includes(Number(n))).map(Number);
+  }
+  if(state.selectedScope==="zone" && state.selectedZone){
+    return blocked.includes(Number(state.selectedZone)) ? [] : [Number(state.selectedZone)];
+  }
+  const zones=(activeRun && activeRun.zones) ? activeRun.zones : [];
+  return zones.map(z=>Number(z.zone)).filter(n=>!blocked.includes(n));
+}
+function getDirtyRecommendationZones(){
+  const cleanable=getCleanableZones();
+  if(!cleanable.length)return [];
+  const sorted=cleanable.slice().sort((a,b)=>getZoneConditionScore(b.zone)-getZoneConditionScore(a.zone));
+  const count=Math.min(Math.max(1,Math.ceil(sorted.length*0.35)),3);
+  return sorted.slice(0,count).sort((a,b)=>Number(a.zone)-Number(b.zone)).map(z=>Number(z.zone));
+}
+function getCurrentRecommendation(){
+  if(!state.profileReady)return {icon:"🏠",title:"먼저 우리 집을 알려주세요",sub:"1회차 학습 후 맞춤 청소를 추천해요."};
+  const dirty=getDirtyRecommendationZones();
+  const noGo=(state.noGoZones||[]).length;
+  if(dirty.length>=2)return {icon:"🔥",title:"더러운 곳만 먼저 해볼까요?",sub:dirty.join(", ")+"번 영역을 빠르게 청소할 수 있어요."};
+  if(noGo>0)return {icon:"🚫",title:"금지구역은 조용히 지나갈게요",sub:"설정한 "+noGo+"곳은 빼고 청소해요."};
+  return {icon:"✨",title:"AI 자동청소가 좋아요",sub:"로보킹이 오늘 상태에 맞춰 알아서 준비해요."};
+}
+
 function getZoneConditionScore(zoneNo){
   const zone=getZoneByNumber(zoneNo);
   if(!zone){
@@ -2601,12 +2830,33 @@ function getDirtVisual(zoneNo){
   if(ratio<=0.82)return {fill:"#ffb169", label:"먼지"};
   return {fill:"#ff7d68", label:"집중"};
 }
+function getMapZoneClass(zoneNo){
+  const n=Number(zoneNo);
+  const classes=[];
+  const noGo=state.noGoZones || [];
+  const planned=getPlannedZoneNumbers();
+  const selected=state.selectedDirtyZones || [];
+  const completed=state.completedZones || [];
+
+  if(noGo.includes(n))classes.push("no-go");
+  else{
+    if(planned.includes(n))classes.push("planned");
+    if(state.smartCleanMode==="dirty" && selected.includes(n))classes.push("dirty-selected");
+    if(state.smartCleanMode==="dirty" && selected.length && !selected.includes(n))classes.push("dimmed");
+    if(state.cleaning && Number(state.currentCleaningZone)===n)classes.push("cleaning-zone");
+    if(completed.includes(n))classes.push("completed");
+  }
+  return classes.join(" ");
+}
+function routeClass(){
+  const active=(state.predicted || state.cleaning || (state.selectedDirtyZones&&state.selectedDirtyZones.length) || (state.noGoZones&&state.noGoZones.length));
+  return "map-route"+(active?" active-route":"");
+}
 function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
   const visual=getDirtVisual(zoneNo);
   const isNoGo=state.noGoZones && state.noGoZones.includes(Number(zoneNo));
+  const zoneClass=getMapZoneClass(zoneNo);
 
-  // 모든 구역을 같은 스타일로 보이게:
-  // 방 이름은 중앙, 영역 번호는 우측 상단 동그라미 배지로 통일
   const compact = h < 42 || w < 66;
   const labelSize = compact ? 11.6 : 13.0;
   const labelY = compact ? y + h * 0.57 : y + h * 0.54;
@@ -2616,7 +2866,7 @@ function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
   const badgeFont = compact ? 7.8 : 8.8;
   const centerX=x+w/2;
 
-  let html = "<g class='map-room-group"+(isNoGo?" no-go":"")+"' data-action='mapZone' data-zone='"+zoneNo+"'>"
+  let html = "<g class='map-room-group "+zoneClass+"' data-action='mapZone' data-zone='"+zoneNo+"'>"
     +"<rect class='map-room"+(dashed?" dashed":"")+"' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"' fill='"+visual.fill+"'></rect>";
 
   if(isNoGo){
@@ -2627,8 +2877,12 @@ function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
 
   html += "<circle cx='"+badgeX+"' cy='"+badgeY+"' r='"+badgeR+"' fill='rgba(255,255,255,.82)'></circle>"
     +"<text class='map-room-sub' style='font-size:"+badgeFont+"px' x='"+badgeX+"' y='"+(badgeY+0.5)+"'>"+zoneNo+"</text>"
-    +"<text class='map-room-label' style='font-size:"+labelSize+"px' x='"+centerX+"' y='"+labelY+"'>"+(isNoGo?"금지":label)+"</text>"
-    +"</g>";
+    +"<text class='map-room-label' style='font-size:"+labelSize+"px' x='"+centerX+"' y='"+labelY+"'>"+(isNoGo?"금지":label)+"</text>";
+
+  if(!isNoGo && (state.completedZones||[]).includes(Number(zoneNo))){
+    html += "<text class='map-check' x='"+(x+12)+"' y='"+(y+13)+"'>✓</text>";
+  }
+  html += "</g>";
 
   return html;
 }
@@ -2640,7 +2894,7 @@ function getMapSvg(type){
     rooms += mapRoom(18,76,130,68,12,3,"침실");
     rooms += mapRoom(152,76,74,68,12,4,"현관",true);
     return "<svg class='home-map-svg' viewBox='0 0 244 162' role='img' aria-label='소형 집 구조 맵'>"
-      +"<path class='map-route' d='M42 48 C94 48, 112 96, 176 108'></path>"
+      +"<path class='"+routeClass()+"' d='M42 48 C94 48, 112 96, 176 108'></path>"
       +rooms+"</svg>";
   }
   if(type==="medium"){
@@ -2651,7 +2905,7 @@ function getMapSvg(type){
     rooms += mapRoom(14,130,92,32,10,5,"현관");
     rooms += mapRoom(110,130,112,32,10,6,"다용도");
     return "<svg class='home-map-svg' viewBox='0 0 236 174' role='img' aria-label='중형 집 구조 맵'>"
-      +"<path class='map-route' d='M48 42 C96 52, 114 94, 182 98 C170 128, 118 138, 64 146'></path>"
+      +"<path class='"+routeClass()+"' d='M48 42 C96 52, 114 94, 182 98 C170 128, 118 138, 64 146'></path>"
       +rooms+"</svg>";
   }
   rooms += mapRoom(12,12,72,44,11,1,"침실1");
@@ -2663,7 +2917,7 @@ function getMapSvg(type){
   rooms += mapRoom(12,122,106,38,10,7,"서재");
   rooms += mapRoom(122,122,112,38,10,8,"다용도");
   return "<svg class='home-map-svg' viewBox='0 0 246 172' role='img' aria-label='대형 집 구조 맵'>"
-    +"<path class='map-route' d='M46 34 C96 44, 146 36, 202 36 C174 76, 162 98, 210 92 C166 126, 102 142, 54 140'></path>"
+    +"<path class='"+routeClass()+"' d='M46 34 C96 44, 146 36, 202 36 C174 76, 162 98, 210 92 C166 126, 102 142, 54 140'></path>"
     +rooms+"</svg>";
 }
 function getDirtLegendHtml(){
@@ -2678,18 +2932,35 @@ function getDirtLegendHtml(){
 function getMapActionHtml(){
   const noGoCount=(state.noGoZones||[]).length;
   const noGoText=noGoCount>0 ? "금지 "+noGoCount : "금지구역";
-  let hint="원하는 방식을 고른 뒤 청소 실행하기를 누르면 돼요.";
+  let hint="원하는 방식을 고른 뒤 청소하기를 누르면 돼요.";
+  let readyClass=state.predicted?" status-ready":"";
   if(state.mapMode==="noGo")hint="지도에서 <b>청소하지 않을 영역</b>을 눌러주세요.";
-  else if(noGoCount>0)hint="금지구역 "+noGoCount+"곳은 빼고 준비해요. 청소 실행하기를 눌러주세요.";
-  else if(state.smartCleanMode==="dirty")hint="먼지가 많은 곳부터 준비했어요. 청소 실행하기를 눌러주세요.";
-  else if(state.smartCleanMode==="auto")hint="로보킹이 알아서 준비했어요. 청소 실행하기를 눌러주세요.";
+  else if(noGoCount>0)hint="금지구역 "+noGoCount+"곳은 빼고 준비해요.";
+  else if(state.smartCleanMode==="dirty")hint="먼지가 많은 곳만 골라뒀어요.";
+  else if(state.smartCleanMode==="auto")hint="로보킹이 알아서 준비했어요.";
 
   return "<div class='map-action-row'>"
     +"<button class='map-action-btn"+(state.smartCleanMode==="auto" && state.mapMode!=="noGo"?" active":"")+"' data-action='aiAutoClean'>✨ AI 자동청소</button>"
     +"<button class='map-action-btn"+(state.smartCleanMode==="dirty" && state.mapMode!=="noGo"?" active":"")+"' data-action='dirtyOnlyClean'>🔥 더러운 곳만</button>"
     +"<button class='map-action-btn danger"+(state.mapMode==="noGo"?" active":"")+"' data-action='toggleNoGoMode'>🚫 "+noGoText+"</button>"
     +"</div>"
-    +"<div class='map-action-hint'>"+hint+"</div>";
+    +"<div class='map-action-hint"+readyClass+"'>"+hint+"</div>";
+}
+function getMapRecommendationHtml(){
+  if(state.predicted || state.cleaning || state.charging)return "";
+  const rec=getCurrentRecommendation();
+  return "<div class='map-recommend-card'><span class='rec-icon'>"+rec.icon+"</span><div><b>"+rec.title+"</b><br>"+rec.sub+"</div></div>";
+}
+function getMapPrepCardHtml(){
+  if(!state.predicted)return "";
+  const planned=getPlannedZoneNumbers();
+  const noGo=(state.noGoZones||[]).length;
+  let title=state.selectedLabel+" 준비 완료";
+  if(state.smartCleanMode==="dirty")title="더러운 곳만 준비 완료";
+  if(state.smartCleanMode==="auto")title="AI 자동청소 준비 완료";
+  const sub=(noGo>0?"금지구역 "+noGo+"곳 제외 · ":"")+(planned.length?planned.length+"개 영역 청소":"청소 영역 준비")+" · "+(state.soc<state.targetSoc?"충전 후 출발":"바로 출발 가능");
+  const badge=state.soc<state.targetSoc?"충전 필요":"바로 가능";
+  return "<div class='map-prep-card'><div><div class='map-prep-title'>"+title+"</div><div class='map-prep-sub'>"+sub+"</div></div><div class='map-prep-badge'>"+badge+"</div></div>";
 }
 function getLearnedMapHtml(){
   try{console.log('[LG ROBO CARE] area/actual/expected zones', state.areaPyung, getActualZoneCount(), getExpectedZoneCount(state.areaPyung));}catch(e){}
@@ -2701,9 +2972,12 @@ function getLearnedMapHtml(){
     +"<div class='home-map-head'><div class='home-map-badge'>"+sizeLabel+" · "+zoneCount+"개 영역</div></div>"
     +"<div class='home-map-img-wrap'>"+getMapSvg(type)+"</div>"
     +getDirtLegendHtml()
+    +getMapRecommendationHtml()
     +getMapActionHtml()
+    +getMapPrepCardHtml()
     +"</div>";
 }
+
 function refreshScopeSelect(){
   const scopeSelect=$('scopeSelect');
   if(!scopeSelect)return;
@@ -2903,6 +3177,10 @@ function renderPlan(){
 
 function renderHome(){
   const room=$("room");room.className="room";
+  if(state.robotMotion==="returning")room.classList.add("returning");
+  if(state.robotMotion==="docked")room.classList.add("docked");
+  if(state.robotMotion==="departing")room.classList.add("departing");
+  if(state.predicted && !state.cleaning && !state.charging && !state.chargeComplete)room.classList.add("route-preview");
 
   if(state.chargeComplete){
     room.classList.add("celebrate");
@@ -2950,8 +3228,13 @@ function renderHome(){
     $("spark").textContent="💨";
   }else if(state.charging){
     room.classList.add("charging");
-    $("speech").innerHTML="<strong style='color:#e48627'>잠깐 쉬는 중이에요</strong><br>필요한 만큼만 충전할게요.";
-    $("modeChip").textContent="⚡ "+state.selectedLabel+" 출동 준비 중";
+    if(state.robotMotion==="returning"){
+      $("speech").innerHTML="<strong style='color:#e48627'>스테이션으로 가는 중!</strong><br>잠깐 힘을 채우고 올게요.";
+      $("modeChip").textContent="🏠 충전 스테이션 복귀 중";
+    }else{
+      $("speech").innerHTML="<strong style='color:#e48627'>잠깐 쉬는 중이에요</strong><br>필요한 만큼만 충전할게요.";
+      $("modeChip").textContent="⚡ "+state.selectedLabel+" 출동 준비 중";
+    }
     $("batteryFace").textContent="😌";
     $("batteryMessage").innerHTML="충전 스테이션에서 쉬면서<br>필요한 만큼만 채우고 있어요.";
     $("timeTip").textContent="로보킹이 필요한 만큼만 채우고 있어요.";
@@ -3345,9 +3628,13 @@ function aiAutoClean(){
   state.manualReady=false;
   state.manualKey="";
   state.selectedDirtyZones=[];
+  state.cleaningZones=[];
+  state.completedZones=[];
+  state.currentCleaningZone=null;
 
   const cleanable=getCleanableZones();
   if(!cleanable.length){showToast("청소할 수 있는 영역이 없어요. 금지구역을 줄여주세요.");return}
+  state.cleaningZones=cleanable.map(z=>Number(z.zone));
   const scenario=(state.noGoZones && state.noGoZones.length>0)
     ? makeAggregateScenario(cleanable,"AI 자동청소","auto")
     : Object.assign({},activeRun.home,{
@@ -3380,6 +3667,9 @@ function dirtyOnlyClean(){
   const count=Math.min(Math.max(1,Math.ceil(sorted.length*0.35)),3);
   const picked=sorted.slice(0,count).sort((a,b)=>Number(a.zone)-Number(b.zone));
   state.selectedDirtyZones=picked.map(z=>Number(z.zone));
+  state.cleaningZones=state.selectedDirtyZones.slice();
+  state.completedZones=[];
+  state.currentCleaningZone=null;
 
   const scenario=makeAggregateScenario(picked,"더러운 곳만","dirty");
   prepareScenarioAndShow(scenario,"더 신경 쓸 곳만 골랐어요. 이 영역부터 깨끗하게 청소할게요.","done");
@@ -3433,6 +3723,9 @@ function handleMapZoneTap(element){
   matchedScenario.label=zoneNo+"번 영역";
   state.smartCleanMode="zone";
   state.selectedDirtyZones=[];
+  state.cleaningZones=[Number(zoneNo)];
+  state.completedZones=[];
+  state.currentCleaningZone=null;
   prepareScenarioAndShow(matchedScenario,zoneNo+"번 영역만 청소할 준비를 마쳤어요.","done");
 }
 
@@ -3490,6 +3783,37 @@ function executeTopClean(){
     startCleaning();
   }
 }
+
+
+function getCleaningZonesForCurrentPlan(){
+  const nums=getPlannedZoneNumbers();
+  if(nums.length)return nums;
+  if(state.selectedScope==="zone" && state.selectedZone)return [Number(state.selectedZone)];
+  return getCleanableZones().map(z=>Number(z.zone));
+}
+function updateCleaningZoneProgress(percent){
+  const zones=state.cleaningZones && state.cleaningZones.length ? state.cleaningZones : getCleaningZonesForCurrentPlan();
+  if(!zones.length){
+    state.currentCleaningZone=null;
+    state.completedZones=[];
+    return;
+  }
+  const ratio=clamp(Number(percent||0),0,99)/100;
+  const idx=Math.min(zones.length-1,Math.floor(ratio*zones.length));
+  state.currentCleaningZone=zones[idx];
+  state.completedZones=zones.slice(0,idx);
+}
+function finishCleaningZoneProgress(){
+  const zones=state.cleaningZones && state.cleaningZones.length ? state.cleaningZones : getCleaningZonesForCurrentPlan();
+  state.completedZones=zones.slice();
+  state.currentCleaningZone=null;
+}
+function clearCleaningZoneProgress(){
+  state.cleaningZones=[];
+  state.currentCleaningZone=null;
+  state.completedZones=[];
+}
+
 
 function startCleaning(){
   if(state.cleaning){showToast("이미 청소 중이에요.");return}
@@ -3554,6 +3878,10 @@ function startCleaning(){
   }
 
   state.cleaning=true;
+  state.robotMotion='departing';
+  state.cleaningZones=getCleaningZonesForCurrentPlan();
+  updateCleaningZoneProgress(state.progress||0);
+  setTimeout(()=>{if(state.cleaning){state.robotMotion='idle';render();}},850);
   state.chargeComplete=false;
   state.missionDone=false;
   const startSoc=Number(state.soc||0);
@@ -3572,6 +3900,7 @@ function startCleaning(){
     step+=1;
     const ratio=step/totalSteps;
     state.progress=Math.round(startProgress+(endProgress-startProgress)*ratio);
+    updateCleaningZoneProgress(state.progress);
     state.soc=Math.max(MIN_RESERVE_SOC,Math.round((startSoc-segmentUse*ratio)*10)/10);
     state.temperature=Math.min(36,state.temperature+.25);
     render();
@@ -3590,6 +3919,8 @@ function startCleaning(){
 
       if(newRemaining>0.2){
         state.progress=endProgress;
+        updateCleaningZoneProgress(state.progress);
+        state.robotMotion='returning';
         state.targetSoc=targetFromRequired(newRemaining);
         addEvent("잠깐 쉬어가기",state.selectedLabel+" 청소 중 로보킹이 잠깐 충전한 뒤 남은 곳을 이어서 청소하기로 했어요.");
         render();
@@ -3607,6 +3938,8 @@ function startCleaning(){
 
       state.cleaningRemainingSoc=0;
       state.progress=100;
+      finishCleaningZoneProgress();
+      state.robotMotion='idle';
       state.missionDone=true;
       state.celebrating=true;
       state.cleanCount+=1;
@@ -3620,9 +3953,9 @@ function startCleaning(){
       render();
       $("speech").innerHTML="<strong style='color:#2f8b3a'>청소 완료!</strong><br>+50코인을 받았어요.";
       $("modeChip").textContent="🏆 "+state.selectedLabel+" 완료 · +50코인";
-      setGuide("청소 완료! 로보킹이 무리하지 않고 잘 마쳤어요. 보상으로 +50코인을 받았어요.","done");
+      setGuide("청소 완료! 배터리를 아껴 쓰며 마무리했어요. 보상으로 +50코인과 경험치를 받았어요.","done");
       showToast("청소 완료! 로보킹이 +50코인을 가져왔어요.");
-      setTimeout(()=>{state.celebrating=false;render()},2200);
+      setTimeout(()=>{state.celebrating=false;clearCleaningZoneProgress();render()},3600);
     }
   },320);
 }
@@ -3644,10 +3977,13 @@ function chargeRobot(autoStart=false){
   closeModal();
   switchPage("homePage");
   state.charging=true;
+  state.robotMotion='returning';
   state.chargeComplete=false;
   render();
-  setGuide("맞춤 충전을 시작했어요. 로보킹이 필요한 만큼만 채우고 알아서 멈춰요.","charging");
-  showToast("맞춤 충전 시작! 필요한 만큼만 채울게요.");
+  setGuide("로보킹이 스테이션으로 돌아가고 있어요. 필요한 만큼만 충전하고 출발할게요.","charging");
+  showToast("스테이션으로 돌아가 힘을 채울게요.");
+  setTimeout(()=>{state.robotMotion='docked';render();},950);
+  setTimeout(()=>{
   const timer=setInterval(()=>{
     state.soc=Math.min(state.targetSoc,state.soc+2);
     state.temperature=Math.min(32,state.temperature+.1);
@@ -3656,6 +3992,7 @@ function chargeRobot(autoStart=false){
     if(state.soc>=state.targetSoc){
       clearInterval(timer);
       state.charging=false;
+      state.robotMotion='docked';
       state.temperature=29;
       state.acceptCount+=1;
       state.chargeComplete=true;
@@ -3668,9 +4005,10 @@ function chargeRobot(autoStart=false){
       setGuide("충전 완료! 로보킹이 곧 바로 출동할게요.","done");
       showToast("충전 완료! 이제 로보킹이 출동할 수 있어요.");
       setTimeout(()=>{state.chargeComplete=false;render()},3200);
-      if(autoStart){setTimeout(startCleaning,1000)}
+      if(autoStart){setTimeout(()=>{state.robotMotion='departing';render();setTimeout(()=>{state.robotMotion='idle';startCleaning();},850)},900)}
     }
   },150);
+  },1050);
 }
 function buyFood(){
   if(state.coins<50){showToast("코인이 조금 부족해요. 청소 미션으로 코인을 모아보세요.");return}
