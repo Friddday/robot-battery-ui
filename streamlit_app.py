@@ -1306,6 +1306,46 @@ body,button,input,select{
 .dot-focus{background:#ff7d68;}
 
 
+
+/* ===== Main map CTA row ===== */
+.learn-actions{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+  margin-top:8px;
+}
+.learn-actions.ready{
+  grid-template-columns:1fr 1fr;
+}
+.clean-execute-btn{
+  position:relative;
+  z-index:9999;
+  width:100%;
+  min-height:45px;
+  border:0;
+  border-radius:13px;
+  background:linear-gradient(90deg,#41a346,#79c75a);
+  color:#fff;
+  font-size:14px;
+  font-weight:950;
+  box-shadow:0 7px 12px rgba(67,126,56,.22);
+  cursor:pointer;
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+}
+.clean-execute-btn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+  filter:grayscale(.12);
+}
+.condition-panel.manual-mode{
+  margin-top:9px!important;
+  background:linear-gradient(145deg,#fff8e6,#f3dfb2)!important;
+}
+.condition-panel.manual-mode .condition-title:before{
+  content:"✍️ ";
+}
+
 /* ===== Home simplification: one main clean-prep button, no extra lower cards ===== */
 .scope-buttons,
 .selected-plan,
@@ -1402,7 +1442,10 @@ body,button,input,select{
               <div class="learn-progress"><div class="learn-fill" id="learnFill"></div></div>
               <div class="learn-status" id="learnStatus">1회차 학습 청소를 시작하면 로보킹이 집 구조와 구역 정보를 자동으로 기록해요.</div>
               <div class="learn-steps" id="learnSteps"></div>
-              <button type="button" class="learn-btn" id="learnBtn" data-action="startFirstMapping" onpointerdown="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);" onmousedown="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);" ontouchstart="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);" onclick="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);">🏠 1회차 학습 청소 시작</button>
+              <div class="learn-actions" id="learnActions">
+                <button type="button" class="learn-btn" id="learnBtn" data-action="startFirstMapping" onpointerdown="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);" onmousedown="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);" ontouchstart="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);" onclick="window.__forceStartFirstMapping && window.__forceStartFirstMapping(event);">🏠 1회차 학습 청소 시작</button>
+                <button type="button" class="clean-execute-btn" id="cleanExecuteBtn" data-action="executeTopClean" style="display:none;">🧹 청소 실행하기</button>
+              </div>
             </div>
             <div class="condition-panel" id="conditionPanel">
               <div class="condition-title" id="conditionTitle">1회차 학습 청소로 우리 집 정보를 먼저 만들어요</div>
@@ -1419,7 +1462,7 @@ body,button,input,select{
               </div>
 
               <div id="predictionInputs" style="display:none;">
-                <div class="condition-help">오늘 상태만 고르면 필요한 만큼 알아서 준비해요.</div>
+                <div class="condition-help">AI 자동청소 대신, 조건을 직접 고르고 싶을 때만 사용해요.</div>
                 <div class="predict-condition-grid">
                   <label for="scopeSelect">청소 범위</label>
                   <select class="condition-select" id="scopeSelect">
@@ -1737,12 +1780,12 @@ function setGuide(message,tone="normal"){
 function guideForCurrentState(){
   if(state.mapping)return "로보킹이 우리 집을 배우는 중이에요. 집 구조와 바닥 상태를 차근차근 기억하고 있어요.";
   if(!state.profileReady)return "<b>1단계</b> 먼저 1회차 학습 청소로 우리 집을 알려주세요.";
-  if(state.profileReady && !state.predicted)return "<b>2단계</b> 오늘 청소 조건을 고르면 로보킹이 알아서 준비해요.";
+  if(state.profileReady && !state.predicted)return "<b>2단계</b> AI 자동청소를 고르거나, 바로 청소 실행하기를 눌러주세요.";
   if(state.charging)return "로보킹이 잠깐 쉬면서 힘을 채우고 있어요. 필요한 만큼 채우면 알아서 멈춰요.";
   if(state.cleaning)return "청소 중이에요. 배터리가 무리하지 않도록 로보킹이 알아서 조절하고 있어요.";
   if(state.celebrating || state.missionDone)return "청소가 끝났어요! 로보킹이 배터리를 아끼며 마무리했어요.";
-  if(state.predicted && state.soc<state.targetSoc)return "<b>3단계</b> 준비가 끝났어요. 같은 버튼을 한 번 더 누르면 필요한 만큼만 충전하고 바로 출발해요.";
-  if(state.predicted)return "<b>3단계</b> 지금 바로 출동할 수 있어요. 같은 버튼을 한 번 더 누르면 바로 청소를 시작해요.";
+  if(state.predicted && state.soc<state.targetSoc)return "<b>3단계</b> 준비가 끝났어요. 청소 실행하기를 누르면 필요한 만큼만 채우고 출발해요.";
+  if(state.predicted)return "<b>3단계</b> 지금 바로 출동할 수 있어요. 청소 실행하기를 눌러주세요.";
   return state.userGuide||"현재 상태를 확인 중입니다.";
 }
 
@@ -2171,21 +2214,6 @@ function syncScenarioToState(scenario){
 function predictSocFromConditions(){
   if(state.cleaning||state.charging||state.mapping){showToast("학습/청소/충전이 끝난 뒤 다시 준비할 수 있어요.");return}
 
-  // 오늘 청소 준비가 끝난 뒤에는 같은 버튼이 바로 실행 버튼 역할을 합니다.
-  // 사용자가 화면 아래로 다시 스크롤하지 않도록, 준비 버튼 하나에서 충전/청소까지 이어집니다.
-  if(state.profileReady && state.predicted && !state.predicting){
-    if(state.soc < state.targetSoc){
-      if(Number(state.requiredSoc||0)>MAX_SINGLE_PASS_USE && state.soc<MAX_CHARGE_SOC){
-        showSplitCleaningModal();
-      }else{
-        chargeRobot(true);
-      }
-    }else{
-      startCleaning();
-    }
-    return;
-  }
-
   if(!state.profileReady){
     setGuide("아직 로보킹이 우리 집을 잘 몰라요. 먼저 1회차 학습 청소를 시작해 주세요.","warning");
     showToast("먼저 로보킹에게 우리 집을 알려주세요.");
@@ -2543,11 +2571,11 @@ function getDirtLegendHtml(){
 function getMapActionHtml(){
   const noGoCount=(state.noGoZones||[]).length;
   const noGoText=noGoCount>0 ? "금지 "+noGoCount : "금지구역";
-  let hint="원하는 방식만 고르면 로보킹이 알아서 준비해요.";
+  let hint="원하는 방식을 고른 뒤 청소 실행하기를 누르면 돼요.";
   if(state.mapMode==="noGo")hint="지도에서 <b>청소하지 않을 영역</b>을 눌러주세요.";
-  else if(noGoCount>0)hint="금지구역 "+noGoCount+"곳은 빼고 청소해요.";
-  else if(state.smartCleanMode==="dirty")hint="먼지가 많은 곳부터 먼저 청소해요.";
-  else if(state.smartCleanMode==="auto")hint="로보킹이 오늘 상태에 맞춰 알아서 청소해요.";
+  else if(noGoCount>0)hint="금지구역 "+noGoCount+"곳은 빼고 준비해요. 청소 실행하기를 눌러주세요.";
+  else if(state.smartCleanMode==="dirty")hint="먼지가 많은 곳부터 준비했어요. 청소 실행하기를 눌러주세요.";
+  else if(state.smartCleanMode==="auto")hint="로보킹이 알아서 준비했어요. 청소 실행하기를 눌러주세요.";
 
   return "<div class='map-action-row'>"
     +"<button class='map-action-btn"+(state.smartCleanMode==="auto" && state.mapMode!=="noGo"?" active":"")+"' data-action='aiAutoClean'>✨ AI 자동청소</button>"
@@ -2596,6 +2624,8 @@ function renderPlan(){
   const predictBtn=$('predictBtn');
   const conditionTitle=$('conditionTitle');
   const learnBtn=$('learnBtn');
+  const learnActions=$('learnActions');
+  const cleanExecuteBtn=$('cleanExecuteBtn');
   const learnPill=$('learnPill');
   const learnStatus=$('learnStatus');
   const learnFill=$('learnFill');
@@ -2653,6 +2683,27 @@ function renderPlan(){
 
   if(firstLearnInputs)firstLearnInputs.style.display=state.profileReady?'none':'block';
   if(predictionInputs)predictionInputs.style.display=state.profileReady?'block':'none';
+  if(learnActions){
+    learnActions.classList.toggle('ready',state.profileReady && !state.mapping);
+  }
+  if(cleanExecuteBtn){
+    const showCleanExecute=state.profileReady && !state.mapping;
+    cleanExecuteBtn.style.display=showCleanExecute?'block':'none';
+    cleanExecuteBtn.disabled=!showCleanExecute || state.cleaning || state.charging || state.mapping || state.predicting;
+
+    if(state.cleaning){
+      cleanExecuteBtn.textContent='🧹 청소 중...';
+    }else if(state.charging){
+      cleanExecuteBtn.textContent='🔋 충전 중...';
+    }else if(!state.predicted){
+      cleanExecuteBtn.textContent='🧹 청소 실행하기';
+    }else if(state.soc<state.targetSoc){
+      cleanExecuteBtn.textContent='🔋 충전하고 청소';
+    }else{
+      cleanExecuteBtn.textContent='🧹 바로 청소하기';
+    }
+  }
+
 
   if(predictBtn){
     const mainBtnDisabled=!state.profileReady || state.mapping || state.predicting || state.cleaning || state.charging;
@@ -2660,19 +2711,20 @@ function renderPlan(){
     predictBtn.style.opacity=mainBtnDisabled?'.55':'1';
 
     if(!state.profileReady){
-      predictBtn.textContent='🤖 학습 후 청소 준비 가능';
+      predictBtn.textContent='🤖 학습 후 사용 가능';
     }else if(state.predicting){
-      predictBtn.textContent='🤖 오늘 청소 준비 중...';
-    }else if(!state.predicted){
-      predictBtn.textContent='🤖 오늘 청소 준비하기';
-    }else if(state.soc<state.targetSoc){
-      predictBtn.textContent='🔋 충전하고 청소하기';
+      predictBtn.textContent='🤖 조건 적용 중...';
+    }else if(state.predicted){
+      predictBtn.textContent='✍️ 선택 조건 다시 적용';
     }else{
-      predictBtn.textContent='🧹 바로 청소하기';
+      predictBtn.textContent='✍️ 선택 조건으로 준비';
     }
   }
+  if(conditionPanel){
+    conditionPanel.classList.toggle('manual-mode',state.profileReady);
+  }
   if(conditionTitle){
-    conditionTitle.textContent=state.profileReady?'오늘 청소 조건 선택':'1회차 학습 준비';
+    conditionTitle.textContent=state.profileReady?'직접 조건 청소':'1회차 학습 준비';
   }
 
   document.querySelectorAll('.scope-btn').forEach(btn=>{
@@ -3261,6 +3313,34 @@ function handleMapZoneTap(element){
 }
 
 
+
+function executeTopClean(){
+  if(state.cleaning){showToast("이미 청소 중이에요.");return}
+  if(state.charging){showToast("충전이 끝난 뒤 바로 출발할게요.");return}
+  if(state.mapping){showToast("집을 다 배운 뒤 청소할 수 있어요.");return}
+  if(!state.profileReady){
+    setGuide("먼저 1회차 학습 청소로 우리 집을 알려주세요.","warning");
+    showToast("먼저 로보킹에게 우리 집을 알려주세요.");
+    return;
+  }
+
+  // 사용자가 따로 선택하지 않으면 가장 쉬운 기본값인 AI 자동청소로 준비합니다.
+  if(!state.predicted){
+    aiAutoClean();
+    if(!state.predicted)return;
+  }
+
+  if(state.soc < state.targetSoc){
+    if(Number(state.requiredSoc||0)>MAX_SINGLE_PASS_USE && state.soc<MAX_CHARGE_SOC){
+      showSplitCleaningModal();
+    }else{
+      chargeRobot(true);
+    }
+  }else{
+    startCleaning();
+  }
+}
+
 function startCleaning(){
   if(state.cleaning){showToast("이미 청소 중이에요.");return}
   if(state.charging){showToast("충전이 끝난 후 청소할게요.");return}
@@ -3504,6 +3584,7 @@ function handleCoupon(key){
 const actions={
   startFirstMapping:startFirstMapping,
   predictSoc:predictSocFromConditions,
+  executeTopClean:executeTopClean,
   aiAutoClean:aiAutoClean,dirtyOnlyClean:dirtyOnlyClean,toggleNoGoMode:toggleNoGoMode,mapZone:handleMapZoneTap,
   selectHome:()=>selectScenario("home"),selectZone1:()=>selectScenario("zone",1),selectZone2:()=>selectScenario("zone",2),selectZone3:()=>selectScenario("zone",3),selectZone4:()=>selectScenario("zone",4),selectZone5:()=>selectScenario("zone",5),selectZone6:()=>selectScenario("zone",6),selectZone7:()=>selectScenario("zone",7),selectZone8:()=>selectScenario("zone",8),
   pet:petRobot,feed:feedRobot,play:playRobot,train:trainRobot,photo:takePhoto,clean:startCleaning,charge:chargeRobot,status:showStatus,
