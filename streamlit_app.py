@@ -1458,27 +1458,27 @@ body,button,input,select{
   filter:drop-shadow(0 4px 5px rgba(76,45,20,.18));
 }
 .map-room-group.dirty-selected .map-room{
-  stroke:#ff3f1f;
-  stroke-width:8;
-  filter:drop-shadow(0 0 8px rgba(255,78,30,.78)) drop-shadow(0 4px 8px rgba(238,121,42,.35));
-  animation:dirtyZoneGlow 1.05s ease-in-out infinite;
+  stroke:#ffd84d;
+  stroke-width:4.2;
+  filter:drop-shadow(0 0 5px rgba(255,216,77,.48));
+  animation:dirtyZoneGlow 1.25s ease-in-out infinite;
 }
 .map-dirty-ring{
   fill:none;
-  stroke:#ffe24a;
-  stroke-width:4.2;
-  stroke-dasharray:7 5;
-  filter:drop-shadow(0 0 5px rgba(255,226,74,.86));
-  animation:dirtyRingDash 1.05s linear infinite;
+  stroke:#ffe681;
+  stroke-width:3.2;
+  stroke-dasharray:7 6;
+  filter:drop-shadow(0 0 4px rgba(255,230,129,.62));
+  animation:dirtyRingDash 1.2s linear infinite;
   pointer-events:none;
 }
 .map-dirty-spark{
-  fill:#ff4f21;
-  font-size:14px;
+  fill:#f6b800;
+  font-size:13px;
   font-weight:950;
   text-anchor:middle;
   dominant-baseline:middle;
-  filter:drop-shadow(0 1px 2px rgba(255,255,255,.8));
+  filter:drop-shadow(0 1px 2px rgba(255,255,255,.85));
   pointer-events:none;
 }
 .map-room-group.dimmed .map-room{
@@ -1604,8 +1604,8 @@ body,button,input,select{
   to{stroke-dashoffset:0}
 }
 @keyframes dirtyZoneGlow{
-  0%,100%{filter:drop-shadow(0 0 5px rgba(255,78,30,.58)) drop-shadow(0 4px 7px rgba(238,121,42,.28))}
-  50%{filter:drop-shadow(0 0 13px rgba(255,78,30,.95)) drop-shadow(0 4px 11px rgba(238,121,42,.48))}
+  0%,100%{filter:drop-shadow(0 0 3px rgba(255,216,77,.34))}
+  50%{filter:drop-shadow(0 0 8px rgba(255,216,77,.74))}
 }
 @keyframes dirtyRingDash{
   from{stroke-dashoffset:24}
@@ -2973,7 +2973,7 @@ function getMapActionHtml(){
   let readyClass=state.predicted?" status-ready":"";
   if(state.mapMode==="noGo")hint="지도에서 <b>청소하지 않을 영역</b>을 눌러주세요.";
   else if(noGoCount>0)hint="금지구역 "+noGoCount+"곳은 빼고 준비해요.";
-  else if(state.smartCleanMode==="dirty")hint="빛나는 영역만 청소해요. 다른 모드를 누르면 강조가 꺼져요.";
+  else if(state.smartCleanMode==="dirty")hint="노란빛 영역만 골라뒀어요. 청소하기를 누르면 그곳만 청소해요.";
   else if(state.smartCleanMode==="auto")hint="로보킹이 알아서 준비했어요.";
 
   return "<div class='map-action-row'>"
