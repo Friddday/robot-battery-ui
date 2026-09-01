@@ -1458,13 +1458,32 @@ body,button,input,select{
   filter:drop-shadow(0 4px 5px rgba(76,45,20,.18));
 }
 .map-room-group.dirty-selected .map-room{
-  stroke:#fff7c8;
-  stroke-width:6.5;
-  filter:drop-shadow(0 4px 7px rgba(238,121,42,.32));
+  stroke:#ff3f1f;
+  stroke-width:8;
+  filter:drop-shadow(0 0 8px rgba(255,78,30,.78)) drop-shadow(0 4px 8px rgba(238,121,42,.35));
+  animation:dirtyZoneGlow 1.05s ease-in-out infinite;
+}
+.map-dirty-ring{
+  fill:none;
+  stroke:#ffe24a;
+  stroke-width:4.2;
+  stroke-dasharray:7 5;
+  filter:drop-shadow(0 0 5px rgba(255,226,74,.86));
+  animation:dirtyRingDash 1.05s linear infinite;
+  pointer-events:none;
+}
+.map-dirty-spark{
+  fill:#ff4f21;
+  font-size:14px;
+  font-weight:950;
+  text-anchor:middle;
+  dominant-baseline:middle;
+  filter:drop-shadow(0 1px 2px rgba(255,255,255,.8));
+  pointer-events:none;
 }
 .map-room-group.dimmed .map-room{
-  opacity:.46;
-  filter:grayscale(.16);
+  opacity:.28;
+  filter:grayscale(.35);
 }
 .map-room-group.cleaning-zone .map-room{
   animation:mapZonePulse 1.05s ease-in-out infinite;
@@ -1487,7 +1506,11 @@ body,button,input,select{
   text-anchor:middle;
   dominant-baseline:middle;
 }
+.map-route{
+  opacity:0;
+}
 .map-route.active-route{
+  opacity:1;
   stroke:rgba(61,164,76,.78);
   stroke-width:4;
   stroke-dasharray:7 8;
@@ -1578,6 +1601,14 @@ body,button,input,select{
 }
 @keyframes routeDash{
   from{stroke-dashoffset:36}
+  to{stroke-dashoffset:0}
+}
+@keyframes dirtyZoneGlow{
+  0%,100%{filter:drop-shadow(0 0 5px rgba(255,78,30,.58)) drop-shadow(0 4px 7px rgba(238,121,42,.28))}
+  50%{filter:drop-shadow(0 0 13px rgba(255,78,30,.95)) drop-shadow(0 4px 11px rgba(238,121,42,.48))}
+}
+@keyframes dirtyRingDash{
+  from{stroke-dashoffset:24}
   to{stroke-dashoffset:0}
 }
 
@@ -2849,7 +2880,9 @@ function getMapZoneClass(zoneNo){
   return classes.join(" ");
 }
 function routeClass(){
-  const active=(state.predicted || state.cleaning || (state.selectedDirtyZones&&state.selectedDirtyZones.length) || (state.noGoZones&&state.noGoZones.length));
+  // 선택 직후 지도 위에 경로선이 지나가면 오류처럼 보여서,
+  // 경로선은 실제 청소가 진행될 때만 표시합니다.
+  const active=Boolean(state.cleaning);
   return "map-route"+(active?" active-route":"");
 }
 function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
@@ -2873,6 +2906,9 @@ function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
     html += "<rect class='map-no-go-shade' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rx+"'></rect>"
       +"<line class='map-no-go-line' x1='"+(x+10)+"' y1='"+(y+10)+"' x2='"+(x+w-10)+"' y2='"+(y+h-10)+"'></line>"
       +"<line class='map-no-go-line' x1='"+(x+w-10)+"' y1='"+(y+10)+"' x2='"+(x+10)+"' y2='"+(y+h-10)+"'></line>";
+  }else if(state.smartCleanMode==="dirty" && (state.selectedDirtyZones||[]).includes(Number(zoneNo))){
+    html += "<rect class='map-dirty-ring' x='"+(x+4)+"' y='"+(y+4)+"' width='"+(w-8)+"' height='"+(h-8)+"' rx='"+Math.max(6,rx-2)+"'></rect>"
+      +"<text class='map-dirty-spark' x='"+(x+13)+"' y='"+(y+15)+"'>✦</text>";
   }
 
   html += "<circle cx='"+badgeX+"' cy='"+badgeY+"' r='"+badgeR+"' fill='rgba(255,255,255,.82)'></circle>"
@@ -2936,7 +2972,7 @@ function getMapActionHtml(){
   let readyClass=state.predicted?" status-ready":"";
   if(state.mapMode==="noGo")hint="지도에서 <b>청소하지 않을 영역</b>을 눌러주세요.";
   else if(noGoCount>0)hint="금지구역 "+noGoCount+"곳은 빼고 준비해요.";
-  else if(state.smartCleanMode==="dirty")hint="먼지가 많은 곳만 골라뒀어요.";
+  else if(state.smartCleanMode==="dirty")hint="빛나는 영역만 골라뒀어요. 청소하기를 누르면 그곳만 청소해요.";
   else if(state.smartCleanMode==="auto")hint="로보킹이 알아서 준비했어요.";
 
   return "<div class='map-action-row'>"
@@ -3177,9 +3213,9 @@ function renderPlan(){
 
 function renderHome(){
   const room=$("room");room.className="room";
-  if(state.robotMotion==="returning")room.classList.add("returning");
-  if(state.robotMotion==="docked")room.classList.add("docked");
-  if(state.robotMotion==="departing")room.classList.add("departing");
+  if(!state.cleaning && state.robotMotion==="returning")room.classList.add("returning");
+  if(!state.cleaning && state.robotMotion==="docked")room.classList.add("docked");
+  if(!state.cleaning && state.robotMotion==="departing")room.classList.add("departing");
   if(state.predicted && !state.cleaning && !state.charging && !state.chargeComplete)room.classList.add("route-preview");
 
   if(state.chargeComplete){
@@ -3780,6 +3816,7 @@ function executeTopClean(){
       chargeRobot(true);
     }
   }else{
+    state.robotMotion='idle';
     startCleaning();
   }
 }
@@ -3878,10 +3915,11 @@ function startCleaning(){
   }
 
   state.cleaning=true;
-  state.robotMotion='departing';
+  // 바로 청소 가능한 경우에는 스테이션 복귀/출발 모션 없이 즉시 청소를 시작합니다.
+  // 스테이션 출발 모션은 실제 충전 후 자동 출발할 때만 chargeRobot()에서 실행합니다.
+  state.robotMotion='idle';
   state.cleaningZones=getCleaningZonesForCurrentPlan();
   updateCleaningZoneProgress(state.progress||0);
-  setTimeout(()=>{if(state.cleaning){state.robotMotion='idle';render();}},850);
   state.chargeComplete=false;
   state.missionDone=false;
   const startSoc=Number(state.soc||0);
@@ -3964,7 +4002,7 @@ function chargeRobot(autoStart=false){
   if(state.cleaning){showToast("청소가 끝난 후 충전할 수 있어요.");return}
   if(state.charging){showToast("이미 충전 중이에요.");return}
   if(state.soc>=state.targetSoc){
-    if(autoStart){setTimeout(startCleaning,250);return}
+    if(autoStart){state.robotMotion='idle';setTimeout(startCleaning,250);return}
     state.chargeComplete=true;
     render();
     $("speech").innerHTML="<strong>배불러요!</strong><br>이제 "+state.selectedLabel+" 청소가 가능해요.";
