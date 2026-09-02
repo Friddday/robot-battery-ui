@@ -103,7 +103,6 @@ DATA_DIR = BASE_DIR / "data"
 # 예전 home_model_predictions.csv / zone_model_predictions.csv도 fallback으로 유지합니다.
 # ============================================================
 
-ML_OUTPUT_UI_PATH = DATA_DIR / "ml_output_ui.csv"
 ML_OUTPUT_PATH = DATA_DIR / "ml_output.csv"
 ML_OUTPUT_ALT_PATH = DATA_DIR / "ml_output(2).csv"
 HOME_PRED_PATH = DATA_DIR / "home_model_predictions.csv"
@@ -560,7 +559,6 @@ def _limit_final_ml_runs(ml_df, max_runs=96, per_bucket=4):
 def make_prediction_payload_from_final_ml(ml_df):
     runs = []
     if ml_df is not None and len(ml_df) > 0 and "global_run_id" in ml_df.columns:
-        ml_df = _limit_final_ml_runs(ml_df)
         ml_df = ml_df.copy()
         ml_df["global_run_id"] = ml_df["global_run_id"].astype(str)
         for gid, zdf in ml_df.groupby("global_run_id", sort=False):
@@ -761,7 +759,7 @@ def make_prediction_payload(home_df, zone_df):
     }
 
 
-ml_output_path = _first_existing_csv([ML_OUTPUT_UI_PATH, ML_OUTPUT_PATH, ML_OUTPUT_ALT_PATH])
+ml_output_path = _first_existing_csv([ML_OUTPUT_PATH, ML_OUTPUT_ALT_PATH])
 ml_output_df = load_prediction_csv(str(ml_output_path)) if ml_output_path else None
 
 if ml_output_df is not None:
