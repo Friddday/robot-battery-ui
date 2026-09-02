@@ -1,4 +1,6 @@
+import base64
 import json
+import mimetypes
 from pathlib import Path
 
 import pandas as pd
@@ -28,118 +30,87 @@ st.markdown(
       }
       .block-container{max-width:100%;padding:8px 4px 18px;}
       iframe{border:0!important;border-radius:28px;}
-    
-/* ===== Readability upgrade: larger text for mobile demo ===== */
-.phone{height:960px;}
-.header{height:136px;padding:26px 16px 10px;}
-.pages{height:calc(100% - 136px);}
-.brand{font-size:10px;}
-.app-title{font-size:26px;}
-.coin-pill{font-size:13px;padding:9px 13px;}
-.nav-btn{font-size:11px;padding:9px 4px;}
-.speech{width:206px;min-height:84px;font-size:14px;line-height:1.55;padding:15px 14px;}
-.speech strong{font-size:16px;}
-.mode-chip{font-size:10px;padding:8px 14px;}
-.mission{width:102px;padding:10px 8px;}
-.mission-title{font-size:11px;}
-.mission-text{font-size:10px;line-height:1.45;}
-.reward-small{font-size:10px;}
-.quick-btn{width:56px;min-height:55px;font-size:9px;}
-.quick-btn .icon{font-size:23px;}
-.action-btn{font-size:9px;}
-.action-icon{font-size:25px;}
-.mini-title{font-size:12px;}
-.battery-info{font-size:10.5px;line-height:1.55;}
-.battery-message{font-size:10px;line-height:1.5;padding:8px;}
-.time-sub{font-size:9.5px;}
-.time-tip{font-size:10px;line-height:1.5;padding:8px 6px;}
-.food-title,.food-count{font-size:11px;}
-.plan-panel{padding:12px;}
-.plan-title{font-size:13px;}
-.plan-model{font-size:9.5px;padding:5px 8px;}
-.learn-panel{padding:12px;border-radius:15px;}
-.learn-title{font-size:12px;}
-.learn-pill{font-size:9.5px;padding:5px 8px;}
-.learn-desc{font-size:10px;line-height:1.55;}
-.learn-status{font-size:10px;line-height:1.5;}
-.learn-steps{gap:6px;}
-.learn-steps.map-ready{
-  display:block!important;
-  grid-template-columns:1fr!important;
-  width:100%!important;
-}
-
-.learn-step{font-size:9.5px;padding:6px 5px;}
-.learn-btn{font-size:12px;min-height:39px;}
-.condition-panel{padding:11px;border-radius:15px;}
-.condition-title{font-size:11px;line-height:1.45;margin-bottom:8px;}
-.condition-row{grid-template-columns:.55fr 1fr .55fr 1fr;gap:7px;}
-.condition-row label{font-size:10px;}
-.condition-select{font-size:11px;min-height:38px;padding:0 9px;}
-
-.predict-condition-grid{display:grid;grid-template-columns:.7fr 1fr .7fr 1fr;gap:8px;align-items:center;margin-top:8px;}
-.predict-condition-grid label{font-size:10.5px;font-weight:900;color:#6c4a2f;white-space:nowrap;}
-.condition-help{font-size:10.3px;line-height:1.55;color:#8a6a45;margin:8px 0 0;}
-.profile-chip{display:inline-block;background:#edf8df;color:#2f8b3a;border:1px solid #d5ecc3;border-radius:999px;padding:5px 9px;font-size:9.5px;font-weight:900;margin-left:4px;}
-@media(max-width:440px){.predict-condition-grid{grid-template-columns:.8fr 1fr;gap:7px}.predict-condition-grid label{font-size:10px}}
-.predict-btn{font-size:12px;min-height:40px;}
-.predict-loading{font-size:10px;line-height:1.5;min-height:22px;}
-.scope-btn{font-size:10px;min-height:42px;padding:6px 3px;}
-.selected-plan{gap:8px;}
-.plan-summary{font-size:10.5px;line-height:1.6;padding:11px;}
-.plan-soc{padding:11px;}
-.plan-soc-label{font-size:10px;}
-.plan-soc-value{font-size:26px;}
-.plan-soc-sub{font-size:10px;line-height:1.45;}
-.gauge-label{font-size:11px;}
-.gauge-desc{font-size:10px;}
-.control-head{font-size:12px;}
-.control-caption{font-size:9.5px;}
-.panel-title{font-size:14px;}
-.badge{font-size:9.5px;}
-.legend{font-size:10px;}
-.insight-row{font-size:11px;line-height:1.6;}
-.record-label,.event-time{font-size:10px;}
-.event-content strong{font-size:11px;}
-.event-content span{font-size:10px;line-height:1.45;}
-.reward-title{font-size:12px;}
-.reward-desc{font-size:10px;line-height:1.45;}
-.reward-btn{font-size:10px;}
-.modal-card{padding:22px;border-radius:22px;}
-.modal-title{font-size:20px;}
-.modal-body{font-size:14px;line-height:1.7;}
-.modal-btn{font-size:13px;padding:13px;}
-.toast{font-size:12px;}
-@media(max-width:440px){.phone{height:100vh;}.pages{height:calc(100% - 136px);}}
-
-
-
-/* ===== Final UX: use bottom sheet only for decisions; routine updates use cards/toasts/speech ===== */
-.modal{align-items:flex-end!important;justify-content:center!important;padding:0 16px 18px!important;background:rgba(45,33,23,.32)!important;backdrop-filter:blur(2px)!important;}
-.modal-card{max-width:392px!important;border-radius:24px 24px 20px 20px!important;animation:sheetUp .22s ease-out!important;}
-@keyframes sheetUp{from{opacity:0;transform:translateY(46px)}to{opacity:1;transform:translateY(0)}}
-.predict-loading{border-radius:10px;padding:6px 8px;background:rgba(255,255,255,.35);}
-.predict-loading.active{background:#eaf4df;color:#2f8b3a;}
-
-</style>
+    </style>
     """,
     unsafe_allow_html=True,
 )
 
 # ============================================================
 # 맞춤 배터리 준비 결과 기록 연결부
-# GitHub에는 아래 구조로 기록를 올리면 됩니다.
+# GitHub에는 아래 구조로 기록을 올리면 됩니다.
 # data/home_model_predictions.csv
 # data/zone_model_predictions.csv
+#
+# 사진첩 / 분실물 이미지 연결부 (시연용)
+# assets/photos/        → 4번째 탭 "사진첩"에 표시되는 반려동물 사진 (png/jpg/jpeg/gif/webp)
+# assets/lost_items/    → 4번째 탭 "오늘의 발견"의 분실물 사진 (없으면 이모지로 표시)
+# 각 폴더에 선택적으로 captions.json 을 두면 파일명별 제목/장소/시간/설명을 지정할 수 있습니다.
+#   { "cat1.jpg": {"title": "낮잠 자는 콩이", "place": "거실 소파", "time": "오늘 오후 1:20", "note": "햇살 아래에서 낮잠 중"} }
+# captions.json 이 없으면 파일명(확장자 제외)이 제목으로 사용됩니다.
+# 사진은 한 장당 1MB 이하로 줄여두면 로딩이 빠릅니다.
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
 DATA_DIR = BASE_DIR / "data"
 HOME_PRED_PATH = DATA_DIR / "home_model_predictions.csv"
 ZONE_PRED_PATH = DATA_DIR / "zone_model_predictions.csv"
+ASSET_DIR = BASE_DIR / "assets"
+PHOTO_DIR = ASSET_DIR / "photos"
+LOST_DIR = ASSET_DIR / "lost_items"
 
 # 데모용 현재 배터리. 실제 제품에서는 로봇/앱에서 받은 현재 배터리로 교체하면 됩니다.
 CURRENT_SOC = 80
+
+IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+
+
+def _folder_signature(folder: Path):
+    """폴더 안 파일이 바뀌면 캐시가 자동으로 갱신되도록 시그니처를 만듭니다."""
+    if not folder.exists():
+        return "missing"
+    parts = []
+    for p in sorted(folder.iterdir()):
+        try:
+            parts.append(f"{p.name}:{p.stat().st_mtime_ns}:{p.stat().st_size}")
+        except Exception:
+            parts.append(p.name)
+    return "|".join(parts)
+
+
+@st.cache_data
+def load_image_folder(folder_str: str, signature: str):
+    folder = Path(folder_str)
+    items = []
+    if not folder.exists() or not folder.is_dir():
+        return items
+    captions = {}
+    cap_path = folder / "captions.json"
+    if cap_path.exists():
+        try:
+            captions = json.loads(cap_path.read_text(encoding="utf-8")) or {}
+        except Exception:
+            captions = {}
+    for p in sorted(folder.iterdir()):
+        if p.suffix.lower() not in IMAGE_EXTS:
+            continue
+        try:
+            raw = p.read_bytes()
+        except Exception:
+            continue
+        mime = mimetypes.guess_type(p.name)[0] or "image/jpeg"
+        data = base64.b64encode(raw).decode("ascii")
+        meta = captions.get(p.name) or captions.get(p.stem) or {}
+        if not isinstance(meta, dict):
+            meta = {"title": str(meta)}
+        items.append({
+            "name": p.name,
+            "src": f"data:{mime};base64,{data}",
+            "title": str(meta.get("title") or p.stem),
+            "place": str(meta.get("place") or ""),
+            "time": str(meta.get("time") or ""),
+            "note": str(meta.get("note") or ""),
+        })
+    return items
 
 
 def _is_valid(value):
@@ -380,7 +351,7 @@ def make_prediction_payload(home_df, zone_df):
                     "zones": zones,
                 })
 
-    # home 기록가 없고 zone 기록만 있을 때도 최소 동작하도록 처리
+    # home 기록이 없고 zone 기록만 있을 때도 최소 동작하도록 처리
     if not runs and zone_df is not None and len(zone_df) > 0 and "global_run_id" in zone_df.columns:
         for gid, zdf in zone_df.groupby("global_run_id"):
             if len(zdf) < 1:
@@ -434,6 +405,12 @@ home_pred_df = load_prediction_csv(str(HOME_PRED_PATH))
 zone_pred_df = load_prediction_csv(str(ZONE_PRED_PATH))
 ui_prediction_data = make_prediction_payload(home_pred_df, zone_pred_df)
 UI_PREDICTION_JSON = json.dumps(ui_prediction_data, ensure_ascii=False)
+
+ui_media_data = {
+    "photos": load_image_folder(str(PHOTO_DIR), _folder_signature(PHOTO_DIR)),
+    "lostItems": load_image_folder(str(LOST_DIR), _folder_signature(LOST_DIR)),
+}
+UI_MEDIA_JSON = json.dumps(ui_media_data, ensure_ascii=False)
 
 APP_HTML = r"""
 <!doctype html>
@@ -539,29 +516,9 @@ button,input{font-family:inherit} button{cursor:pointer}
 .condition-row{display:grid;grid-template-columns:.7fr 1fr .7fr 1fr;gap:6px;align-items:center}.condition-row label{font-size:9px;font-weight:900;color:#6c4a2f}.condition-select{width:100%;min-height:34px;border:1px solid rgba(124,83,43,.22);border-radius:10px;background:#fffaf0;color:#4b3324;font-size:10px;font-weight:900;padding:0 7px}.predict-condition-grid{display:grid;grid-template-columns:.72fr 1fr .72fr 1fr;gap:6px;align-items:center;margin-top:8px}.predict-condition-grid label{font-size:9px;font-weight:900;color:#6c4a2f;white-space:nowrap}.condition-help{font-size:9px;line-height:1.5;color:#8a6a45;margin:7px 0 0;font-weight:800}.first-learn-note{padding:8px 9px;border-radius:11px;background:rgba(255,255,255,.58);font-size:10px;line-height:1.55;color:#6f4f38}.predict-btn{width:100%;min-height:36px;margin-top:8px;border:0;border-radius:11px;background:linear-gradient(90deg,#4a9b42,#75b84e);color:#fff;font-size:11px;font-weight:900;box-shadow:0 5px 10px rgba(47,139,58,.2)}.predict-loading{margin-top:6px;min-height:18px;font-size:9px;line-height:1.45;color:#745431;font-weight:800}.predict-loading.active{color:#2f8b3a}
 .selected-plan{display:grid;grid-template-columns:1fr .9fr;gap:7px;align-items:stretch}.plan-summary{padding:9px;border-radius:12px;background:#fff4d5;font-size:9px;line-height:1.55;font-weight:800}.plan-summary strong{color:#2f8b3a}.plan-soc{padding:9px;border-radius:12px;background:#f0e0be;text-align:center;font-weight:900}.plan-soc-label{font-size:8px;color:#79583e}.plan-soc-value{margin-top:2px;color:#ef573f;font-size:22px;line-height:1}.plan-soc-sub{margin-top:4px;font-size:8px;color:#76553e;line-height:1.35}.start-clean-primary{width:100%;min-height:46px;margin-top:9px;border:0;border-radius:14px;background:linear-gradient(90deg,#ef8c32,#f2a84d);color:#fff;font-size:13px;font-weight:950;letter-spacing:-.2px;box-shadow:0 7px 15px rgba(239,140,50,.26)}.start-clean-primary:disabled{opacity:.55;filter:grayscale(.12);box-shadow:none}.start-clean-primary small{display:block;margin-top:2px;font-size:9px;font-weight:800;color:rgba(255,255,255,.88)}
 
-/* Battery */
-.gauge-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.gauge-card{padding:14px 10px;text-align:center}
-.gauge{--value:81;--color:#49a646;position:relative;width:118px;height:118px;margin:0 auto 8px;display:grid;place-items:center;border-radius:50%;background:conic-gradient(var(--color) calc(var(--value)*1%),#ead9b9 0)}
-.gauge:before{content:"";position:absolute;width:82px;height:82px;border-radius:50%;background:#fff4d8}.gauge-content{position:relative;z-index:2;font-weight:900}.gauge-label{font-size:10px}.gauge-value{margin-top:2px;font-size:24px}.gauge-desc{font-size:9px;line-height:1.5;font-weight:800}
-.control{margin-top:9px;padding:15px 14px}.control-row{margin-bottom:17px}.control-row:last-child{margin-bottom:0}.control-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:11px;font-weight:900}.control-value{color:var(--green2)}input[type=range]{width:100%;accent-color:var(--green2)}.control-caption{display:flex;justify-content:space-between;margin-top:4px;color:#806047;font-size:8px;font-weight:800}
-.primary-btn{width:100%;margin-top:12px;padding:12px;border:0;border-radius:13px;background:linear-gradient(90deg,#4a9b42,#75b84e);color:#fff;font-size:12px;font-weight:900;box-shadow:0 5px 12px rgba(63,132,57,.23)}
-.chart-panel{margin-top:9px;padding:15px 14px}.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.panel-title{font-size:13px;font-weight:900}.badge{padding:5px 8px;border-radius:12px;background:#fff0ce;color:#805c35;font-size:8px;font-weight:900}.soc-chart{width:100%;height:167px;overflow:visible}.grid-line{stroke:#d7c6a8;stroke-width:1;stroke-dasharray:4 5}.line-red{fill:none;stroke:#eb6650;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.line-green{fill:none;stroke:#4c9a43;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.chart-text{fill:#856347;font-size:9px;font-weight:800}.legend{display:flex;gap:13px;font-size:9px;font-weight:900}.dot{display:inline-block;width:9px;height:9px;margin-right:4px;border-radius:50%}.insight{margin-top:9px;padding:14px}.insight-row{display:flex;gap:9px;font-size:10px;line-height:1.6;font-weight:800}.insight-icon{font-size:20px}
-
-/* Record */
-.weekly{padding:15px 14px}.bar-chart{height:190px;display:flex;align-items:flex-end;justify-content:space-between;gap:8px;padding:17px 5px 0}.bar-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}.bar{width:100%;max-width:32px;border-radius:12px 12px 5px 5px;background:linear-gradient(180deg,#66b449,#138b35);transform-origin:bottom;animation:barGrow .65s ease-out}.bar-value{margin-bottom:4px;color:#426d32;font-size:8px;font-weight:900}.bar-label{margin-top:5px;font-size:9px;font-weight:900}
-.record-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.record-card{min-height:90px;padding:14px;border:1px solid rgba(136,87,40,.14);border-radius:16px;background:rgba(255,248,231,.96);box-shadow:var(--shadow)}.record-label{color:#6e503a;font-size:9px;font-weight:900}.record-value{margin-top:7px;color:#31241b;font-size:23px;font-weight:900}
+/* 공용 패널 헤더/기록 목록 (부품 케어 페이지에서 사용) */
+.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.panel-title{font-size:13px;font-weight:900}.badge{padding:5px 8px;border-radius:12px;background:#fff0ce;color:#805c35;font-size:8px;font-weight:900}
 .events{margin-top:9px;padding:15px 14px}.event-item{display:grid;grid-template-columns:43px 1fr;gap:8px;padding:11px 0;border-bottom:1px solid rgba(122,87,51,.12)}.event-item:last-child{border-bottom:0}.event-time{color:#946c43;font-size:9px;font-weight:900}.event-content strong{display:block;margin-bottom:3px;font-size:10px}.event-content span{color:#785a43;font-size:9px;line-height:1.4;font-weight:700}
-
-
-/* Event page placeholder */
-.event-hero{padding:16px 14px;margin-bottom:9px;background:linear-gradient(145deg,#fff8e8,#f5dfa9)}
-.event-hero-title{font-size:18px;font-weight:950;color:#4b3324;margin-bottom:8px}
-.event-hero-desc{font-size:12px;line-height:1.55;font-weight:800;color:#76533b}
-.event-placeholder-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
-.event-placeholder-card{min-height:112px;padding:14px;border-radius:16px;background:rgba(255,248,231,.96);box-shadow:var(--shadow);border:1px solid rgba(136,87,40,.14)}
-.event-placeholder-icon{font-size:30px;margin-bottom:8px}
-.event-placeholder-title{font-size:13px;font-weight:950;color:#4b3324}
-.event-placeholder-text{margin-top:5px;font-size:11px;line-height:1.45;font-weight:800;color:#7b5a3e}
 
 /* Reward */
 .level-panel{padding:17px 15px;text-align:center;background:linear-gradient(145deg,#fff3cc,#ffd98a)}.level-robot{font-size:72px;animation:float 2s ease-in-out infinite}.level-number{margin-top:5px;font-size:25px;font-weight:900}.level-track{height:11px;margin:12px 10px 5px;overflow:hidden;border-radius:10px;background:rgba(126,85,39,.18)}.level-fill{width:55%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff7f35,#ffd244)}.level-caption{font-size:9px;font-weight:900}
@@ -584,7 +541,6 @@ button,input{font-family:inherit} button{cursor:pointer}
 @keyframes dustRise{0%{transform:translateY(0) scale(.6);opacity:0}25%{opacity:.65}100%{transform:translateY(-45px) translateX(15px) scale(1.25);opacity:0}}
 @keyframes effectFly{0%{transform:translate(0,0) scale(.7);opacity:0}20%{opacity:1}100%{transform:translate(var(--move-x),-125px) scale(1.35) rotate(var(--rotate));opacity:0}}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
-@keyframes barGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @keyframes popup{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
 @media(max-width:440px){body{padding:0}.phone{width:100%;height:100vh;border:0;border-radius:0}.notch{display:none}}
 
@@ -626,109 +582,6 @@ button,input{font-family:inherit} button{cursor:pointer}
 }
 
 
-/* ===== Large text mode: all readable UI text increased by 30%+ ===== */
-.phone{height:1040px!important;}
-.header{height:154px!important;padding:29px 16px 10px!important;}
-.pages{height:calc(100% - 154px)!important;}
-body,button,input,select{font-size:15px!important;}
-.brand{font-size:13px!important;}
-.app-title{font-size:32px!important;}
-.coin-pill{font-size:17px!important;padding:10px 14px!important;}
-.nav{gap:6px!important;margin-top:14px!important;}
-.nav-btn{font-size:14px!important;min-height:42px!important;padding:9px 4px!important;}
-.section-kicker{font-size:12px!important;}
-.section-title{font-size:30px!important;}
-.speech{width:238px!important;min-height:98px!important;font-size:16px!important;line-height:1.62!important;padding:17px 15px!important;}
-.speech strong{font-size:19px!important;}
-.mode-chip{font-size:13px!important;padding:9px 15px!important;}
-.mission-title{font-size:14px!important;}
-.mission-text{font-size:13px!important;line-height:1.55!important;}
-.reward-small{font-size:13px!important;}
-.quick-btn{font-size:12px!important;min-height:58px!important;}
-.action-btn{font-size:12px!important;}
-.mini-title{font-size:15px!important;}
-.battery-info{font-size:13px!important;line-height:1.6!important;}
-.battery-message{font-size:13px!important;line-height:1.55!important;padding:9px!important;}
-.time-number{font-size:39px!important;}
-.time-number small{font-size:16px!important;}
-.time-sub{font-size:12px!important;}
-.time-tip{font-size:13px!important;line-height:1.55!important;padding:9px 7px!important;}
-.food-title,.food-count{font-size:13px!important;}
-.plan-panel{padding:14px 12px!important;}
-.plan-title{font-size:15px!important;}
-.plan-model{font-size:12px!important;padding:6px 9px!important;}
-.learn-panel{padding:14px 12px!important;border-radius:16px!important;}
-.learn-title{font-size:15px!important;}
-.learn-pill{font-size:12px!important;padding:6px 9px!important;}
-.learn-desc{font-size:13px!important;line-height:1.6!important;}
-.learn-status{font-size:13px!important;line-height:1.55!important;}
-.learn-step{font-size:12px!important;line-height:1.35!important;padding:8px 6px!important;}
-.learn-btn{font-size:16px!important;min-height:48px!important;}
-.condition-panel{padding:14px 12px!important;border-radius:16px!important;}
-.condition-title{font-size:15px!important;line-height:1.5!important;margin-bottom:10px!important;}
-.condition-row{grid-template-columns:92px 1fr!important;gap:9px 10px!important;align-items:center!important;}
-.condition-row label{font-size:13px!important;}
-.condition-select{font-size:15px!important;min-height:48px!important;padding:0 12px!important;border-radius:12px!important;}
-.predict-condition-grid{grid-template-columns:92px 1fr!important;gap:9px 10px!important;align-items:center!important;}
-.predict-condition-grid label{font-size:13px!important;white-space:normal!important;}
-.condition-help{font-size:13px!important;line-height:1.6!important;margin:10px 0 0!important;}
-.profile-chip{font-size:12px!important;padding:6px 10px!important;}
-.first-learn-note{font-size:13px!important;line-height:1.6!important;padding:10px 11px!important;}
-.predict-btn{font-size:16px!important;min-height:50px!important;border-radius:13px!important;}
-.predict-loading{font-size:13px!important;line-height:1.55!important;min-height:26px!important;}
-.scope-buttons{grid-template-columns:repeat(2,1fr)!important;gap:8px!important;}
-.scope-btn{font-size:13px!important;min-height:50px!important;padding:8px 6px!important;}
-.selected-plan{grid-template-columns:1fr!important;gap:10px!important;}
-.plan-summary{font-size:14px!important;line-height:1.65!important;padding:13px!important;}
-.plan-soc{padding:13px!important;}
-.plan-soc-label{font-size:13px!important;}
-.plan-soc-value{font-size:35px!important;}
-.plan-soc-sub{font-size:13px!important;line-height:1.5!important;}
-.start-clean-primary{font-size:18px!important;min-height:64px!important;border-radius:16px!important;}
-.start-clean-primary small{font-size:12px!important;}
-.gauge-label{font-size:13px!important;}
-.gauge-value{font-size:32px!important;}
-.gauge-desc{font-size:13px!important;line-height:1.55!important;}
-.control-head{font-size:15px!important;}
-.control-caption{font-size:12px!important;}
-.primary-btn{font-size:16px!important;min-height:48px!important;}
-.panel-title{font-size:18px!important;}
-.panel-head > div:last-child{font-size:14px!important;}
-.badge{font-size:12px!important;}
-.chart-text{font-size:12px!important;}
-.legend{font-size:13px!important;}
-.insight-row{font-size:14px!important;line-height:1.65!important;}
-.record-label,.event-time{font-size:13px!important;}
-.record-value{font-size:31px!important;}
-.event-content strong{font-size:14px!important;}
-.event-content span{font-size:13px!important;line-height:1.55!important;}
-.bar-value{font-size:12px!important;}
-.bar-label{font-size:12px!important;}
-.level-number{font-size:34px!important;}
-.level-caption{font-size:12px!important;}
-.reward-title{font-size:15px!important;}
-.reward-desc{font-size:13px!important;line-height:1.55!important;}
-.reward-btn{font-size:13px!important;min-height:40px!important;}
-.modal-title{font-size:25px!important;}
-.modal-body{font-size:17px!important;line-height:1.75!important;}
-.modal-btn{font-size:17px!important;padding:14px!important;}
-.toast{font-size:15px!important;line-height:1.55!important;}
-#homePage .home-dashboard{padding:14px 10px 34px!important;}
-@media(max-width:440px){
-  .phone{height:100vh!important;}
-  .header{height:154px!important;}
-  .pages{height:calc(100% - 154px)!important;}
-  .condition-row,.predict-condition-grid{grid-template-columns:88px 1fr!important;gap:9px 9px!important;}
-  .scope-buttons{grid-template-columns:repeat(2,1fr)!important;}
-}
-@media(max-height:820px){
-  #homePage .room{flex-basis:318px!important;height:318px!important;min-height:318px!important;}
-  .speech{top:12px!important;}
-  .mode-chip{top:114px!important;}
-}
-
-
-
 /* ===== Balanced readable mode: keep original phone shape, enlarge text without stretching layout ===== */
 .phone{
   width:min(100%,420px)!important;
@@ -756,6 +609,8 @@ body,button,input,select{
 .coin-pill{font-size:14px!important;padding:9px 13px!important;}
 .nav{margin-top:11px!important;gap:6px!important;}
 .nav-btn{font-size:11px!important;min-height:36px!important;padding:8px 2px!important;border-radius:16px!important;}
+.section-kicker{font-size:11px!important;}
+.section-title{font-size:24px!important;}
 #homePage .room{
   flex:0 0 330px!important;
   height:330px!important;
@@ -812,18 +667,19 @@ body,button,input,select{
 }
 .condition-select{font-size:13px!important;min-height:42px!important;padding:0 9px!important;border-radius:11px!important;}
 .condition-help{font-size:12px!important;line-height:1.5!important;margin:8px 0 0!important;}
-.profile-chip{font-size:11px!important;padding:5px 8px!important;white-space:nowrap!important;}
+.profile-chip{display:inline-block;background:#edf8df;color:#2f8b3a;border:1px solid #d5ecc3;border-radius:999px;padding:5px 8px!important;font-size:11px!important;font-weight:900;margin-left:4px;white-space:nowrap!important;}
 .first-learn-note{font-size:12px!important;line-height:1.55!important;padding:9px 10px!important;}
 .predict-btn{font-size:14px!important;min-height:44px!important;border-radius:13px!important;}
-.predict-loading{font-size:12px!important;line-height:1.5!important;min-height:24px!important;}
+.predict-loading{font-size:12px!important;line-height:1.5!important;min-height:24px!important;border-radius:10px;padding:6px 8px;background:rgba(255,255,255,.35);}
+.predict-loading.active{background:#eaf4df;color:#2f8b3a;}
 .scope-buttons{grid-template-columns:1.05fr repeat(5,1fr)!important;gap:5px!important;}
 .scope-btn{font-size:10.5px!important;min-height:42px!important;padding:6px 3px!important;line-height:1.2!important;}
 .selected-plan{grid-template-columns:1fr .82fr!important;gap:8px!important;}
-.plan-summary{font-size:12px!important;line-height:1.55!important;padding:11px!important;}
+.plan-summary{font-size:12px!important;line-height:1.35!important;padding:11px!important;}
 .plan-soc{padding:11px 8px!important;}
 .plan-soc-label{font-size:11px!important;}
 .plan-soc-value{font-size:30px!important;}
-.plan-soc-sub{font-size:11px!important;line-height:1.45!important;}
+.plan-soc-sub{font-size:11px!important;line-height:1.45!important;white-space:normal!important;}
 .start-clean-primary{font-size:15px!important;min-height:54px!important;border-radius:15px!important;}
 .start-clean-primary small{font-size:11px!important;}
 .home-cards{grid-template-columns:1.1fr 1fr .78fr!important;gap:7px!important;}
@@ -836,27 +692,23 @@ body,button,input,select{
 .time-sub{font-size:10.5px!important;}
 .time-tip{font-size:11px!important;line-height:1.45!important;}
 .food-title,.food-count{font-size:11.5px!important;}
-.gauge-label{font-size:12px!important;}
-.gauge-value{font-size:28px!important;}
-.gauge-desc{font-size:12px!important;line-height:1.5!important;}
-.control-head{font-size:13px!important;}
-.control-caption{font-size:11px!important;}
-.primary-btn{font-size:14px!important;min-height:45px!important;}
 .panel-title{font-size:16px!important;}
 .badge{font-size:11px!important;}
-.legend{font-size:12px!important;}
-.insight-row{font-size:12.5px!important;line-height:1.6!important;}
-.record-label,.event-time{font-size:11.5px!important;}
-.record-value{font-size:27px!important;}
 .event-content strong{font-size:12.5px!important;}
 .event-content span{font-size:11.5px!important;line-height:1.5!important;}
+.event-time{font-size:11.5px!important;}
 .reward-title{font-size:13px!important;}
 .reward-desc{font-size:11.5px!important;line-height:1.5!important;}
 .reward-btn{font-size:12px!important;}
+.level-number{font-size:30px!important;}
+.level-caption{font-size:11px!important;}
+.modal{align-items:flex-end!important;justify-content:center!important;padding:0 16px 18px!important;background:rgba(45,33,23,.32)!important;backdrop-filter:blur(2px)!important;}
+.modal-card{max-width:392px!important;padding:22px!important;border-radius:24px 24px 20px 20px!important;animation:sheetUp .22s ease-out!important;}
+@keyframes sheetUp{from{opacity:0;transform:translateY(46px)}to{opacity:1;transform:translateY(0)}}
 .modal-title{font-size:22px!important;}
 .modal-body{font-size:15px!important;line-height:1.7!important;}
 .modal-btn{font-size:15px!important;padding:13px!important;}
-.toast{font-size:13px!important;line-height:1.5!important;}
+.toast{font-size:13px!important;line-height:1.5!important;min-width:260px;text-align:center;}
 @media(max-width:440px){
   body{padding:8px!important;}
   .phone{
@@ -874,6 +726,7 @@ body,button,input,select{
 }
 @media(max-height:820px){
   #homePage .room{flex-basis:315px!important;height:315px!important;min-height:315px!important;}
+  .speech{top:12px!important;}
 }
 
 /* CTA click safety: keep the first-learning button above decorative layers */
@@ -882,7 +735,6 @@ body,button,input,select{
 .learn-panel,.plan-panel,.home-dashboard{position:relative!important;}
 .learn-panel{z-index:80!important;}
 .condition-panel{position:relative!important;z-index:10!important;}
-
 
 /* ===== Compact learning/profile summary cards ===== */
 .compact-note{padding:9px 10px!important;line-height:1.35!important;}
@@ -898,11 +750,6 @@ body,button,input,select{
 .summary-val{color:#4b3324;font-size:11px;font-weight:950;text-align:right;line-height:1.25;}
 .summary-val.em{color:#ef573f;font-size:15px;}
 .summary-val.green{color:#2f8b3a;}
-.plan-summary{line-height:1.35!important;}
-.plan-soc-sub{white-space:normal!important;}
-
-
-
 
 /* ===== User guidance banner: persistent next-step explanation ===== */
 .flow-guide{
@@ -926,7 +773,6 @@ body,button,input,select{
 .flow-guide.danger b{color:#ef4e45;}
 .flow-guide.done{border-left-color:#2f8b3a;background:linear-gradient(145deg,#eff9e8,#fff7dc);}
 .flow-guide.charging{border-left-color:#f2a84d;background:linear-gradient(145deg,#fff2d2,#fff8e8);}
-.toast{min-width:260px;text-align:center;line-height:1.45;}
 
 /* ===== Reward closet: equipped items stay on Roboking ===== */
 .robot-accessory{
@@ -1128,8 +974,297 @@ body,button,input,select{
   .robot-soc-badge{right:60px;bottom:105px;}
 }
 
+/* ===== SVG learned home map card ===== */
+.learn-steps.map-ready,
+#learnSteps.map-ready{
+  display:block!important;
+  grid-template-columns:1fr!important;
+  gap:0!important;
+  width:100%!important;
+}
+#learnSteps.map-ready .home-map-card{
+  width:100%!important;
+  max-width:none!important;
+}
+.home-map-card{
+  width:100%;
+  padding:6px;
+  margin-top:8px;
+  border-radius:16px;
+  background:rgba(255,255,255,.72);
+  border:1px solid rgba(124,83,43,.14);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.48);
+}
+.home-map-head{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  margin-bottom:5px;
+}
+.home-map-title{display:none;}
+.home-map-badge{
+  flex:0 0 auto;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#e8f5dc;
+  color:#2f8b3a;
+  font-size:10px;
+  line-height:1;
+  font-weight:950;
+  white-space:nowrap;
+}
+.home-map-img-wrap{
+  position:relative;
+  overflow:hidden;
+  width:100%;
+  min-height:210px;
+  border-radius:14px;
+  background:linear-gradient(145deg,#f6e3ba,#fff7e4);
+  border:1px solid rgba(124,83,43,.12);
+}
+.home-map-svg{display:block;width:100%;height:220px;}
+.home-map-caption{display:none;}
+.map-room{stroke:#fffdf4;stroke-width:4;filter:drop-shadow(0 3px 4px rgba(67,42,20,.13));}
+.map-room.dashed{stroke-dasharray:8 5;stroke:#fffdf4;}
+.map-room-label{fill:#64472f;font-size:13px;font-weight:950;text-anchor:middle;dominant-baseline:middle;}
+.map-room-sub{fill:#8a6744;font-size:9.4px;font-weight:850;text-anchor:middle;dominant-baseline:middle;}
+.map-route{fill:none;stroke:rgba(255,255,255,.82);stroke-width:3;stroke-linecap:round;stroke-dasharray:5 6;}
+.map-room-group{cursor:pointer;}
+.map-room-group .map-room{transition:opacity .18s ease, filter .18s ease;}
+.map-room-group.no-go .map-room{opacity:.42;filter:grayscale(.35);}
+.map-no-go-shade{fill:rgba(255,255,255,.48);}
+.map-no-go-line{stroke:#8b6f57;stroke-width:4;stroke-linecap:round;opacity:.72;}
+.map-action-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:8px;}
+.map-action-btn{
+  min-height:38px;
+  border:0;
+  border-radius:13px;
+  background:#fff4d8;
+  color:#68472d;
+  font-size:11.5px;
+  font-weight:950;
+  box-shadow:inset 0 0 0 1px rgba(135,88,43,.16);
+  cursor:pointer;
+}
+.map-action-btn.active{color:#fff;background:linear-gradient(135deg,#50ae48,#77c75b);box-shadow:0 7px 12px rgba(67,126,56,.20);}
+.map-action-btn.danger.active{background:linear-gradient(135deg,#f07a54,#f7a13e);box-shadow:0 7px 12px rgba(190,93,45,.20);}
+.map-action-hint{
+  margin-top:7px;
+  padding:7px 9px;
+  border-radius:12px;
+  background:rgba(255,250,235,.92);
+  border:1px solid rgba(124,83,43,.10);
+  color:#6f4f36;
+  font-size:11px;
+  line-height:1.38;
+  font-weight:850;
+  text-align:center;
+}
+.map-action-hint b{color:#2f8b3a;}
+.map-legend{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:7px 10px;
+  margin-top:8px;
+  padding:8px 8px;
+  border-radius:14px;
+  background:rgba(255,250,235,.92);
+  border:1px solid rgba(124,83,43,.13);
+  color:#68472d;
+  font-size:12px;
+  line-height:1.15;
+  font-weight:950;
+}
+.map-legend-title{color:#4b3324;font-weight:1000;margin-right:2px;}
+.map-legend-item{display:inline-flex;align-items:center;gap:5px;}
+.map-dot{display:inline-block;width:12px;height:12px;border-radius:999px;border:1px solid rgba(80,50,28,.16);box-shadow:0 1px 2px rgba(72,43,19,.12);}
+.dot-clean{background:#cfeec0;}
+.dot-normal{background:#ffe08a;}
+.dot-dusty{background:#ffb169;}
+.dot-focus{background:#ff7d68;}
+
+/* ===== Main map CTA row ===== */
+.learn-actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px;}
+.learn-actions.ready{grid-template-columns:1fr 1fr;}
+.clean-execute-btn{
+  position:relative;
+  z-index:9999;
+  width:100%;
+  min-height:45px;
+  border:0;
+  border-radius:13px;
+  background:linear-gradient(90deg,#41a346,#79c75a);
+  color:#fff;
+  font-size:14px;
+  font-weight:950;
+  box-shadow:0 7px 12px rgba(67,126,56,.22);
+  cursor:pointer;
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+}
+.clean-execute-btn:disabled{opacity:.55;cursor:not-allowed;filter:grayscale(.12);}
+.condition-panel.manual-mode{margin-top:9px!important;background:linear-gradient(145deg,#fff8e6,#f3dfb2)!important;}
+.condition-panel.manual-mode .condition-title:before{content:"✍️ ";}
+
+/* ===== Home simplification: one main clean-prep button, no extra lower cards ===== */
+.scope-buttons,
+.selected-plan,
+.start-clean-primary,
+.actions,
+.home-cards{display:none!important;}
+.condition-panel{margin-bottom:0!important;}
+.predict-btn{position:relative;z-index:30;}
+#flowGuide{margin-top:9px;}
+
+/* ============================================================
+   NEW PAGE 2 · 부품 케어 (부품 상태 + 실시간 케어 기록)
+   ============================================================ */
+.parts-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.part-card{display:flex;align-items:center;gap:8px;padding:12px 10px;border:1px solid rgba(136,87,40,.14);border-radius:16px;background:rgba(255,248,231,.97);box-shadow:var(--shadow);cursor:pointer;text-align:left;}
+.part-card:active{transform:scale(.98);}
+.part-icon{flex:0 0 auto;width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:#f5eddb;font-size:25px;}
+.part-info{flex:1 1 auto;min-width:0;}
+.part-name{font-size:11.5px;font-weight:900;color:#7a5a3c;}
+.part-status{margin-top:3px;font-size:12.5px;font-weight:950;line-height:1.3;word-break:keep-all;}
+.part-face{flex:0 0 auto;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:17px;}
+.part-card.good .part-status{color:#2f8b3a;}.part-card.good .part-face{background:#dff3cd;}
+.part-card.check .part-status{color:#e07a1f;}.part-card.check .part-face{background:#ffe6c2;}
+.part-card.bad .part-status{color:#ef4e45;}.part-card.bad .part-face{background:#ffd9d4;}
+.care-summary{margin-top:9px;padding:14px;}
+.care-lead{font-size:12px;line-height:1.55;font-weight:850;color:#6f4f38;}
+.care-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px;}
+.care-stat{padding:10px 6px;border-radius:13px;background:#fff2cf;text-align:center;}
+.care-stat span{display:block;font-size:10.5px;font-weight:900;color:#7a5a3c;line-height:1.3;}
+.care-stat b{display:block;margin-top:5px;color:#2f8b3a;font-size:22px;font-weight:1000;line-height:1;}
+.care-stat small{font-size:10px;font-weight:900;color:#7a5a3c;}
+.care-health-row{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11.5px;font-weight:900;}
+.care-health-track{flex:1;height:10px;overflow:hidden;border-radius:10px;background:#ead9b9;}
+.care-health-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,#62aa49,#ffd44f);transition:width .3s;}
+.care-note{margin-top:10px;padding:9px 10px;border-radius:12px;background:#eaf4df;color:#2f8b3a;font-size:11.5px;line-height:1.5;font-weight:850;}
+.event-tag{display:inline-block;margin-left:5px;padding:2px 7px;border-radius:999px;background:#eaf4df;color:#2f8b3a;font-size:9.5px!important;font-weight:950;vertical-align:middle;line-height:1.3;}
+.modal-emoji{font-size:64px;text-align:center;padding:10px 0 14px;}
+.modal-img{width:100%;max-height:300px;object-fit:cover;border-radius:14px;margin-bottom:10px;display:block;}
+
+/* ============================================================
+   NEW PAGE 3 · 예약 청소 (출퇴근 맞춤 + 테마 기간 청소)
+   ============================================================ */
+.sched-panel{padding:14px;margin-bottom:9px;}
+.sched-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.sched-title{font-size:15px;font-weight:950;}
+.sched-desc{margin-top:4px;font-size:11.5px;line-height:1.5;font-weight:800;color:#76533b;}
+.switch{flex:0 0 auto;position:relative;width:50px;height:28px;border:0;border-radius:999px;background:#d8c7a6;transition:.2s;}
+.switch .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.2);transition:.2s;}
+.switch.on{background:#4a9b42;}.switch.on .knob{left:25px;}
+.sched-body{margin-top:11px;}
+.sched-body.off{opacity:.5;pointer-events:none;filter:grayscale(.2);}
+.time-row{display:grid;grid-template-columns:38px 1fr 38px 1fr;gap:7px;align-items:center;}
+.time-row label{font-size:12px;font-weight:900;color:#6c4a2f;}
+.day-chips{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:9px;}
+.day-chip{min-height:34px;border:1px solid rgba(124,83,43,.18);border-radius:11px;background:#f3e2be;color:#6f4f38;font-size:12px;font-weight:950;}
+.day-chip.on{background:linear-gradient(180deg,#65ae4b,#368e3d);color:#fff;border-color:transparent;}
+.sched-options{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px;}
+.sched-opt{min-height:40px;border:1px solid rgba(124,83,43,.16);border-radius:12px;background:#fff4d5;color:#5a412e;font-size:11.5px;font-weight:950;line-height:1.25;padding:6px;}
+.sched-opt.active{background:linear-gradient(90deg,#ef8c32,#ffb24b);color:#fff;border-color:transparent;}
+.sched-preview{margin-top:10px;padding:10px 11px;border-radius:12px;background:#eaf4df;color:#2f8b3a;font-size:12px;line-height:1.6;font-weight:900;}
+.sched-preview b{color:#ef573f;}
+.sched-preview.off{background:#f3e2be;color:#7a5a3c;}
+.sub-title{margin:14px 0 8px;font-size:15px;font-weight:950;}
+.theme-list{display:flex;flex-direction:column;gap:8px;}
+.theme-card{display:grid;grid-template-columns:46px 1fr auto;gap:10px;align-items:center;padding:12px;border:1px solid rgba(136,87,40,.14);border-radius:16px;background:rgba(255,248,231,.97);box-shadow:var(--shadow);}
+.theme-card.on{border-color:rgba(75,155,66,.35);box-shadow:0 0 0 2px rgba(75,155,66,.18),var(--shadow);}
+.theme-card.past{opacity:.6;}
+.theme-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:14px;background:#fff2cf;font-size:25px;}
+.theme-info{min-width:0;}
+.theme-name{font-size:13.5px;font-weight:950;line-height:1.25;}
+.theme-period{margin-top:2px;font-size:11px;font-weight:900;color:#946c43;}
+.theme-desc{margin-top:4px;font-size:11.5px;line-height:1.45;font-weight:800;color:#6f4f38;}
+.theme-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.theme-chips span{padding:3px 7px;border-radius:999px;background:#f3e2be;font-size:10px;font-weight:950;color:#6f4f38;}
+.theme-state{display:inline-block;margin-left:5px;padding:2px 7px;border-radius:999px;font-size:9.5px;font-weight:950;background:#fff0ce;color:#805c35;vertical-align:middle;}
+.theme-state.live{background:#eaf4df;color:#2f8b3a;}
+.theme-state.past{background:#eee6da;color:#8a7a68;}
+.theme-btn{min-width:62px;min-height:40px;border:0;border-radius:12px;background:#f0dfbc;color:#5c422f;font-size:11.5px;font-weight:950;}
+.theme-btn.on{background:linear-gradient(90deg,#4a9b42,#75b84e);color:#fff;}
+.upcoming{margin-top:9px;padding:14px;}
+.upcoming-item{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:center;padding:9px 0;border-bottom:1px dashed rgba(122,87,51,.16);}
+.upcoming-item:last-child{border-bottom:0;}
+.upcoming-icon{font-size:22px;text-align:center;}
+.upcoming-item strong{display:block;font-size:12.5px;}
+.upcoming-item span{display:block;margin-top:2px;font-size:11px;color:#785a43;font-weight:800;line-height:1.4;}
+.upcoming-empty{padding:6px 0;font-size:12px;color:#8a6a45;font-weight:850;line-height:1.5;}
+
+/* ============================================================
+   NEW PAGE 4 · 이벤트 (오늘의 발견 / 미션 / 사진첩)
+   ============================================================ */
+.event-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0 0 9px;}
+.event-tabs .reward-folder-btn{font-size:12px!important;padding:0 4px;white-space:nowrap;}
+.found-top{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.found-card{padding:11px 10px;border:1px solid rgba(136,87,40,.14);border-radius:16px;background:rgba(255,248,231,.97);box-shadow:var(--shadow);display:flex;flex-direction:column;}
+.found-card-title{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:950;margin-bottom:8px;}
+.found-photo{position:relative;height:92px;border-radius:12px;overflow:hidden;background:linear-gradient(145deg,#e9cfa8,#f7e6c9);display:grid;place-items:center;font-size:44px;}
+.found-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.found-name{margin-top:8px;font-size:13px;font-weight:950;color:#e07a1f;}
+.found-name.done{color:#2f8b3a;}
+.found-desc{margin-top:3px;font-size:11px;line-height:1.45;font-weight:800;color:#6f4f38;}
+.found-meta{margin-top:5px;font-size:10.5px;font-weight:900;color:#7a5a3c;line-height:1.5;}
+.found-btn{margin-top:auto;padding-top:8px;}
+.found-btn button{width:100%;min-height:34px;border:0;border-radius:11px;background:#f0dfbc;color:#5c422f;font-size:11.5px;font-weight:950;}
+.found-map{flex:1;min-height:150px;border-radius:12px;overflow:hidden;background:#fbf1de;border:1px solid rgba(124,83,43,.12);}
+.found-map svg{width:100%;height:100%;display:block;}
+.fm-room{fill:#f6e9d2;stroke:#c9ad82;stroke-width:2;}
+.fm-label{fill:#7a5a3c;font-size:11px;font-weight:900;text-anchor:middle;}
+.fm-pin{animation:float 1.6s ease-in-out infinite;}
+.found-list{margin-top:9px;padding:13px 12px;}
+.found-item{display:grid;grid-template-columns:48px 1fr auto;gap:9px;align-items:center;padding:9px 0;border-bottom:1px dashed rgba(122,87,51,.16);cursor:pointer;}
+.found-item:last-child{border-bottom:0;}
+.found-thumb{width:48px;height:48px;border-radius:12px;overflow:hidden;display:grid;place-items:center;background:#f5eddb;font-size:26px;}
+.found-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.found-item strong{display:block;font-size:12.5px;}
+.found-item span{display:block;margin-top:2px;font-size:11px;color:#785a43;font-weight:800;}
+.found-right{text-align:right;font-size:10.5px;color:#7a5a3c;font-weight:900;line-height:1.55;white-space:nowrap;}
+.found-item.done{opacity:.55;}
+.mission-summary{padding:13px 14px;margin-bottom:9px;background:linear-gradient(145deg,#fff3cc,#ffd98a);display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.mission-summary .ms-title{font-size:13.5px;font-weight:950;}
+.mission-summary .ms-desc{margin-top:3px;font-size:11px;font-weight:850;color:#76533b;line-height:1.45;}
+.mission-summary .ms-count{flex:0 0 auto;text-align:center;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.7);font-size:10.5px;font-weight:950;color:#7a5a3c;}
+.mission-summary .ms-count b{display:block;font-size:22px;color:#ef573f;line-height:1;margin-bottom:2px;}
+.mission-card{padding:12px;margin-bottom:8px;border:1px solid rgba(136,87,40,.14);border-radius:16px;background:rgba(255,248,231,.97);box-shadow:var(--shadow);}
+.mission-head{display:flex;align-items:center;gap:8px;}
+.mission-head .m-icon{font-size:24px;}
+.mission-head .m-name{font-size:13.5px;font-weight:950;flex:1;}
+.mission-head .m-count{font-size:11px;font-weight:900;color:#7a5a3c;white-space:nowrap;}
+.tier-row{display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:center;margin-top:9px;}
+.tier-medal{font-size:22px;text-align:center;filter:grayscale(1);opacity:.45;}
+.tier-row.reached .tier-medal{filter:none;opacity:1;}
+.tier-info{min-width:0;}
+.tier-goal{font-size:11.5px;font-weight:950;}
+.tier-track{height:7px;margin-top:4px;border-radius:10px;overflow:hidden;background:#ead9b9;}
+.tier-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff8e33,#ffca43);transition:width .3s;}
+.tier-btn{min-width:78px;min-height:34px;border:0;border-radius:11px;background:#f0dfbc;color:#8a7a68;font-size:11px!important;font-weight:950;padding:0 8px;}
+.tier-btn.claim{background:linear-gradient(90deg,#4a9b42,#75b84e);color:#fff;animation:pulseBtn 1.4s ease-in-out infinite;}
+.tier-btn.claimed{background:#eaf4df;color:#2f8b3a;}
+@keyframes pulseBtn{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.photo-info{padding:12px 13px;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.photo-info .p-title{font-size:13.5px;font-weight:950;}
+.photo-info .p-desc{margin-top:3px;font-size:11px;font-weight:800;color:#76533b;line-height:1.45;}
+.photo-info .p-count{flex:0 0 auto;text-align:center;padding:8px 10px;border-radius:12px;background:#fff2cf;font-size:10.5px;font-weight:950;color:#7a5a3c;}
+.photo-info .p-count b{display:block;font-size:20px;color:#ef573f;line-height:1;margin-bottom:2px;}
+.photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.photo-tile{position:relative;border-radius:16px;overflow:hidden;background:#f5eddb;box-shadow:var(--shadow);cursor:pointer;aspect-ratio:1/1;}
+.photo-tile img{width:100%;height:100%;object-fit:cover;display:block;}
+.photo-tile .ph-emoji{width:100%;height:100%;display:grid;place-items:center;font-size:56px;background:linear-gradient(145deg,#f6e3ba,#fff7e4);}
+.photo-cap{position:absolute;left:0;right:0;bottom:0;padding:16px 9px 8px;background:linear-gradient(180deg,transparent,rgba(45,33,23,.74));color:#fff;font-size:11px;font-weight:950;line-height:1.3;}
+.photo-cap small{display:block;font-weight:800;opacity:.85;font-size:9.5px;}
+.photo-empty{padding:14px;margin-top:9px;text-align:center;font-size:11.5px;line-height:1.6;font-weight:850;color:#6f4f38;}
+.photo-empty code{background:#fff2cf;padding:2px 6px;border-radius:6px;font-size:11px;}
+.nav-dot{display:inline-block;width:7px;height:7px;margin-left:3px;border-radius:50%;background:#ffd44f;vertical-align:middle;box-shadow:0 0 0 2px rgba(255,212,79,.25);}
 
 
+
+/* ===== MERGED HOME OVERRIDES FROM LATEST HOME SCREEN ===== */
 /* ===== SVG learned home map card ===== */
 
 .learn-steps.map-ready,
@@ -1307,6 +1442,7 @@ body,button,input,select{
 
 
 
+
 /* ===== Main map CTA row ===== */
 .learn-actions{
   display:grid;
@@ -1396,6 +1532,7 @@ body,button,input,select{
 
 
 
+
 /* ===== Home WOW features: station motion, route, map progress, prep cards ===== */
 .room:after{
   content:"";
@@ -1453,29 +1590,42 @@ body,button,input,select{
   transition:opacity .18s ease, filter .18s ease, stroke-width .18s ease;
 }
 .map-room-group.planned .map-room{
-  stroke:#36b04a;
-  stroke-width:5.2;
-  filter:drop-shadow(0 0 3px rgba(54,176,74,.35));
-  animation:plannedGreenBlink 1.15s ease-in-out infinite;
+  stroke:#ffffff;
+  stroke-width:5.5;
+  filter:drop-shadow(0 4px 5px rgba(76,45,20,.18));
 }
 .map-room-group.dirty-selected .map-room{
-  stroke:#36b04a;
-  stroke-width:5.2;
-  filter:drop-shadow(0 0 3px rgba(54,176,74,.35));
-  animation:plannedGreenBlink 1.05s ease-in-out infinite;
+  stroke:#ffd84d;
+  stroke-width:4.2;
+  filter:drop-shadow(0 0 5px rgba(255,216,77,.48));
+  animation:dirtyZoneGlow 1.25s ease-in-out infinite;
 }
-.map-dirty-ring,
+.map-dirty-ring{
+  fill:none;
+  stroke:#ffe681;
+  stroke-width:3.2;
+  stroke-dasharray:7 6;
+  filter:drop-shadow(0 0 4px rgba(255,230,129,.62));
+  animation:dirtyRingDash 1.2s linear infinite;
+  pointer-events:none;
+}
 .map-dirty-spark{
-  display:none!important;
+  fill:#f6b800;
+  font-size:13px;
+  font-weight:950;
+  text-anchor:middle;
+  dominant-baseline:middle;
+  filter:drop-shadow(0 1px 2px rgba(255,255,255,.85));
+  pointer-events:none;
 }
 .map-room-group.dimmed .map-room{
   opacity:.28;
   filter:grayscale(.35);
 }
 .map-room-group.cleaning-zone .map-room{
-  animation:plannedGreenBlink .9s ease-in-out infinite;
-  stroke:#27a844;
-  stroke-width:6.2;
+  animation:mapZonePulse 1.05s ease-in-out infinite;
+  stroke:#37a447;
+  stroke-width:7;
 }
 .map-room-group.completed .map-room{
   opacity:.62;
@@ -1493,10 +1643,15 @@ body,button,input,select{
   text-anchor:middle;
   dominant-baseline:middle;
 }
-.map-route,
+.map-route{
+  opacity:0;
+}
 .map-route.active-route{
-  opacity:0!important;
-  display:none!important;
+  opacity:1;
+  stroke:rgba(61,164,76,.78);
+  stroke-width:4;
+  stroke-dasharray:7 8;
+  animation:routeDash 1.15s linear infinite;
 }
 .map-action-hint.status-ready{
   border-color:rgba(73,163,68,.22);
@@ -1593,18 +1748,7 @@ body,button,input,select{
   from{stroke-dashoffset:24}
   to{stroke-dashoffset:0}
 }
-@keyframes plannedGreenBlink{
-  0%,100%{
-    stroke:#36b04a;
-    stroke-width:4.2;
-    filter:drop-shadow(0 0 2px rgba(54,176,74,.25));
-  }
-  50%{
-    stroke:#20c949;
-    stroke-width:6.4;
-    filter:drop-shadow(0 0 6px rgba(54,176,74,.55));
-  }
-}
+
 
 
 /* ===== Top learning / clean action buttons alignment ===== */
@@ -1648,15 +1792,6 @@ body,button,input,select{
   filter:grayscale(.08)!important;
 }
 
-/* ===== Home simplification: one main clean-prep button, no extra lower cards ===== */
-.scope-buttons,
-.selected-plan,
-.start-clean-primary,
-.actions,
-.home-cards{display:none!important;}
-.condition-panel{margin-bottom:0!important;}
-.predict-btn{position:relative;z-index:30;}
-#flowGuide{margin-top:9px;}
 
 </style>
 </head>
@@ -1676,9 +1811,9 @@ body,button,input,select{
       </div>
       <nav class="nav">
         <button class="nav-btn active" data-page="homePage">홈</button>
-        <button class="nav-btn" data-page="batteryPage">배터리</button>
-        <button class="nav-btn" data-page="recordPage">기록</button>
-        <button class="nav-btn" data-page="eventPage">이벤트</button>
+        <button class="nav-btn" data-page="batteryPage">부품케어</button>
+        <button class="nav-btn" data-page="recordPage">예약청소</button>
+        <button class="nav-btn" data-page="eventPage">이벤트<span class="nav-dot" id="eventNavDot" style="display:none"></span></button>
         <button class="nav-btn" data-page="rewardPage">리워드</button>
       </nav>
     </header>
@@ -1859,127 +1994,128 @@ body,button,input,select{
       </section>
 
       <section class="page" id="batteryPage">
-        <div class="section-kicker">BATTERY HEALTH</div>
-        <div class="section-title">배터리 건강 돌보기</div>
+        <div class="section-kicker">PARTS CARE</div>
+        <div class="section-title">부품 상태 확인</div>
 
-        <div class="gauge-grid">
-          <div class="panel gauge-card">
-            <div class="gauge" id="socGauge" style="--value:81;--color:#49a646">
-              <div class="gauge-content"><div class="gauge-label">배터리</div><div class="gauge-value" id="socGaugeText">81%</div></div>
-            </div>
-            <div class="gauge-desc">건강하게 쓰는<br>배터리 구간</div>
+        <div class="parts-grid" id="partsGrid"></div>
+
+        <div class="panel care-summary">
+          <div class="panel-head"><div class="panel-title">배터리 수명 지키기</div><div class="badge">과충전 방지</div></div>
+          <div class="care-lead">완충(100%) 대신 청소에 필요한 만큼만 채우고, 15%를 남기고 쉬어가요. 이렇게 배터리 수명을 늘리고 있어요.</div>
+          <div class="care-stats">
+            <div class="care-stat"><span>맞춤 충전</span><b id="careAcceptText">4</b><small>회</small></div>
+            <div class="care-stat"><span>잔량 15% 보호</span><b id="careReserveText">1</b><small>회</small></div>
+            <div class="care-stat"><span>덜 채운 충전량</span><b id="careSavedText">76</b><small>%</small></div>
           </div>
-
-          <div class="panel gauge-card">
-            <div class="gauge" id="tempGauge" style="--value:40;--color:#ff7c22">
-              <div class="gauge-content"><div class="gauge-label">온도</div><div class="gauge-value" id="tempGaugeText">29℃</div></div>
-            </div>
-            <div class="gauge-desc">안정 온도 구간<br>15℃~50℃</div>
+          <div class="care-health-row">
+            <span>배터리 건강도</span>
+            <div class="care-health-track"><div class="care-health-fill" id="careHealthFill" style="width:100%"></div></div>
+            <b id="careHealthText">100%</b>
           </div>
-        </div>
-
-        <div class="panel control">
-          <div class="control-row">
-            <div class="control-head"><span>맞춤 충전 조절</span><span class="control-value" id="targetLabel">81%</span></div>
-            <input id="targetSlider" type="range" min="15" max="90" value="81">
-            <div class="control-caption"><span>15%</span><span>오래 쓰기 추천</span><span>90%</span></div>
-          </div>
-          <div class="control-row">
-            <div class="control-head"><span>온도 시뮬레이션</span><span class="control-value" id="tempLabel">29℃</span></div>
-            <input id="tempSlider" type="range" min="15" max="50" value="29">
-            <div class="control-caption"><span>15℃</span><span>현재 배터리 온도</span><span>50℃</span></div>
-          </div>
-          <button class="primary-btn" data-action="chargeFromBattery">로보킹 맞춤 충전하기</button>
-        </div>
-
-        <div class="panel chart-panel">
-          <div class="panel-head"><div class="panel-title">오늘 배터리 변화</div><div class="badge">과충전 방지</div></div>
-          <svg class="soc-chart" viewBox="0 0 340 165">
-            <line class="grid-line" x1="30" y1="28" x2="330" y2="28"></line>
-            <line class="grid-line" x1="30" y1="132" x2="330" y2="132"></line>
-            <text class="chart-text" x="3" y="32">90%</text><text class="chart-text" x="5" y="136">15%</text>
-            <polyline class="line-red" points="30,128 80,102 128,54 180,35 235,31 285,29 328,28"></polyline>
-            <polyline class="line-green" id="aiLine" points="30,128 80,103 128,82 180,74 235,74 285,74 328,74"></polyline>
-          </svg>
-          <div class="legend">
-            <span><span class="dot" style="background:#eb6650"></span>기존 완충 방식</span>
-            <span><span class="dot" style="background:#4c9a43"></span>맞춤 충전</span>
-          </div>
-        </div>
-
-        <div class="panel insight"><div class="insight-row"><div class="insight-icon">💡</div><div id="insightText">최근 청소 패턴을 분석한 결과, 오늘은 배터리 81%까지만 충전해도 필요 청소를 완료할 수 있습니다.</div></div></div>
-      </section>
-
-      <section class="page" id="recordPage">
-        <div class="section-kicker">ACTIVITY LOG</div>
-        <div class="section-title">청소 활동 기록</div>
-
-        <div class="panel weekly">
-          <div class="panel-head"><div class="panel-title">주간 청소 시간</div><div style="font-size:10px;font-weight:900">평균 <span id="avgText">38</span>분</div></div>
-          <div class="bar-chart">
-            <div class="bar-item"><div class="bar-value">25</div><div class="bar" style="height:42%"></div><div class="bar-label">월</div></div>
-            <div class="bar-item"><div class="bar-value">41</div><div class="bar" style="height:68%"></div><div class="bar-label">화</div></div>
-            <div class="bar-item"><div class="bar-value">34</div><div class="bar" style="height:56%"></div><div class="bar-label">수</div></div>
-            <div class="bar-item"><div class="bar-value">49</div><div class="bar" style="height:81%"></div><div class="bar-label">목</div></div>
-            <div class="bar-item"><div class="bar-value">40</div><div class="bar" style="height:66%"></div><div class="bar-label">금</div></div>
-            <div class="bar-item"><div class="bar-value">57</div><div class="bar" style="height:94%"></div><div class="bar-label">토</div></div>
-            <div class="bar-item"><div class="bar-value" id="sunValue">34</div><div class="bar" id="sunBar" style="height:56%"></div><div class="bar-label">일</div></div>
-          </div>
-        </div>
-
-        <div class="record-grid">
-          <div class="record-card"><div class="record-label">이번 주 청소 면적</div><div class="record-value"><span id="areaText">72</span>㎡</div></div>
-          <div class="record-card"><div class="record-label">평균 청소 시간</div><div class="record-value"><span id="recordAvgText">38</span>분</div></div>
-          <div class="record-card"><div class="record-label">고온 복귀</div><div class="record-value">0회</div></div>
-          <div class="record-card"><div class="record-label">맞춤 충전 수락</div><div class="record-value"><span id="acceptText">4</span>회</div></div>
+          <div class="care-note" id="careNote">오늘도 과충전 없이 관리 중이에요.</div>
         </div>
 
         <div class="panel events">
-          <div class="panel-title">이벤트 기록</div>
+          <div class="panel-head"><div class="panel-title">실시간 케어 기록</div><div class="badge">자동 기록</div></div>
           <div id="eventList">
-            <div class="event-item"><div class="event-time">14:20</div><div class="event-content"><strong>맞춤 충전 완료</strong><span>필요한 만큼만 채우고 자동으로 멈췄습니다.</span></div></div>
-            <div class="event-item"><div class="event-time">10:15</div><div class="event-content"><strong>청소 준비 완료</strong><span>거실 상태에 맞춰 로보킹이 준비했습니다.</span></div></div>
-            <div class="event-item"><div class="event-time">08:40</div><div class="event-content"><strong>배터리 컨디션 정상</strong><span>배터리 온도와 건강도가 안정 범위에 있습니다.</span></div></div>
+            <div class="event-item"><div class="event-time">14:20</div><div class="event-content"><strong>맞춤 충전 완료<span class="event-tag">수명 보호</span></strong><span>81%까지만 채우고 멈췄어요. 완충 대비 19% 덜 채워 과충전을 막았어요.</span></div></div>
+            <div class="event-item"><div class="event-time">10:15</div><div class="event-content"><strong>청소 준비 완료<span class="event-tag">배터리 절약</span></strong><span>거실 상태에 맞춰 필요한 배터리만 계산했어요.</span></div></div>
+            <div class="event-item"><div class="event-time">08:40</div><div class="event-content"><strong>배터리 컨디션 정상<span class="event-tag">온도 안정</span></strong><span>배터리 온도 29℃, 안정 범위(15~50℃) 안에 있어요.</span></div></div>
           </div>
         </div>
       </section>
 
+      <!-- ===================== PAGE 3 · 예약 청소 ===================== -->
+      <section class="page" id="recordPage">
+        <div class="section-kicker">SMART SCHEDULE</div>
+        <div class="section-title">출퇴근 맞춤 예약 청소</div>
+
+        <div class="panel sched-panel">
+          <div class="sched-head">
+            <div>
+              <div class="sched-title">🚶 출퇴근 맞춤 예약</div>
+              <div class="sched-desc">집을 비우는 시간에만 청소하고, 돌아오기 전에 조용히 도킹해 두어요.</div>
+            </div>
+            <button class="switch" id="commuteSwitch" data-action="toggleCommute" aria-label="출퇴근 예약 켜기"><span class="knob"></span></button>
+          </div>
+          <div class="sched-body off" id="commuteBody">
+            <div class="time-row">
+              <label for="leaveTime">출근</label>
+              <select class="condition-select" id="leaveTime"></select>
+              <label for="returnTime">퇴근</label>
+              <select class="condition-select" id="returnTime"></select>
+            </div>
+            <div class="day-chips" id="dayChips"></div>
+            <div class="sched-options">
+              <button class="sched-opt active" id="commuteAfter" data-action="commuteMode" data-mode="after">출근 30분 뒤 시작</button>
+              <button class="sched-opt" id="commuteBefore" data-action="commuteMode" data-mode="before">퇴근 1시간 전 마무리</button>
+            </div>
+          </div>
+          <div class="sched-preview off" id="commutePreview">스위치를 켜면 출퇴근 시간에 맞춘 예약이 만들어져요.</div>
+        </div>
+
+        <div class="sub-title">🎎 테마별 기간 청소</div>
+        <div class="theme-list" id="themeList"></div>
+
+        <div class="panel upcoming">
+          <div class="panel-head"><div class="panel-title">다가오는 예약</div><div class="badge" id="upcomingBadge">0건</div></div>
+          <div id="upcomingList"></div>
+        </div>
+      </section>
+
+      <!-- ===================== PAGE 4 · 이벤트 ===================== -->
       <section class="page" id="eventPage">
-        <div class="section-kicker">EVENT</div>
+        <div class="section-kicker">DISCOVERY & MISSION</div>
         <div class="section-title">이벤트</div>
 
-        <div class="panel event-hero">
-          <div class="event-hero-title">이벤트 페이지 준비 중</div>
-          <div class="event-hero-desc">
-            이 페이지는 팀원이 추가로 수정할 공간이에요.<br>
-            앞으로 부품 상태 확인, 배터리 케어 내역, 출퇴근 맞춤 청소, 미션, 사진첩 같은 기능을 이곳에 확장할 수 있어요.
+        <div class="event-tabs">
+          <button class="reward-folder-btn active" id="evTabFound" data-action="evTabFound">🔍 오늘의 발견</button>
+          <button class="reward-folder-btn" id="evTabMission" data-action="evTabMission">🏅 미션</button>
+          <button class="reward-folder-btn" id="evTabPhoto" data-action="evTabPhoto">📷 사진첩</button>
+        </div>
+
+        <div class="reward-panel" id="evFoundPanel">
+          <div class="found-top">
+            <div class="found-card" id="foundTodayCard"></div>
+            <div class="found-card">
+              <div class="found-card-title">📍 발견 위치 보기</div>
+              <div class="found-map" id="foundMap"></div>
+              <div class="found-btn"><button data-action="foundMapBig">지도 크게 보기 ›</button></div>
+            </div>
+          </div>
+          <div class="panel found-list">
+            <div class="panel-head"><div class="panel-title">📋 최근 발견 기록</div><div class="badge" id="foundCountBadge">전체 3건</div></div>
+            <div id="foundList"></div>
           </div>
         </div>
 
-        <div class="event-placeholder-grid">
-          <div class="event-placeholder-card">
-            <div class="event-placeholder-icon">🧩</div>
-            <div class="event-placeholder-title">부품 상태 확인</div>
-            <div class="event-placeholder-text">필터, 브러시, 물걸레 패드 상태를 보여줄 예정이에요.</div>
+        <div class="reward-panel hidden" id="evMissionPanel">
+          <div class="panel mission-summary">
+            <div>
+              <div class="ms-title">도전과제 메달</div>
+              <div class="ms-desc">목표를 달성하면 메달과 코인을 받아요.<br>받은 코인은 리워드에서 쓸 수 있어요.</div>
+            </div>
+            <div class="ms-count"><b id="missionClaimable">0</b>받을 보상</div>
           </div>
-          <div class="event-placeholder-card">
-            <div class="event-placeholder-icon">📌</div>
-            <div class="event-placeholder-title">케어 이벤트 기록</div>
-            <div class="event-placeholder-text">배터리를 어떻게 아껴 썼는지 내역으로 남길 예정이에요.</div>
+          <div id="missionList"></div>
+        </div>
+
+        <div class="reward-panel hidden" id="evPhotoPanel">
+          <div class="panel photo-info">
+            <div>
+              <div class="p-title">📷 로보킹 사진첩</div>
+              <div class="p-desc">청소 중 움직이는 친구를 만나면 로보킹이 살짝 찍어둬요. 혼자 있는 반려동물의 하루를 볼 수 있어요.</div>
+            </div>
+            <div class="p-count"><b id="photoCount">0</b>장</div>
           </div>
-          <div class="event-placeholder-card">
-            <div class="event-placeholder-icon">🚶</div>
-            <div class="event-placeholder-title">출퇴근 맞춤 청소</div>
-            <div class="event-placeholder-text">사용자의 생활 패턴에 맞춘 청소 예약 기능을 넣을 수 있어요.</div>
-          </div>
-          <div class="event-placeholder-card">
-            <div class="event-placeholder-icon">📷</div>
-            <div class="event-placeholder-title">미션·사진첩</div>
-            <div class="event-placeholder-text">오늘의 미션과 분실물 사진첩을 연결할 수 있어요.</div>
+          <div class="photo-grid" id="photoGrid"></div>
+          <div class="panel photo-empty" id="photoEmpty" style="display:none;">
+            지금은 예시 사진이에요.<br>실제 사진을 넣으려면 앱 폴더의 <code>assets/photos/</code> 안에 사진 파일을 넣어주세요.
           </div>
         </div>
       </section>
 
+      <!-- ===================== PAGE 5 · 리워드 (원본 유지) ===================== -->
       <section class="page" id="rewardPage">
         <div class="section-kicker">REWARD</div>
         <div class="section-title">로보킹 성장 리워드</div>
@@ -2037,6 +2173,7 @@ body,button,input,select{
 "use strict";
 
 const predictionData = __UI_PREDICTION_DATA__;
+const mediaData = __UI_MEDIA_DATA__;
 let activeRun = null;
 const mappingSteps=[
   {key:'map',label:'집 구조 매핑'},
@@ -2051,6 +2188,8 @@ const $=(id)=>document.getElementById(id);
 const clamp=(v,min,max)=>Math.min(Math.max(v,min),max);
 const fmtSoc=(v)=>Number(v || 0).toFixed(1).replace(/\.0$/,"");
 const cleanMinutes=()=>Math.max(0,Math.round(state.soc*.56));
+const setHtml=(el,html)=>{if(el&&el.__lastHtml!==html){el.innerHTML=html;el.__lastHtml=html;}};
+const esc=(s)=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 
 // ============================================================
 // 배터리 보호/학습 주행 기준값
@@ -2069,6 +2208,10 @@ const MIN_SOC_AFTER_LEARNING = MIN_RESERVE_SOC;
 const MIN_LEARNING_SOC_USE = 5;
 const MAX_LEARNING_SOC_USE = 30;
 const LEARNING_SOC_RATIO = 0.35;
+
+// 시연용: 이전에 이미 몇 번 청소한 로봇처럼 보이게 하는 누적 청소 횟수 기준값
+// (미션 "10번 청소하기"가 시연 중 첫 청소로 달성되도록 9로 둡니다)
+const DEMO_CLEAN_BASE = 9;
 
 function setGuide(message,tone="normal"){
   state.userGuide=message;
@@ -2261,7 +2404,19 @@ const state={
   temperature:29,health:100,heart:100,
   level:13,exp:55,coins:50,food:1,cleaning:false,charging:false,
   celebrating:false,progress:0,missionDone:false,cleanCount:0,
-  acceptCount:4,area:activeRun.home.cleaningAreaM2||72,average:38
+  acceptCount:4,area:activeRun.home.cleaningAreaM2||72,average:38,
+
+  // ---- 새 페이지(부품 케어 / 예약 청소 / 이벤트) 전용 상태 ----
+  learnCount:0,
+  savedChargePct:76,
+  reserveGuardCount:1,
+  claimedMissions:{},
+  notifiedClaimable:0,
+  eventTab:"found",
+  commuteOn:false,
+  commuteDays:[1,2,3,4,5],
+  commuteMode:"after",
+  activeThemes:{}
 };
 
 function populateConditionSelectors(){
@@ -2277,6 +2432,7 @@ function populateConditionSelectors(){
 }
 
 function switchPage(pageId){
+  if(!$(pageId))return;
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.page===pageId));
   $(pageId).classList.add("active");
@@ -2303,7 +2459,9 @@ function render(){
     robotSocBadge.innerHTML="<span>🔋 현재 배터리</span><b>"+state.soc+"%</b>";
   }
 
-  renderAccessories();renderPlan();renderHome();renderBattery();renderRecord();renderReward();
+  renderAccessories();renderPlan();renderHome();
+  renderCare();renderSchedule();renderEvents();
+  renderReward();
 }
 
 function getScenario(scope,zoneNumber=null){
@@ -2519,13 +2677,7 @@ function syncScenarioToState(scenario){
   state.area=scenario.cleaningAreaM2||state.area;
 }
 
-
-function getManualSelectionKey(){
-  const c=getPredictionChoices();
-  return [c.scopeValue,c.cleanMode,c.intensity,c.todayState].join("|");
-}
-
-function predictSocFromConditions(autoExecuteAfter=false){
+function predictSocFromConditions(){
   if(state.cleaning||state.charging||state.mapping){showToast("학습/청소/충전이 끝난 뒤 다시 준비할 수 있어요.");return}
 
   if(!state.profileReady){
@@ -2537,7 +2689,6 @@ function predictSocFromConditions(autoExecuteAfter=false){
     return;
   }
   const choices=getPredictionChoices();
-  const currentManualKey=getManualSelectionKey();
   const matchedScenario=findMlScenarioFromChoices(choices);
   const loading=$('predictLoading');
   state.predicting=true;
@@ -2549,14 +2700,6 @@ function predictSocFromConditions(autoExecuteAfter=false){
 
   setTimeout(()=>{
     syncScenarioToState(matchedScenario);
-    state.smartCleanMode="manual";
-    state.mapMode="view";
-    state.selectedDirtyZones=[];
-    state.cleaningZones=getCleaningZonesForCurrentPlan();
-    state.completedZones=[];
-    state.currentCleaningZone=null;
-    state.manualReady=true;
-    state.manualKey=currentManualKey;
     state.predicted=true;
     state.predicting=false;
     state.chargeComplete=false;
@@ -2569,12 +2712,9 @@ function predictSocFromConditions(autoExecuteAfter=false){
     const statusText=state.soc>=state.targetSoc?"바로 청소할 수 있어요":"잠깐 충전하면 청소할 수 있어요";
     $("speech").innerHTML="<strong style='color:#2f8b3a'>준비 완료!</strong><br>"+statusText;
     $("modeChip").textContent="✅ 청소 준비 완료 · "+state.selectedLabel;
-    addEvent("청소 준비 완료",state.selectedLabel+" 청소를 위해 로보킹이 필요한 만큼 준비했어요.");
-    setGuide(statusText.includes("바로")?"준비 완료! 바로 출동할게요.":"준비 완료! 필요한 만큼만 채우고 바로 출발할게요.", state.soc>=state.targetSoc?"done":"warning");
+    addEvent("청소 준비 완료",state.selectedLabel+" 청소를 위해 필요한 배터리 "+state.targetSoc+"%만 준비했어요.","배터리 절약");
+    setGuide(statusText.includes("바로")?"준비 완료! 같은 버튼을 한 번 더 누르면 바로 출동해요.":"준비 완료! 같은 버튼을 한 번 더 누르면 필요한 만큼만 충전하고 출발해요.", state.soc>=state.targetSoc?"done":"warning");
     showToast("청소 준비 완료! 로보킹이 오늘 청소 준비를 마쳤어요.");
-    if(autoExecuteAfter){
-      setTimeout(()=>executeTopClean(),260);
-    }
   },900);
 }
 
@@ -2902,7 +3042,8 @@ function mapRoom(x,y,w,h,rx,zoneNo,label,dashed=false){
       +"<line class='map-no-go-line' x1='"+(x+10)+"' y1='"+(y+10)+"' x2='"+(x+w-10)+"' y2='"+(y+h-10)+"'></line>"
       +"<line class='map-no-go-line' x1='"+(x+w-10)+"' y1='"+(y+10)+"' x2='"+(x+10)+"' y2='"+(y+h-10)+"'></line>";
   }else if(state.smartCleanMode==="dirty" && state.mapMode!=="noGo" && (state.selectedDirtyZones||[]).includes(Number(zoneNo))){
-    // 더러운 곳만 모드에서는 별도 아이콘 없이 초록색 테두리만 깜빡이게 표시합니다.
+    html += "<rect class='map-dirty-ring' x='"+(x+4)+"' y='"+(y+4)+"' width='"+(w-8)+"' height='"+(h-8)+"' rx='"+Math.max(6,rx-2)+"'></rect>"
+      +"<text class='map-dirty-spark' x='"+(x+13)+"' y='"+(y+15)+"'>✦</text>";
   }
 
   html += "<circle cx='"+badgeX+"' cy='"+badgeY+"' r='"+badgeR+"' fill='rgba(255,255,255,.82)'></circle>"
@@ -2966,7 +3107,7 @@ function getMapActionHtml(){
   let readyClass=state.predicted?" status-ready":"";
   if(state.mapMode==="noGo")hint="지도에서 <b>청소하지 않을 영역</b>을 눌러주세요.";
   else if(noGoCount>0)hint="금지구역 "+noGoCount+"곳은 빼고 준비해요.";
-  else if(state.smartCleanMode==="dirty")hint="초록 테두리 영역만 골라뒀어요. 청소하기를 누르면 그곳만 청소해요.";
+  else if(state.smartCleanMode==="dirty")hint="노란빛 영역만 골라뒀어요. 청소하기를 누르면 그곳만 청소해요.";
   else if(state.smartCleanMode==="auto")hint="로보킹이 알아서 준비했어요.";
 
   return "<div class='map-action-row'>"
@@ -3296,40 +3437,367 @@ function renderHome(){
   }
 }
 
-function renderBattery(){
-  $("socGauge").style.setProperty("--value",state.soc);
-  $("socGaugeText").textContent=state.soc+"%";
-
-  const tempPercent=clamp((state.temperature-15)/35*100,0,100);
-  $("tempGauge").style.setProperty("--value",tempPercent);
-  $("tempGaugeText").textContent=state.temperature+"℃";
-  $("targetLabel").textContent=state.targetSoc+"%";
-  $("targetSlider").value=state.targetSoc;
-  $("tempLabel").textContent=state.temperature+"℃";
-  $("tempSlider").value=state.temperature;
-  if(!state.profileReady){
-    $("insightText").innerHTML="아직 1회차 학습 청소 전입니다. 집 구조와 구역 정보를 먼저 저장하면 오늘 청소 준비를 시작할 수 있습니다.";
-  }else if(!state.predicted){
-    $("insightText").innerHTML="우리 집 정보가 저장됐어요. 오늘 청소 준비하기를 누르면 로보킹이 오늘 상태에 맞춰 필요한 만큼만 준비합니다.";
+/* ============================================================
+   PAGE 2 · 부품 케어 (부품 상태 카드 + 수명 요약 + 실시간 케어 기록)
+   ============================================================ */
+function totalCleanCount(){return DEMO_CLEAN_BASE+Number(state.cleanCount||0);}
+function getPartStatuses(){
+  const total=totalCleanCount();
+  const wheels = total>=60 ? {level:"bad",text:"점검이 필요해요"} : (total>=30 ? {level:"check",text:"한번 살펴보면 좋아요"} : {level:"good",text:"평소와 비슷해요"});
+  const brush  = total>=40 ? {level:"bad",text:"머리카락을 제거해 주세요"} : (total>=8 ? {level:"check",text:"한번 살펴보면 좋아요"} : {level:"good",text:"깨끗해요"});
+  const filter = total>=50 ? {level:"bad",text:"교체 시기가 됐어요"} : (total>=25 ? {level:"check",text:"한번 살펴보면 좋아요"} : {level:"good",text:"괜찮아요"});
+  let battery={level:"good",text:"편안해요"};
+  if(state.charging)battery={level:"good",text:"쉬면서 힘을 채우고 있어요"};
+  else if(state.soc<15)battery={level:"bad",text:"배가 고파요"};
+  else if(state.temperature>34)battery={level:"check",text:"조금 더워요, 쉬어갈게요"};
+  const faces={good:"🙂",check:"😐",bad:"😟"};
+  return [
+    {key:"wheel",icon:"🛞",name:"바퀴 상태",...wheels,face:faces[wheels.level],
+      detail:"누적 청소 "+total+"회 · 바퀴 마모가 적어 평소처럼 부드럽게 달릴 수 있어요.",tip:"바퀴 틈에 낀 실이나 머리카락은 한 달에 한 번만 빼주면 충분해요."},
+    {key:"brush",icon:"🧹",name:"브러시 상태",...brush,face:faces[brush.level],
+      detail:"누적 청소 "+total+"회 · 브러시에 머리카락과 털이 조금 감겼을 수 있어요.",tip:"브러시를 빼서 감긴 털을 잘라내면 흡입력이 돌아오고 모터 부담도 줄어요.",coupon:true},
+    {key:"filter",icon:"🧊",name:"필터 상태",...filter,face:faces[filter.level],
+      detail:"누적 청소 "+total+"회 · 필터 막힘이 적어 흡입 효율이 좋아요.",tip:"필터는 2~3주마다 톡톡 털어주고, 6개월마다 교체하면 좋아요.",coupon:true},
+    {key:"battery",icon:"🔋",name:"배터리 컨디션",...battery,face:faces[battery.level],
+      detail:"현재 "+state.soc+"% · 온도 "+state.temperature+"℃ · 건강도 "+state.health+"%",tip:"완충 대신 필요한 만큼만 채우고, 15%를 남겨 쉬어가면 배터리 수명이 오래가요."}
+  ];
+}
+function renderCare(){
+  const grid=$("partsGrid");
+  if(!grid)return;
+  const parts=getPartStatuses();
+  setHtml(grid,parts.map(p=>
+    "<button type='button' class='part-card "+p.level+"' data-action='partDetail' data-part='"+p.key+"'>"
+    +"<div class='part-icon'>"+p.icon+"</div>"
+    +"<div class='part-info'><div class='part-name'>"+p.name+"</div><div class='part-status'>"+p.text+"</div></div>"
+    +"<div class='part-face'>"+p.face+"</div></button>").join(""));
+  const a=$("careAcceptText"); if(a)a.textContent=state.acceptCount;
+  const r=$("careReserveText"); if(r)r.textContent=state.reserveGuardCount;
+  const s=$("careSavedText"); if(s)s.textContent=Math.round(state.savedChargePct);
+  const hf=$("careHealthFill"); if(hf)hf.style.width=clamp(state.health,0,100)+"%";
+  const ht=$("careHealthText"); if(ht)ht.textContent=clamp(Math.round(state.health),0,100)+"%";
+  const note=$("careNote");
+  if(note){
+    if(state.charging)note.textContent="지금 "+state.targetSoc+"%까지만 채우고 있어요. 완충보다 "+(100-state.targetSoc)+"% 덜 채워 배터리 부담을 줄여요.";
+    else if(state.cleaning)note.textContent="청소 중이에요. 15%가 되면 무리하지 않고 스스로 쉬어가요.";
+    else if(state.mapping)note.textContent="학습 청소 중에도 배터리 15% 이상은 항상 남겨두고 있어요.";
+    else note.textContent="완충 대신 필요한 만큼만 채운 덕분에 지금까지 충전량 "+Math.round(state.savedChargePct)+"%를 덜 채웠어요. 오늘도 과충전 없이 관리 중이에요.";
+  }
+}
+function openPartDetail(el){
+  const key=el && el.dataset ? el.dataset.part : el;
+  const p=getPartStatuses().find(x=>x.key===key);
+  if(!p)return;
+  const body="<div class='modal-emoji'>"+p.icon+" "+p.face+"</div><b>"+p.text+"</b><br><br>"+p.detail+"<br><br>💡 "+p.tip;
+  if(p.coupon){
+    openModal(p.name,body,{showCancel:true,cancelText:"닫기",confirmText:"소모품 쿠폰 보기",onConfirm:()=>{closeModal();state.rewardTab="coupons";switchPage("rewardPage");showToast("코인으로 클린 키트 쿠폰을 교환할 수 있어요.");}});
   }else{
-    $("insightText").innerHTML="<b>"+state.selectedLabel+"</b> · "+state.cleanModeLabel+" · "+state.intensityLabel+" · "+state.todayStateLabel+"<br>로보킹이 오늘 청소 준비를 마쳤어요.<br>필요하면 잠깐 충전하고 바로 출발할 수 있어요.";
+    openModal(p.name,body);
+  }
+}
+
+/* ============================================================
+   PAGE 3 · 예약 청소 (출퇴근 맞춤 예약 + 테마 기간 청소)
+   ============================================================ */
+const dayNames=["일","월","화","수","목","금","토"];
+const themeDefs=[
+  {key:"chuseok",icon:"🌕",name:"추석 맞이 대청소",start:"2026-09-18",end:"2026-09-24",desc:"가족과 손님이 오기 전, 현관과 거실을 매일 한 번씩 깨끗하게 준비해요.",chips:["집 전체","건식+물걸레","매일 1회","현관·거실 집중"]},
+  {key:"season",icon:"🍂",name:"환절기 먼지 케어",start:"2026-09-01",end:"2026-10-15",desc:"창문을 자주 여는 시기라 침실 먼지를 꼼꼼 모드로 관리해요.",chips:["침실 중심","꼼꼼","주 3회","필터 점검 알림"]},
+  {key:"yearend",icon:"🎄",name:"연말 대청소",start:"2026-12-20",end:"2026-12-31",desc:"한 해를 마무리하며 구역별로 나눠 무리 없이 집 전체를 정리해요.",chips:["구역 나눔","물걸레","격일","배터리 분할"]},
+  {key:"spring",icon:"🌸",name:"봄맞이 새단장",start:"2027-03-01",end:"2027-03-31",desc:"꽃가루와 미세먼지가 많은 봄, 현관 매트와 거실 러그를 집중 관리해요.",chips:["현관·거실","건식","주 4회","러그 집중"]},
+  {key:"rainy",icon:"☔",name:"장마철 물걸레 케어",start:"2026-06-20",end:"2026-07-20",desc:"습한 바닥을 물걸레로 자주 닦아 끈적임과 냄새를 줄여요.",chips:["마루·타일","물걸레","매일 1회","건조 시간 확보"]},
+  {key:"movein",icon:"🏠",name:"이사·입주 집중 청소",start:null,end:null,desc:"새집 첫 3일, 먼지가 많은 구역부터 순서대로 집중 청소해요.",chips:["3일 집중","더러운 곳 우선","하루 2회"]}
+];
+function parseDay(s){return s?new Date(s+"T00:00:00"):null;}
+function fmtMD(s){const d=parseDay(s);return d?(d.getMonth()+1)+"월 "+d.getDate()+"일":"";}
+function themeStatus(t){
+  if(!t.start)return {kind:"any",label:"언제든"};
+  const today=new Date();today.setHours(0,0,0,0);
+  const s=parseDay(t.start), e=parseDay(t.end);
+  if(today>e)return {kind:"past",label:"지난 시즌"};
+  if(today<s){const dday=Math.ceil((s-today)/86400000);return {kind:"soon",label:"D-"+dday};}
+  return {kind:"live",label:"진행 중"};
+}
+const toMin=(hhmm)=>{const [h,m]=String(hhmm||"09:00").split(":").map(Number);return h*60+(m||0);};
+const fmtMin=(m)=>{m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");};
+function estimateCleanMinutes(){
+  const req=Number(state.profileReady?(state.predicted?state.requiredSoc:activeRun.home.requiredSoc):0);
+  return req>0?Math.max(15,Math.round(req*1.4)):40;
+}
+function commutePlan(){
+  const leave=$("leaveTime")?$("leaveTime").value:"09:00";
+  const ret=$("returnTime")?$("returnTime").value:"18:30";
+  const mins=estimateCleanMinutes();
+  let start,end;
+  if(state.commuteMode==="before"){end=toMin(ret)-60;start=end-mins;}
+  else{start=toMin(leave)+30;end=start+mins;}
+  return {leave,ret,mins,start:fmtMin(start),end:fmtMin(end)};
+}
+function commuteDayText(){
+  const d=(state.commuteDays||[]).slice().sort((a,b)=>a-b);
+  if(d.length===7)return "매일";
+  if(d.join()==="1,2,3,4,5")return "평일";
+  if(d.join()==="0,6")return "주말";
+  return d.map(i=>dayNames[i]).join("·");
+}
+function nextCommuteRun(){
+  if(!state.commuteOn||!(state.commuteDays||[]).length)return null;
+  const plan=commutePlan();const now=new Date();
+  for(let add=0;add<8;add++){
+    const d=new Date(now);d.setDate(now.getDate()+add);
+    if(!state.commuteDays.includes(d.getDay()))continue;
+    const [h,m]=plan.start.split(":").map(Number);
+    const startAt=new Date(d);startAt.setHours(h,m,0,0);
+    if(startAt<=now)continue;
+    const label=add===0?"오늘":(add===1?"내일":(d.getMonth()+1)+"월 "+d.getDate()+"일("+dayNames[d.getDay()]+")");
+    return {label,plan};
+  }
+  return null;
+}
+function renderSchedule(){
+  const sw=$("commuteSwitch");
+  if(!sw)return;
+  sw.classList.toggle("on",state.commuteOn);
+  const body=$("commuteBody"); if(body)body.classList.toggle("off",!state.commuteOn);
+  const chips=$("dayChips");
+  if(chips)setHtml(chips,dayNames.map((n,i)=>"<button type='button' class='day-chip"+(state.commuteDays.includes(i)?" on":"")+"' data-action='toggleDay' data-day='"+i+"'>"+n+"</button>").join(""));
+  const after=$("commuteAfter"),before=$("commuteBefore");
+  if(after)after.classList.toggle("active",state.commuteMode==="after");
+  if(before)before.classList.toggle("active",state.commuteMode==="before");
+
+  const prev=$("commutePreview");
+  if(prev){
+    prev.classList.toggle("off",!state.commuteOn);
+    if(!state.commuteOn){prev.textContent="스위치를 켜면 출퇴근 시간에 맞춘 예약이 만들어져요.";}
+    else{
+      const plan=commutePlan();
+      const target=state.profileReady?(state.predicted?state.targetSoc:activeRun.home.targetSoc):null;
+      prev.innerHTML="<b>"+commuteDayText()+"</b> "+plan.start+" 출발 → 약 <b>"+plan.mins+"분</b> 청소 후 "+plan.end+" 도킹"
+        +(target?"<br>준비 배터리 <b>"+target+"%</b>만 채우고 출발해요.":"<br>1회차 학습을 마치면 준비 배터리와 시간이 우리 집에 맞게 정해져요.")
+        +"<br>퇴근("+plan.ret+") 전에는 항상 조용히 마무리해요.";
+    }
   }
 
-  const y=132-(state.targetSoc-15)/75*104;
-  const middleY=Math.round((82+y)/2);
-  $("aiLine").setAttribute("points","30,128 80,103 128,"+middleY+" 180,"+Math.round(y)+" 235,"+Math.round(y)+" 285,"+Math.round(y)+" 328,"+Math.round(y));
+  const list=$("themeList");
+  if(list)setHtml(list,themeDefs.map(t=>{
+    const st=themeStatus(t);const on=!!state.activeThemes[t.key];
+    const period=t.start?fmtMD(t.start)+" ~ "+fmtMD(t.end):"원하는 날부터 3일";
+    return "<div class='theme-card"+(on?" on":"")+(st.kind==="past"?" past":"")+"'>"
+      +"<div class='theme-icon'>"+t.icon+"</div>"
+      +"<div class='theme-info'><div class='theme-name'>"+t.name+"<span class='theme-state "+st.kind+"'>"+st.label+"</span></div>"
+      +"<div class='theme-period'>"+period+"</div><div class='theme-desc'>"+t.desc+"</div>"
+      +"<div class='theme-chips'>"+t.chips.map(c=>"<span>"+c+"</span>").join("")+"</div></div>"
+      +"<button type='button' class='theme-btn"+(on?" on":"")+"' data-action='toggleTheme' data-theme='"+t.key+"'>"+(on?"예약됨 ✓":"예약하기")+"</button>"
+      +"</div>";
+  }).join(""));
+
+  const up=$("upcomingList");
+  if(up){
+    const items=[];
+    const next=nextCommuteRun();
+    if(next)items.push({icon:"🚶",title:next.label+" "+next.plan.start+" 출퇴근 맞춤 청소",desc:commuteDayText()+" 반복 · "+next.plan.end+" 전 도킹 완료"});
+    themeDefs.forEach(t=>{
+      if(!state.activeThemes[t.key])return;
+      const st=themeStatus(t);
+      let desc;
+      if(st.kind==="live")desc="진행 중 · "+fmtMD(t.end)+"까지 · "+t.chips[2];
+      else if(st.kind==="soon")desc=fmtMD(t.start)+"부터 시작 ("+st.label+") · "+t.chips[2];
+      else if(st.kind==="past")desc="이번 시즌은 지났어요. 내년 같은 시기에 다시 알려드려요.";
+      else desc="시작 날짜를 정하면 3일 동안 집중 청소해요.";
+      items.push({icon:t.icon,title:t.name,desc});
+    });
+    const badge=$("upcomingBadge"); if(badge)badge.textContent=items.length+"건";
+    setHtml(up,items.length?items.map(i=>"<div class='upcoming-item'><div class='upcoming-icon'>"+i.icon+"</div><div><strong>"+i.title+"</strong><span>"+i.desc+"</span></div></div>").join("")
+      :"<div class='upcoming-empty'>아직 예약이 없어요. 출퇴근 예약을 켜거나 테마 청소를 예약해 보세요.</div>");
+  }
+}
+function fillTimeSelects(){
+  const leave=$("leaveTime"),ret=$("returnTime");
+  if(leave&&!leave.options.length){for(let m=6*60;m<=11*60;m+=30){const o=document.createElement("option");o.value=fmtMin(m);o.textContent=fmtMin(m);leave.appendChild(o);}leave.value="09:00";}
+  if(ret&&!ret.options.length){for(let m=15*60;m<=22*60;m+=30){const o=document.createElement("option");o.value=fmtMin(m);o.textContent=fmtMin(m);ret.appendChild(o);}ret.value="18:30";}
+}
+function toggleCommute(){
+  state.commuteOn=!state.commuteOn;
+  render();
+  if(state.commuteOn){
+    const p=commutePlan();
+    addEvent("출퇴근 예약 설정",commuteDayText()+" "+p.start+" 출발, "+p.end+" 도킹으로 예약했어요. 필요한 만큼만 충전한 뒤 출발해요.","예약");
+    showToast("출퇴근 맞춤 예약을 켰어요. 집을 비운 시간에만 청소해요.");
+  }else showToast("출퇴근 맞춤 예약을 껐어요.");
+}
+function toggleDay(el){
+  const d=Number(el.dataset.day);
+  const idx=state.commuteDays.indexOf(d);
+  if(idx>=0)state.commuteDays.splice(idx,1);else state.commuteDays.push(d);
+  render();
+}
+function setCommuteMode(el){state.commuteMode=el.dataset.mode||"after";render();}
+function toggleTheme(el){
+  const key=el.dataset.theme;const t=themeDefs.find(x=>x.key===key);if(!t)return;
+  state.activeThemes[key]=!state.activeThemes[key];
+  render();
+  if(state.activeThemes[key]){
+    const st=themeStatus(t);
+    addEvent("테마 청소 예약",t.name+"을(를) 예약했어요."+(t.start?" ("+fmtMD(t.start)+" ~ "+fmtMD(t.end)+")":""),"예약");
+    showToast(t.icon+" "+t.name+" 예약 완료! "+(st.kind==="live"?"오늘부터 진행해요.":st.kind==="soon"?fmtMD(t.start)+"부터 시작해요.":"시작 시기에 알려드려요."));
+  }else showToast(t.name+" 예약을 취소했어요.");
 }
 
-function renderRecord(){
-  $("avgText").textContent=state.average;
-  $("recordAvgText").textContent=state.average;
-  $("areaText").textContent=state.area;
-  $("acceptText").textContent=state.acceptCount;
-  const sunday=34+state.cleanCount*8;
-  $("sunValue").textContent=sunday;
-  $("sunBar").style.height=Math.min(96,56+state.cleanCount*10)+"%";
+/* ============================================================
+   PAGE 4 · 이벤트 (오늘의 발견 / 미션 / 사진첩)
+   ============================================================ */
+const defaultLostItems=[
+  {id:"l1",emoji:"🎀",title:"거실 소파 옆",desc:"작은 머리끈으로 보여요.",place:"거실",spot:"소파 옆",time:"오늘 오후 2:15",found:false},
+  {id:"l2",emoji:"🔑",title:"현관 매트 근처",desc:"작은 열쇠로 보여요.",place:"현관",spot:"매트 근처",time:"오늘 오전 10:08",found:false},
+  {id:"l3",emoji:"🧦",title:"침대 옆 바닥",desc:"양말 한 짝으로 보여요.",place:"침실",spot:"침대 옆",time:"어제 오후 8:42",found:false}
+];
+const lostImages=(mediaData&&mediaData.lostItems)||[];
+const lostItems=defaultLostItems.map((it,i)=>{
+  const img=lostImages[i];const o=Object.assign({},it);
+  if(img){o.src=img.src;if(img.place)o.place=img.place;if(img.time)o.time=img.time;if(img.note)o.desc=img.note;if(img.title&&img.title!==img.name.replace(/\.[^.]+$/,""))o.title=img.title;}
+  return o;
+});
+lostImages.slice(defaultLostItems.length).forEach((img,i)=>{
+  lostItems.push({id:"lx"+i,emoji:"📦",src:img.src,title:img.title||"청소 중 발견",desc:img.note||"청소 중 바닥에서 발견했어요.",place:img.place||"거실",spot:"",time:img.time||"오늘",found:false});
+});
+const demoPhotos=[
+  {emoji:"🐱",title:"소파 위에서 낮잠",place:"거실",time:"오늘 오후 1:20",note:"햇살 아래에서 곤히 자고 있어요."},
+  {emoji:"🐶",title:"창밖 구경 중",place:"거실",time:"오늘 오전 11:05",note:"밖에 지나가는 새를 한참 봤어요."},
+  {emoji:"🐾",title:"현관 앞 기다리기",place:"현관",time:"어제 오후 6:40",note:"퇴근 시간이 가까워지면 여기서 기다려요."},
+  {emoji:"🐈",title:"침대 밑 탐험",place:"침실",time:"어제 오후 3:12",note:"로보킹과 마주쳐서 잠깐 놀랐어요."}
+];
+const realPhotos=(mediaData&&mediaData.photos)||[];
+const photos=realPhotos.length?realPhotos:demoPhotos;
+const usingDemoPhotos=!realPhotos.length;
+
+const foundMapSpots={"거실":[122,58],"현관":[179,112],"침실":[34,40],"주방":[34,112],"다용도":[179,40]};
+function foundMapSvg(item){
+  const spot=foundMapSpots[item.place]||foundMapSpots["거실"];
+  const px=spot[0],py=spot[1];
+  return "<svg viewBox='0 0 200 150' role='img' aria-label='발견 위치 지도'>"
+    +"<rect class='fm-room' x='5' y='5' width='58' height='68' rx='8'/><text class='fm-label' x='34' y='44'>침실</text>"
+    +"<rect class='fm-room' x='5' y='78' width='58' height='67' rx='8'/><text class='fm-label' x='34' y='116'>주방</text>"
+    +"<rect class='fm-room' x='68' y='5' width='90' height='140' rx='8'/><text class='fm-label' x='113' y='130'>거실</text>"
+    +"<rect x='80' y='28' width='62' height='26' rx='9' fill='#c9ad82' opacity='.75'/><rect x='88' y='72' width='46' height='20' rx='5' fill='#e5cfa8'/>"
+    +"<rect class='fm-room' x='163' y='5' width='32' height='68' rx='8'/><text class='fm-label' x='179' y='44' style='font-size:9px'>다용도</text>"
+    +"<rect class='fm-room' x='163' y='78' width='32' height='67' rx='8'/><text class='fm-label' x='179' y='116'>현관</text>"
+    +"<g class='fm-pin'><path d='M"+px+" "+(py+14)+" C"+(px-13)+" "+(py-2)+", "+(px-13)+" "+(py-14)+", "+px+" "+(py-14)+" C"+(px+13)+" "+(py-14)+", "+(px+13)+" "+(py-2)+", "+px+" "+(py+14)+" Z' fill='#ef8c32' stroke='#fff' stroke-width='2'/>"
+    +"<circle cx='"+px+"' cy='"+(py-5)+"' r='7' fill='#fff'/><text x='"+px+"' y='"+(py-1.5)+"' text-anchor='middle' style='font-size:9px'>🤖</text></g></svg>";
+}
+function renderFound(){
+  const today=lostItems[0];
+  const card=$("foundTodayCard");
+  if(card&&today){
+    card.innerHTML="<div class='found-card-title'>🗓️ 오늘의 발견물</div>"
+      +"<div class='found-photo'>"+(today.src?"<img src='"+today.src+"' alt=''>":today.emoji)+"</div>"
+      +"<div class='found-name"+(today.found?" done":"")+"'>"+(today.found?"확인 완료 ✅":"작은 물건 발견")+"</div>"
+      +"<div class='found-desc'>"+esc(today.desc)+"</div>"
+      +"<div class='found-meta'>📍 "+esc((today.place+" "+today.spot).trim())+"<br>🕒 "+esc(today.time)+"</div>"
+      +"<div class='found-btn'><button type='button' data-action='foundItem' data-id='"+today.id+"'>더 자세히 보기 ›</button></div>";
+  }
+  const map=$("foundMap"); if(map&&today)map.innerHTML=foundMapSvg(today);
+  const list=$("foundList");
+  if(list)list.innerHTML=lostItems.map(it=>"<div class='found-item"+(it.found?" done":"")+"' data-action='foundItem' data-id='"+it.id+"'>"
+    +"<div class='found-thumb'>"+(it.src?"<img src='"+it.src+"' alt=''>":it.emoji)+"</div>"
+    +"<div><strong>"+esc(it.title)+"</strong><span>"+esc(it.desc)+"</span></div>"
+    +"<div class='found-right'>📍 "+esc(it.place)+"<br>🕒 "+esc(it.time)+"</div></div>").join("");
+  const badge=$("foundCountBadge"); if(badge)badge.textContent="전체 "+lostItems.length+"건";
+}
+function openFoundItem(el){
+  const id=el&&el.dataset?el.dataset.id:el;
+  const it=lostItems.find(x=>x.id===id);if(!it)return;
+  const visual=it.src?"<img class='modal-img' src='"+it.src+"' alt=''>":"<div class='modal-emoji'>"+it.emoji+"</div>";
+  const body=visual+"<b>"+esc(it.desc)+"</b><br>📍 "+esc((it.place+" "+it.spot).trim())+"<br>🕒 "+esc(it.time)+"<br><br>"
+    +(it.found?"주인을 찾아준 물건이에요 ✅":"청소 중 움직이지 않는 작은 물건을 발견해 사진으로 남겼어요. 확인하고 제자리에 두면 다음 청소가 더 편해요.");
+  if(it.found){openModal(it.title,body);return;}
+  openModal(it.title,body,{showCancel:true,cancelText:"닫기",confirmText:"✅ 찾았어요",onConfirm:()=>{
+    it.found=true;closeModal();state.exp+=5;levelCheck();spawnEffect("🔍",7);
+    addEvent("분실물 확인","'"+it.desc+"' 을(를) 확인했어요.","발견 기록");
+    renderFound();render();showToast("분실물을 확인했어요! 로보킹이 기뻐해요.");
+  }});
+}
+function openFoundMapBig(){
+  const today=lostItems[0];if(!today)return;
+  openModal("발견 위치","<div class='found-map' style='height:230px;margin-bottom:10px'>"+foundMapSvg(today)+"</div>📍 <b>"+esc((today.place+" "+today.spot).trim())+"</b> · "+esc(today.time)+"<br>"+esc(today.desc));
 }
 
+const missionDefs=[
+  {key:"clean",icon:"🧹",name:"청소 마스터",unit:"회 청소",tiers:[{goal:10,coins:5},{goal:100,coins:20},{goal:1000,coins:100}],get:()=>totalCleanCount()},
+  {key:"charge",icon:"🔋",name:"배터리 지킴이",unit:"회 맞춤 충전",tiers:[{goal:5,coins:5},{goal:30,coins:20},{goal:100,coins:60}],get:()=>state.acceptCount},
+  {key:"lost",icon:"🔍",name:"탐정 로보킹",unit:"개 분실물 발견",tiers:[{goal:3,coins:5},{goal:20,coins:20},{goal:100,coins:80}],get:()=>lostItems.length},
+  {key:"photo",icon:"📷",name:"반려동물 사진가",unit:"장 촬영",tiers:[{goal:3,coins:5},{goal:30,coins:20},{goal:100,coins:80}],get:()=>photos.length},
+  {key:"learn",icon:"🏠",name:"우리 집 알아가기",unit:"회 학습",tiers:[{goal:1,coins:10}],get:()=>state.learnCount}
+];
+const medalFor=(def,i)=>def.tiers.length===1?"🏅":(["🥉","🥈","🥇"][i]||"🏅");
+function claimableCount(){
+  let n=0;
+  missionDefs.forEach(d=>{const v=Number(d.get()||0);d.tiers.forEach((t,i)=>{if(v>=t.goal&&!state.claimedMissions[d.key+":"+i])n++;});});
+  return n;
+}
+function renderMissions(){
+  const list=$("missionList");if(!list)return;
+  const claimable=claimableCount();
+  const c=$("missionClaimable");if(c)c.textContent=claimable+"개";
+  const dot=$("eventNavDot");if(dot)dot.style.display=claimable>0?"inline-block":"none";
+  setHtml(list,missionDefs.map(d=>{
+    const v=Number(d.get()||0);
+    const rows=d.tiers.map((t,i)=>{
+      const key=d.key+":"+i,reached=v>=t.goal,claimed=!!state.claimedMissions[key];
+      const pct=Math.min(100,Math.round(v/t.goal*100));
+      let btn;
+      if(claimed)btn="<button type='button' class='tier-btn claimed' disabled>받음 ✓</button>";
+      else if(reached)btn="<button type='button' class='tier-btn claim' data-action='claimMission' data-key='"+key+"'>+"+t.coins+" 코인 받기</button>";
+      else btn="<button type='button' class='tier-btn' disabled>+"+t.coins+" 코인</button>";
+      return "<div class='tier-row"+(reached?" reached":"")+"'><div class='tier-medal'>"+medalFor(d,i)+"</div>"
+        +"<div class='tier-info'><div class='tier-goal'>"+t.goal.toLocaleString()+d.unit+"</div><div class='tier-track'><div class='tier-fill' style='width:"+pct+"%'></div></div></div>"+btn+"</div>";
+    }).join("");
+    return "<div class='mission-card'><div class='mission-head'><span class='m-icon'>"+d.icon+"</span><span class='m-name'>"+d.name+"</span><span class='m-count'>현재 "+v.toLocaleString()+d.unit+"</span></div>"+rows+"</div>";
+  }).join(""));
+}
+function claimMission(el){
+  const key=el.dataset.key||"";const parts=key.split(":");
+  const d=missionDefs.find(x=>x.key===parts[0]);if(!d)return;
+  const ti=Number(parts[1]);const t=d.tiers[ti];
+  if(!t||state.claimedMissions[key])return;
+  if(Number(d.get()||0)<t.goal){showToast("아직 목표에 도달하지 않았어요.");return}
+  state.claimedMissions[key]=true;
+  state.coins+=t.coins;state.exp+=10;levelCheck();
+  const medal=medalFor(d,ti);
+  spawnEffect(medal,10);render();
+  addEvent("도전과제 달성",d.name+" · "+t.goal.toLocaleString()+d.unit+" 메달을 받았어요. +"+t.coins+" 코인","미션");
+  showToast(medal+" "+d.name+" 메달 획득! +"+t.coins+" 코인");
+}
+function checkMissionUnlock(){
+  const n=claimableCount();
+  if(n>state.notifiedClaimable){spawnEffect("🏅",6);showToast("🏅 미션 달성! 이벤트 탭에서 메달과 코인을 받아요.");}
+  state.notifiedClaimable=n;
+}
+function renderPhotos(){
+  const grid=$("photoGrid"),empty=$("photoEmpty"),count=$("photoCount");
+  if(!grid)return;
+  if(count)count.textContent=photos.length;
+  if(empty)empty.style.display=usingDemoPhotos?"block":"none";
+  grid.innerHTML=photos.map((p,i)=>"<div class='photo-tile' data-action='photoOpen' data-idx='"+i+"'>"
+    +(p.src?"<img src='"+p.src+"' alt='' loading='lazy'>":"<div class='ph-emoji'>"+(p.emoji||"🐾")+"</div>")
+    +"<div class='photo-cap'>"+esc(p.title)+"<small>"+esc([p.place,p.time].filter(Boolean).join(" · "))+"</small></div></div>").join("");
+}
+function openPhoto(el){
+  const p=photos[Number(el.dataset.idx)];if(!p)return;
+  const visual=p.src?"<img class='modal-img' src='"+p.src+"' alt=''>":"<div class='modal-emoji'>"+(p.emoji||"🐾")+"</div>";
+  openModal(p.title||"로보킹 사진",visual+(p.place?"📍 <b>"+esc(p.place)+"</b>":"")+(p.time?" · 🕒 "+esc(p.time):"")+(p.note?"<br>"+esc(p.note):"")+"<br><br>움직임을 감지했을 때 로보킹이 자동으로 찍어둔 사진이에요.");
+}
+function renderEvents(){
+  const tabs={found:"evTabFound",mission:"evTabMission",photo:"evTabPhoto"};
+  const panels={found:"evFoundPanel",mission:"evMissionPanel",photo:"evPhotoPanel"};
+  Object.keys(tabs).forEach(k=>{const b=$(tabs[k]);if(b)b.classList.toggle("active",state.eventTab===k);const p=$(panels[k]);if(p)p.classList.toggle("hidden",state.eventTab!==k);});
+  renderMissions();
+}
+function switchEventTab(tab){state.eventTab=tab;render();}
+
+/* ============================================================
+   원본 유지: 리워드 / 장식 / 모달 / 토스트 / 청소·충전 로직
+   (새 페이지 연동을 위한 최소 훅만 추가: addEvent 태그, 카운터 증가)
+   ============================================================ */
 function renderAccessories(){
   const robot=$("robot");
   const head=$("robotHeadDeco");
@@ -3492,13 +3960,23 @@ function spawnEffect(symbol,count=7){
 }
 function pulseRobot(){const robot=$("robot");robot.classList.remove("tap");void robot.offsetWidth;robot.classList.add("tap");setTimeout(()=>robot.classList.remove("tap"),650)}
 function levelCheck(){if(state.exp>=100){state.exp-=100;state.level+=1;spawnEffect("⭐",10);showToast("레벨 업! Lv."+state.level)}}
-function addEvent(title,description){const row=document.createElement("div");row.className="event-item";row.innerHTML='<div class="event-time">지금</div><div class="event-content"><strong>'+title+'</strong><span>'+description+'</span></div>';$("eventList").prepend(row)}
+// 케어 기록(2번째 탭)에 실시간으로 쌓입니다. tag는 "어떻게 수명을 지켰는지" 한 줄 라벨입니다.
+function addEvent(title,description,tag){
+  const list=$("eventList");
+  if(!list)return;
+  const now=new Date();
+  const hh=String(now.getHours()).padStart(2,"0"),mm=String(now.getMinutes()).padStart(2,"0");
+  const row=document.createElement("div");row.className="event-item";
+  row.innerHTML='<div class="event-time">'+hh+':'+mm+'</div><div class="event-content"><strong>'+esc(title)+(tag?'<span class="event-tag">'+esc(tag)+'</span>':'')+'</strong><span>'+description+'</span></div>';
+  list.prepend(row);
+  while(list.children.length>30)list.removeChild(list.lastChild);
+}
 
 function petRobot(){if(state.cleaning){showToast("청소가 끝난 후 로보킹을 쓰다듬어 주세요.");return}state.heart=Math.min(100,state.heart+2);state.exp+=1;pulseRobot();spawnEffect("💖",7);levelCheck();render();showToast("로보킹의 기분이 좋아졌어요.")}
 function feedRobot(){if(state.food<=0){showToast("음식이 부족해요. 리워드에서 구매해 주세요.");return}state.food-=1;state.soc+=12;state.exp+=8;pulseRobot();spawnEffect("⚡",8);levelCheck();render();showToast("배터리가 12% 회복되었습니다.")}
 function playRobot(){if(state.soc<5){showToast("배터리가 부족해서 놀 수 없어요.");return}state.soc-=3;state.exp+=5;pulseRobot();spawnEffect("💖",8);levelCheck();render();showToast("로보킹의 친밀도와 경험치가 올랐어요.")}
 function trainRobot(){if(state.soc<8){showToast("훈련 전에 충전이 필요해요.");return}state.soc-=6;state.health=Math.min(100,state.health+3);state.exp+=12;pulseRobot();spawnEffect("✨",8);levelCheck();render();showToast("로보킹이 훈련을 완료했습니다.")}
-function takePhoto(){pulseRobot();spawnEffect("📸",5);openModal("오늘의 사진","왕관을 쓴 로보킹의 사진을 촬영했습니다.<br><br>향후 장식 아이템과 청소 완료 장면을 사진첩에 저장할 수 있습니다.")}
+function takePhoto(){pulseRobot();spawnEffect("📸",5);state.eventTab="photo";switchPage("eventPage");showToast("로보킹 사진첩을 열었어요.")}
 function decorateRobot(){
   switchPage("rewardPage");
   showToast("리워드에서 아이템을 사면 로보킹에게 계속 장착돼요.");
@@ -3769,7 +4247,6 @@ function handleMapZoneTap(element){
 
 
 
-
 function manualCleanAndGo(){
   if(state.cleaning){showToast("이미 청소 중이에요.");return}
   if(state.charging){showToast("충전이 끝나면 바로 출발할게요.");return}
@@ -3823,13 +4300,13 @@ function executeTopClean(){
   }
 }
 
-
 function getCleaningZonesForCurrentPlan(){
   const nums=getPlannedZoneNumbers();
   if(nums.length)return nums;
   if(state.selectedScope==="zone" && state.selectedZone)return [Number(state.selectedZone)];
   return getCleanableZones().map(z=>Number(z.zone));
 }
+
 function updateCleaningZoneProgress(percent){
   const zones=state.cleaningZones && state.cleaningZones.length ? state.cleaningZones : getCleaningZonesForCurrentPlan();
   if(!zones.length){
@@ -3842,17 +4319,18 @@ function updateCleaningZoneProgress(percent){
   state.currentCleaningZone=zones[idx];
   state.completedZones=zones.slice(0,idx);
 }
+
 function finishCleaningZoneProgress(){
   const zones=state.cleaningZones && state.cleaningZones.length ? state.cleaningZones : getCleaningZonesForCurrentPlan();
   state.completedZones=zones.slice();
   state.currentCleaningZone=null;
 }
+
 function clearCleaningZoneProgress(){
   state.cleaningZones=[];
   state.currentCleaningZone=null;
   state.completedZones=[];
 }
-
 
 function startCleaning(){
   if(state.cleaning){showToast("이미 청소 중이에요.");return}
@@ -3962,7 +4440,8 @@ function startCleaning(){
         updateCleaningZoneProgress(state.progress);
         state.robotMotion='returning';
         state.targetSoc=targetFromRequired(newRemaining);
-        addEvent("잠깐 쉬어가기",state.selectedLabel+" 청소 중 로보킹이 잠깐 충전한 뒤 남은 곳을 이어서 청소하기로 했어요.");
+        state.reserveGuardCount+=1;
+        addEvent("잠깐 쉬어가기",state.selectedLabel+" 청소 중 배터리 15%가 되어 스스로 도킹했어요. 잠깐 충전 후 남은 곳을 이어서 청소해요.","잔량 15% 보호");
         render();
         $("speech").innerHTML="<strong style='color:#ef8c32'>잠깐 쉬어갈게요!</strong><br>조금만 쉬고 다시 힘낼게요.";
         setGuide("로보킹이 조금 지쳤어요. 잠깐 충전하고 남은 곳을 이어서 청소할게요.","warning");
@@ -3988,7 +4467,7 @@ function startCleaning(){
       state.area=Math.round((state.area||0)+(state.cleaningAreaM2||0));
       state.average=Math.round((state.average+Math.max(15,Math.round(state.requiredSoc*1.4)))/2);
       levelCheck();
-      addEvent(state.selectedLabel+" 청소 완료","로보킹이 배터리를 아끼며 청소를 마쳤어요.");
+      addEvent(state.selectedLabel+" 청소 완료","배터리 "+fmtSoc(totalRequired)+"%만 사용해 청소를 마쳤어요. 15% 이상 남겨 배터리에 무리를 주지 않았어요.","배터리 절약");
       spawnEffect("🎉",15);spawnEffect("⭐",9);
       render();
       $("speech").innerHTML="<strong style='color:#2f8b3a'>청소 완료!</strong><br>+50코인을 받았어요.";
@@ -3996,6 +4475,7 @@ function startCleaning(){
       setGuide("청소 완료! 배터리를 아껴 쓰며 마무리했어요. 보상으로 +50코인과 경험치를 받았어요.","done");
       showToast("청소 완료! 로보킹이 +50코인을 가져왔어요.");
       setTimeout(()=>{state.celebrating=false;clearCleaningZoneProgress();render()},3600);
+      setTimeout(checkMissionUnlock,3800);
     }
   },320);
 }
@@ -4035,8 +4515,9 @@ function chargeRobot(autoStart=false){
       state.robotMotion='docked';
       state.temperature=29;
       state.acceptCount+=1;
+      state.savedChargePct+=Math.max(0,100-state.targetSoc);
       state.chargeComplete=true;
-      addEvent("맞춤 충전 완료",state.selectedLabel+" 청소에 필요한 만큼만 채우고 멈췄어요.");
+      addEvent("맞춤 충전 완료",state.selectedLabel+" 청소에 필요한 "+state.targetSoc+"%까지만 채우고 멈췄어요. 완충 대비 "+(100-state.targetSoc)+"% 덜 채워 과충전을 막았어요.","수명 보호");
       spawnEffect("💖",12);
       spawnEffect("✨",8);
       render();
@@ -4046,6 +4527,7 @@ function chargeRobot(autoStart=false){
       showToast("충전 완료! 이제 로보킹이 출동할 수 있어요.");
       setTimeout(()=>{state.chargeComplete=false;render()},3200);
       if(autoStart){setTimeout(()=>{state.robotMotion='departing';render();setTimeout(()=>{state.robotMotion='idle';startCleaning();},850)},900)}
+      else setTimeout(checkMissionUnlock,3600);
     }
   },150);
   },1050);
@@ -4113,15 +4595,22 @@ const actions={
   startFirstMapping:startFirstMapping,
   predictSoc:predictSocFromConditions,
   executeTopClean:executeTopClean,
-  manualCleanAndGo:manualCleanAndGo,
   aiAutoClean:aiAutoClean,dirtyOnlyClean:dirtyOnlyClean,toggleNoGoMode:toggleNoGoMode,mapZone:handleMapZoneTap,
   selectHome:()=>selectScenario("home"),selectZone1:()=>selectScenario("zone",1),selectZone2:()=>selectScenario("zone",2),selectZone3:()=>selectScenario("zone",3),selectZone4:()=>selectScenario("zone",4),selectZone5:()=>selectScenario("zone",5),selectZone6:()=>selectScenario("zone",6),selectZone7:()=>selectScenario("zone",7),selectZone8:()=>selectScenario("zone",8),
   pet:petRobot,feed:feedRobot,play:playRobot,train:trainRobot,photo:takePhoto,clean:startCleaning,charge:chargeRobot,status:showStatus,
-  record:()=>switchPage("recordPage"),event:()=>switchPage("eventPage"),decorate:decorateRobot,shop:()=>switchPage("rewardPage"),chargeFromBattery:()=>{switchPage("homePage");setTimeout(chargeRobot,220)},buyFood:buyFood,
+  // 홈의 "청소 기록" 버튼은 실시간 케어 기록이 있는 부품 케어 탭으로 이동합니다.
+  record:()=>switchPage("batteryPage"),care:()=>switchPage("batteryPage"),event:()=>switchPage("eventPage"),decorate:decorateRobot,shop:()=>switchPage("rewardPage"),chargeFromBattery:()=>{switchPage("homePage");setTimeout(chargeRobot,220)},buyFood:buyFood,
   itemRibbon:()=>handleRewardItem("ribbon"),itemHat:()=>handleRewardItem("hat"),itemBunny:()=>handleRewardItem("bunny"),itemCat:()=>handleRewardItem("cat"),itemSparkle:()=>handleRewardItem("sparkle"),
   rewardTabItems:()=>switchRewardTab("items"),rewardTabCoupons:()=>switchRewardTab("coupons"),
   couponLg5:()=>handleCoupon("lg5"),couponCleanKit:()=>handleCoupon("cleanKit"),couponBatteryCare:()=>handleCoupon("batteryCare"),couponMoveIn:()=>handleCoupon("moveIn"),
-  ribbon:()=>handleRewardItem("ribbon"),sparkle:()=>handleRewardItem("sparkle"),hat:()=>handleRewardItem("hat")
+  ribbon:()=>handleRewardItem("ribbon"),sparkle:()=>handleRewardItem("sparkle"),hat:()=>handleRewardItem("hat"),
+  // ---- 2번째 탭: 부품 케어 ----
+  partDetail:openPartDetail,
+  // ---- 3번째 탭: 예약 청소 ----
+  toggleCommute:toggleCommute,toggleDay:toggleDay,commuteMode:setCommuteMode,toggleTheme:toggleTheme,
+  // ---- 4번째 탭: 이벤트 ----
+  evTabFound:()=>switchEventTab("found"),evTabMission:()=>switchEventTab("mission"),evTabPhoto:()=>switchEventTab("photo"),
+  foundItem:openFoundItem,foundMapBig:openFoundMapBig,claimMission:claimMission,photoOpen:openPhoto
 };
 
 document.addEventListener("click",(event)=>{const nav=event.target.closest("[data-page]");if(nav){switchPage(nav.dataset.page);return}const action=event.target.closest("[data-action]");if(action&&typeof actions[action.dataset.action]==="function"){actions[action.dataset.action](action,event)}});
@@ -4163,8 +4652,6 @@ document.addEventListener("touchstart",(event)=>{
 },{capture:true,passive:false});
 
 $("modalCancel").addEventListener("click",closeModal);$("modalConfirm").addEventListener("click",()=>modalConfirmHandler());$("modal").addEventListener("click",(event)=>{if(event.target===$("modal"))closeModal()});
-$("targetSlider").addEventListener("input",(event)=>{state.targetSoc=Number(event.target.value);render()});
-$("tempSlider").addEventListener("input",(event)=>{state.temperature=Number(event.target.value);render()});
 ["scopeSelect","cleanModeSelect","intensitySelect","todayStateSelect"].forEach(id=>{
   const el=$(id);
   if(el)el.addEventListener("change",()=>{
@@ -4176,15 +4663,22 @@ $("tempSlider").addEventListener("input",(event)=>{state.temperature=Number(even
     }
   });
 });
+["leaveTime","returnTime"].forEach(id=>{const el=$(id);if(el)el.addEventListener("change",()=>render());});
 
 setInterval(()=>{if(state.cleaning||state.charging||state.celebrating)return;const robot=$("robot");robot.classList.remove("look-left","look-right");const d=Math.random();if(d<.33)robot.classList.add("look-left");else if(d<.66)robot.classList.add("look-right");setTimeout(()=>robot.classList.remove("look-left","look-right"),1100)},2800);
+
+fillTimeSelects();
 populateConditionSelectors();
+renderFound();
+renderPhotos();
 render();
+state.notifiedClaimable=claimableCount();
 </script>
 </body>
 </html>
 """
 
 APP_HTML = APP_HTML.replace("__UI_PREDICTION_DATA__", UI_PREDICTION_JSON)
+APP_HTML = APP_HTML.replace("__UI_MEDIA_DATA__", UI_MEDIA_JSON)
 
 components.html(APP_HTML, height=1010, scrolling=False)
