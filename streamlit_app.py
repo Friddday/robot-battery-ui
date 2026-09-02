@@ -30,7 +30,16 @@ st.markdown(
       }
       .block-container{max-width:100%;padding:8px 4px 18px;}
       iframe{border:0!important;border-radius:28px;}
-    </style>
+    
+/* ===== Home cleanup: hide only the two requested home elements ===== */
+#homePage .room .mode-chip{
+  display:none!important;
+}
+#homePage .room .quick{
+  display:none!important;
+}
+
+</style>
     """,
     unsafe_allow_html=True,
 )
