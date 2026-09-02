@@ -50,10 +50,33 @@ st.markdown(
 # 사진은 한 장당 1MB 이하로 줄여두면 로딩이 빠릅니다.
 # ============================================================
 
+
 BASE_DIR = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
 DATA_DIR = BASE_DIR / "data"
+
+# ============================================================
+# 최종 ML 결과파일 연결부
+# ============================================================
+# 새 구조:
+# data/ml_output.csv
+#
+# 머신러닝팀 최종 파일은 1행 = 1개 zone 청소 예측 결과입니다.
+# 소형/중형/대형은 각각 4/6/8개 zone으로 구성됩니다.
+#
+# 집 전체 필요 SOC는 zone별 필요 SOC(zone_soc_used_pct)를 합산해서 계산합니다.
+# 주의: zone_target_soc_pct를 합산하지 않습니다.
+# zone_target_soc_pct는 zone 1개를 단독 청소할 때의 안전마진 포함 목표치입니다.
+#
+# fallback:
+# 예전 파일명으로 업로드해도 동작하도록 ml_output(2).csv도 같이 탐색합니다.
+# 예전 home_model_predictions.csv / zone_model_predictions.csv도 fallback으로 유지합니다.
+# ============================================================
+
+ML_OUTPUT_PATH = DATA_DIR / "ml_output.csv"
+ML_OUTPUT_ALT_PATH = DATA_DIR / "ml_output(2).csv"
 HOME_PRED_PATH = DATA_DIR / "home_model_predictions.csv"
 ZONE_PRED_PATH = DATA_DIR / "zone_model_predictions.csv"
+
 ASSET_DIR = BASE_DIR / "assets"
 PHOTO_DIR = ASSET_DIR / "photos"
 LOST_DIR = ASSET_DIR / "lost_items"
@@ -138,6 +161,13 @@ def _safe_float(row, candidates, default=0.0):
     return float(default)
 
 
+def _safe_int(row, candidates, default=0):
+    try:
+        return int(round(_safe_float(row, candidates, default)))
+    except Exception:
+        return int(default)
+
+
 def _soc_target(required_soc):
     return int(round(max(15, min(float(required_soc) + 15, 90))))
 
@@ -176,64 +206,96 @@ def load_prediction_csv(path: str):
     return df
 
 
+def _first_existing_csv(paths):
+    for p in paths:
+        if p.exists():
+            return p
+    return None
+
+
 def _make_demo_runs():
     runs = []
-    for area in [18, 24, 33, 40, 48, 54, 60, 72]:
+    demo_specs = [
+        (18, 4), (24, 4),
+        (28, 6), (34, 6), (42, 6),
+        (54, 8), (63, 8), (72, 8),
+    ]
+
+    for area, zone_count in demo_specs:
         for mop_enabled in [False, True]:
-            base = area * 0.75 + (7 if mop_enabled else 0)
+            base = area * 0.72 + (7 if mop_enabled else 0)
+            labels_by_count = {
+                4: ["거실", "주방", "침실", "현관"],
+                6: ["침실", "주방", "거실", "카펫", "현관", "다용도"],
+                8: ["침실1", "침실2", "주방", "거실", "현관", "카펫", "서재", "다용도"],
+            }
+            floors = ["마루/타일", "장판/PVC", "저파일 러그", "고파일 카펫", "마루/타일", "장판/PVC", "저파일 러그", "마루/타일"]
+            dirts = ["낮음", "보통", "높음", "낮음", "보통", "높음", "낮음", "보통"]
+            weights = {
+                4: [0.30, 0.24, 0.28, 0.18],
+                6: [0.17, 0.19, 0.25, 0.15, 0.12, 0.12],
+                8: [0.12, 0.11, 0.14, 0.20, 0.10, 0.12, 0.11, 0.10],
+            }[zone_count]
+
             zones = []
-            floor_types = ["마루/타일", "저파일 러그", "장판/PVC", "현관매트", "고파일 카펫"]
-            dirt_levels = ["낮음", "중간", "낮음", "높음", "중간"]
-            weights = [0.18, 0.21, 0.17, 0.24, 0.20]
             for i, w in enumerate(weights, start=1):
                 required = max(1.2, base * w)
+                dirt = dirts[i - 1]
                 zones.append({
                     "scope": "zone",
                     "zone": i,
                     "label": f"{i}구역",
                     "globalRunId": f"demo_{area}_{'mop' if mop_enabled else 'dry'}",
                     "areaPyung": area,
+                    "zoneCount": zone_count,
                     "cleaningAreaM2": round(area * 3.3058 * 0.82 * w, 1),
                     "requiredSoc": round(required, 1),
                     "targetSoc": _soc_target(required),
-                    "modelName": "RandomForest",
+                    "modelName": "Final ML",
                     "cleaningType": "물걸레" if mop_enabled else "건식",
                     "cleaningTypeCode": 1 if mop_enabled else 0,
                     "mopEnabled": mop_enabled,
-                    "obstacleLevel": "중간",
+                    "obstacleLevel": "보통",
                     "obstacleLevelCode": 2,
-                    "floorType": floor_types[i-1],
-                    "dirtLevel": dirt_levels[i-1],
-                    "dirtCode": 3 if dirt_levels[i-1] == "높음" else (2 if dirt_levels[i-1] == "중간" else 1),
+                    "floorType": floors[i - 1],
+                    "dirtLevel": dirt,
+                    "dirtCode": 3 if dirt == "높음" else (2 if dirt == "보통" else 1),
                     "suctionMode": "자동",
                     "suctionCode": 2,
+                    "needsRecharge": "무충전 완주 가능",
+                    "chargeCount": 0,
                 })
+
             home_required = round(sum(z["requiredSoc"] for z in zones), 1)
             home = {
                 "scope": "home",
                 "label": "집 전체",
                 "globalRunId": f"demo_{area}_{'mop' if mop_enabled else 'dry'}",
                 "areaPyung": area,
-                "cleaningAreaM2": int(round(area * 3.3058 * 0.82)),
+                "zoneCount": zone_count,
+                "cleaningAreaM2": round(sum(z["cleaningAreaM2"] for z in zones), 1),
                 "requiredSoc": home_required,
                 "targetSoc": _soc_target(home_required),
-                "modelName": "XGBoost",
+                "modelName": "Final ML",
                 "cleaningType": "물걸레" if mop_enabled else "건식",
                 "cleaningTypeCode": 1 if mop_enabled else 0,
                 "mopEnabled": mop_enabled,
-                "obstacleLevel": "중간",
+                "obstacleLevel": "보통",
                 "obstacleLevelCode": 2,
                 "floorType": "혼합",
                 "dirtLevel": "평균",
-                "dirtCode": 2,
-                "dirtMaxCode": 3,
+                "dirtCode": round(sum(z["dirtCode"] for z in zones) / len(zones), 3),
+                "dirtMaxCode": max(z["dirtCode"] for z in zones),
                 "suctionMode": "자동",
                 "suctionCode": 2,
                 "suctionMaxCode": 3,
+                "needsRecharge": "무충전 완주 가능",
+                "chargeCount": 0,
             }
             runs.append({
                 "globalRunId": home["globalRunId"],
                 "areaPyung": area,
+                "zoneCount": zone_count,
                 "mopEnabled": mop_enabled,
                 "cleaningType": home["cleaningType"],
                 "home": home,
@@ -242,6 +304,177 @@ def _make_demo_runs():
     return runs
 
 
+def _build_zone_from_final_row(zrow, idx):
+    zone_no = _safe_int(zrow, ["zone"], idx)
+    area_pyung = _safe_int(zrow, ["area_pyung"], 0)
+    zone_count = _safe_int(zrow, ["zone_count"], 0)
+    required = _safe_float(zrow, ["zone_soc_used_pct"], 0)
+    target = _safe_float(zrow, ["zone_target_soc_pct"], _soc_target(required))
+    mop_enabled = _infer_mop(zrow)
+    cleaning_type = _safe_text(zrow, ["cleaning_type"], "물걸레" if mop_enabled else "건식")
+    obstacle_code = _safe_float(zrow, ["obstacle_level_code"], 0)
+    dirt_code = _safe_float(zrow, ["dirt_level_code"], 0)
+    if not dirt_code:
+        dirt_txt = _safe_text(zrow, ["dirt_level"], "")
+        if "높" in dirt_txt or "많" in dirt_txt:
+            dirt_code = 3
+        elif "보통" in dirt_txt or "중" in dirt_txt:
+            dirt_code = 2
+        elif "낮" in dirt_txt or "적" in dirt_txt:
+            dirt_code = 1
+    suction_code = _safe_float(zrow, ["suction_mode_code"], 0)
+    if not suction_code:
+        suction_txt = _safe_text(zrow, ["effective_suction_mode"], "")
+        if "터보" in suction_txt:
+            suction_code = 4
+        elif "강" in suction_txt:
+            suction_code = 3
+        elif "중" in suction_txt:
+            suction_code = 2
+        elif "약" in suction_txt:
+            suction_code = 1
+
+    return {
+        "scope": "zone",
+        "zone": zone_no,
+        "label": f"{zone_no}구역",
+        "globalRunId": _safe_text(zrow, ["global_run_id"], ""),
+        "areaPyung": area_pyung,
+        "zoneCount": zone_count,
+        "cleaningAreaM2": round(_safe_float(zrow, ["zone_area_m2"], 0), 1),
+        "requiredSoc": round(float(required), 1),
+        "targetSoc": int(round(max(15, min(float(target), 90)))),
+        "modelName": "Final ML",
+        "cleaningType": cleaning_type,
+        "cleaningTypeCode": 1 if mop_enabled else 0,
+        "mopEnabled": mop_enabled,
+        "obstacleLevel": _safe_text(zrow, ["obstacle_level"], ""),
+        "obstacleLevelCode": round(float(obstacle_code), 3),
+        "floorType": _safe_text(zrow, ["floor_type"], ""),
+        "dirtLevel": _safe_text(zrow, ["dirt_level"], ""),
+        "dirtCode": round(float(dirt_code), 3),
+        "suctionMode": _safe_text(zrow, ["effective_suction_mode"], ""),
+        "suctionCode": round(float(suction_code), 3),
+        "zoneTimeMin": round(_safe_float(zrow, ["zone_time_min"], 0), 2),
+        "zoneProgressPct": round(_safe_float(zrow, ["zone_progress_pct"], 0), 2),
+        "socBeforeZone": round(_safe_float(zrow, ["soc_before_zone_pct"], 0), 2),
+        "socAfterZone": round(_safe_float(zrow, ["soc_after_zone_pct"], 0), 2),
+        "needsRecharge": _safe_text(zrow, ["needs_recharge"], ""),
+        "chargeCount": _safe_int(zrow, ["charge_count"], 0),
+        "isChargeZone": _safe_int(zrow, ["is_charge_zone"], 0),
+        "firstChargeZone": _safe_int(zrow, ["first_charge_zone"], -1),
+        "secondChargeZone": _safe_int(zrow, ["second_charge_zone"], -1),
+        "firstChargeTargetSoc": round(_safe_float(zrow, ["first_charge_target_soc_pct"], 0), 2),
+        "secondChargeTargetSoc": round(_safe_float(zrow, ["second_charge_target_soc_pct"], 0), 2),
+    }
+
+
+def _build_run_from_final_group(gid, zdf):
+    zdf = zdf.copy()
+    if "zone" in zdf.columns:
+        zdf = zdf.sort_values("zone")
+
+    zones = []
+    for idx, (_, zrow) in enumerate(zdf.iterrows(), start=1):
+        zones.append(_build_zone_from_final_row(zrow, idx))
+
+    if not zones:
+        return None
+
+    first = zdf.iloc[0]
+    area_pyung = _safe_int(first, ["area_pyung"], zones[0].get("areaPyung", 0))
+    zone_count_from_csv = _safe_int(first, ["zone_count"], len(zones))
+    zone_count = zone_count_from_csv or len(zones)
+    mop_enabled = _infer_mop(first)
+    cleaning_type = _safe_text(first, ["cleaning_type"], "물걸레" if mop_enabled else "건식")
+
+    # 핵심 변경점:
+    # 집 전체 필요 SOC는 각 zone의 zone_soc_used_pct 합산값입니다.
+    # run_total_soc_pct가 있더라도 UI에서는 이 합산값을 우선 사용합니다.
+    home_required = round(sum(float(z.get("requiredSoc", 0)) for z in zones), 1)
+    home_target = _soc_target(home_required)
+
+    dirt_values = [float(z.get("dirtCode", 0)) for z in zones if float(z.get("dirtCode", 0)) > 0]
+    suction_values = [float(z.get("suctionCode", 0)) for z in zones if float(z.get("suctionCode", 0)) > 0]
+    obstacle_values = [float(z.get("obstacleLevelCode", 0)) for z in zones if float(z.get("obstacleLevelCode", 0)) > 0]
+
+    home = {
+        "scope": "home",
+        "label": "집 전체",
+        "globalRunId": str(gid),
+        "areaPyung": area_pyung,
+        "zoneCount": zone_count,
+        "cleaningAreaM2": round(sum(float(z.get("cleaningAreaM2", 0)) for z in zones), 1),
+        "requiredSoc": home_required,
+        "targetSoc": home_target,
+        "modelName": "Final ML",
+        "cleaningType": cleaning_type,
+        "cleaningTypeCode": 1 if mop_enabled else 0,
+        "mopEnabled": mop_enabled,
+        "obstacleLevel": _safe_text(first, ["obstacle_level"], ""),
+        "obstacleLevelCode": round(sum(obstacle_values) / len(obstacle_values), 3) if obstacle_values else 0,
+        "floorType": "혼합",
+        "dirtLevel": "평균",
+        "dirtCode": round(sum(dirt_values) / len(dirt_values), 3) if dirt_values else 0,
+        "dirtMaxCode": round(max(dirt_values), 3) if dirt_values else 0,
+        "suctionMode": "자동",
+        "suctionCode": round(sum(suction_values) / len(suction_values), 3) if suction_values else 0,
+        "suctionMaxCode": round(max(suction_values), 3) if suction_values else 0,
+        "runTotalSocFromCsv": round(_safe_float(first, ["run_total_soc_pct"], home_required), 3),
+        "runTotalTimeMin": round(_safe_float(first, ["run_total_time_min"], 0), 2),
+        "runEndSoc": round(_safe_float(first, ["run_end_soc_pct"], 0), 2),
+        "needsRecharge": _safe_text(first, ["needs_recharge"], ""),
+        "chargeCount": _safe_int(first, ["charge_count"], 0),
+        "firstChargeZone": _safe_int(first, ["first_charge_zone"], -1),
+        "secondChargeZone": _safe_int(first, ["second_charge_zone"], -1),
+    }
+
+    return {
+        "globalRunId": str(gid),
+        "areaPyung": area_pyung,
+        "zoneCount": zone_count,
+        "mopEnabled": mop_enabled,
+        "cleaningType": cleaning_type,
+        "home": home,
+        "zones": zones,
+    }
+
+
+def make_prediction_payload_from_final_ml(ml_df):
+    runs = []
+    if ml_df is not None and len(ml_df) > 0 and "global_run_id" in ml_df.columns:
+        ml_df = ml_df.copy()
+        ml_df["global_run_id"] = ml_df["global_run_id"].astype(str)
+        for gid, zdf in ml_df.groupby("global_run_id", sort=False):
+            run = _build_run_from_final_group(gid, zdf)
+            if run is not None:
+                runs.append(run)
+
+    data_status = "final_ml_csv" if runs else "demo"
+    if not runs:
+        runs = _make_demo_runs()
+
+    area_options = sorted({r["areaPyung"] for r in runs if r.get("areaPyung")})
+    zone_count_options = sorted({r.get("zoneCount") for r in runs if r.get("zoneCount")})
+    mop_values = sorted({bool(r["mopEnabled"]) for r in runs})
+    default_run = runs[0]
+
+    return {
+        "currentSoc": int(CURRENT_SOC),
+        "runs": runs,
+        "areaOptions": area_options,
+        "zoneCountOptions": zone_count_options,
+        "defaultAreaPyung": default_run["areaPyung"],
+        "defaultZoneCount": default_run.get("zoneCount", len(default_run.get("zones", []))),
+        "defaultMopEnabled": bool(default_run["mopEnabled"]),
+        "dataStatus": data_status,
+        "homeSocRule": "sum_zone_soc_used_pct",
+    }
+
+
+# -----------------------------
+# 예전 2파일 구조 fallback
+# -----------------------------
 def _build_home_scenario(home_row):
     required = _safe_float(
         home_row,
@@ -261,11 +494,13 @@ def _build_home_scenario(home_row):
     dirt_max_code = _safe_float(home_row, ["dirt_level_code_max", "dirt_level_code"], dirt_mean_code)
     suction_mean_code = _safe_float(home_row, ["suction_mode_code_mean", "suction_mode_code"], 0)
     suction_max_code = _safe_float(home_row, ["suction_mode_code_max", "suction_mode_code"], suction_mean_code)
+    zone_count = _safe_int(home_row, ["zone_count_first", "zone_count"], 0)
     return {
         "scope": "home",
         "label": "집 전체",
         "globalRunId": _safe_text(home_row, ["global_run_id"], ""),
         "areaPyung": int(round(_safe_float(home_row, ["area_pyung_first", "area_pyung"], 0))),
+        "zoneCount": zone_count,
         "cleaningAreaM2": int(round(_safe_float(home_row, ["zone_area_m2_sum", "cleaning_area_m2"], 0))),
         "requiredSoc": round(float(required), 1),
         "targetSoc": int(round(max(15, min(float(target), 90)))),
@@ -304,6 +539,7 @@ def _build_zone_scenario(zrow, idx, home):
         "label": f"{zone_no}구역",
         "globalRunId": _safe_text(zrow, ["global_run_id"], home["globalRunId"]),
         "areaPyung": int(round(_safe_float(zrow, ["area_pyung", "area_pyung_first"], home["areaPyung"]))),
+        "zoneCount": int(home.get("zoneCount") or 0),
         "cleaningAreaM2": round(_safe_float(zrow, ["zone_area_m2"], 0), 1),
         "requiredSoc": round(float(required), 1),
         "targetSoc": _soc_target(required),
@@ -336,22 +572,25 @@ def make_prediction_payload(home_df, zone_df):
                     zdf = zdf.sort_values("zone")
                 for idx, (_, zrow) in enumerate(zdf.iterrows(), start=1):
                     zone = _build_zone_scenario(zrow, idx, home)
-                    # home의 청소방식과 일관되게 표시
                     zone["cleaningType"] = home["cleaningType"]
                     zone["mopEnabled"] = home["mopEnabled"]
                     zones.append(zone)
 
             if len(zones) >= 1:
+                # fallback에서도 zone_count가 없으면 실제 zone 개수를 사용
+                home["zoneCount"] = int(home.get("zoneCount") or len(zones))
+                for z in zones:
+                    z["zoneCount"] = home["zoneCount"]
                 runs.append({
                     "globalRunId": gid,
                     "areaPyung": home["areaPyung"],
+                    "zoneCount": home["zoneCount"],
                     "mopEnabled": home["mopEnabled"],
                     "cleaningType": home["cleaningType"],
                     "home": home,
                     "zones": zones,
                 })
 
-    # home 기록이 없고 zone 기록만 있을 때도 최소 동작하도록 처리
     if not runs and zone_df is not None and len(zone_df) > 0 and "global_run_id" in zone_df.columns:
         for gid, zdf in zone_df.groupby("global_run_id"):
             if len(zdf) < 1:
@@ -361,9 +600,9 @@ def make_prediction_payload(home_df, zone_df):
             first = zdf.iloc[0]
             area = int(round(_safe_float(first, ["area_pyung"], 18)))
             mop_enabled = _infer_mop(first)
-            dummy_required = 0
             dummy_home = {
                 "scope": "home", "label": "집 전체", "globalRunId": str(gid), "areaPyung": area,
+                "zoneCount": len(zdf),
                 "cleaningAreaM2": int(round(zdf["zone_area_m2"].sum())) if "zone_area_m2" in zdf.columns else 0,
                 "requiredSoc": 0, "targetSoc": 15, "modelName": "XGBoost",
                 "cleaningType": "물걸레" if mop_enabled else "건식", "cleaningTypeCode": 1 if mop_enabled else 0, "mopEnabled": mop_enabled,
@@ -371,6 +610,7 @@ def make_prediction_payload(home_df, zone_df):
                 "dirtLevel": "평균", "dirtCode": 0, "dirtMaxCode": 0, "suctionMode": "자동", "suctionCode": 0, "suctionMaxCode": 0
             }
             zones = []
+            dummy_required = 0
             for idx, (_, zrow) in enumerate(zdf.iterrows(), start=1):
                 zone = _build_zone_scenario(zrow, idx, dummy_home)
                 dummy_required += zone["requiredSoc"]
@@ -378,15 +618,16 @@ def make_prediction_payload(home_df, zone_df):
             dummy_home["requiredSoc"] = round(dummy_required, 1)
             dummy_home["targetSoc"] = _soc_target(dummy_required)
             runs.append({
-                "globalRunId": str(gid), "areaPyung": area, "mopEnabled": mop_enabled,
+                "globalRunId": str(gid), "areaPyung": area, "zoneCount": len(zones), "mopEnabled": mop_enabled,
                 "cleaningType": dummy_home["cleaningType"], "home": dummy_home, "zones": zones
             })
 
-    data_status = "csv" if runs else "demo"
+    data_status = "legacy_csv" if runs else "demo"
     if not runs:
         runs = _make_demo_runs()
 
     area_options = sorted({r["areaPyung"] for r in runs if r.get("areaPyung")})
+    zone_count_options = sorted({r.get("zoneCount") for r in runs if r.get("zoneCount")})
     mop_values = sorted({bool(r["mopEnabled"]) for r in runs})
     default_run = runs[0]
 
@@ -394,16 +635,24 @@ def make_prediction_payload(home_df, zone_df):
         "currentSoc": int(CURRENT_SOC),
         "runs": runs,
         "areaOptions": area_options,
-        "mopOptions": mop_values,
+        "zoneCountOptions": zone_count_options,
         "defaultAreaPyung": default_run["areaPyung"],
+        "defaultZoneCount": default_run.get("zoneCount", len(default_run.get("zones", []))),
         "defaultMopEnabled": bool(default_run["mopEnabled"]),
         "dataStatus": data_status,
     }
 
 
-home_pred_df = load_prediction_csv(str(HOME_PRED_PATH))
-zone_pred_df = load_prediction_csv(str(ZONE_PRED_PATH))
-ui_prediction_data = make_prediction_payload(home_pred_df, zone_pred_df)
+ml_output_path = _first_existing_csv([ML_OUTPUT_PATH, ML_OUTPUT_ALT_PATH])
+ml_output_df = load_prediction_csv(str(ml_output_path)) if ml_output_path else None
+
+if ml_output_df is not None:
+    ui_prediction_data = make_prediction_payload_from_final_ml(ml_output_df)
+else:
+    home_pred_df = load_prediction_csv(str(HOME_PRED_PATH))
+    zone_pred_df = load_prediction_csv(str(ZONE_PRED_PATH))
+    ui_prediction_data = make_prediction_payload(home_pred_df, zone_pred_df)
+
 UI_PREDICTION_JSON = json.dumps(ui_prediction_data, ensure_ascii=False)
 
 ui_media_data = {
@@ -411,6 +660,7 @@ ui_media_data = {
     "lostItems": load_image_folder(str(LOST_DIR), _folder_signature(LOST_DIR)),
 }
 UI_MEDIA_JSON = json.dumps(ui_media_data, ensure_ascii=False)
+
 
 APP_HTML = r"""
 <!doctype html>
@@ -2661,7 +2911,7 @@ function profileResultBody(){
     : "배터리 변화: <b>"+Math.round(startSoc)+"% → "+Math.round(endSoc)+"%</b> <small>(배터리 부족)</small>";
   return "<b>우리 집 저장 완료</b><br><br>"
     +"집 크기: <b>"+activeRun.areaPyung+"평 · "+activeRun.home.cleaningAreaM2+"㎡</b><br>"
-    +"구역: <b>5개</b><br>"
+    +"구역: <b>"+getDisplayZoneCount()+"개</b><br>"
     +"바닥: <b>"+floorKindCount()+"종 혼합</b><br>"
     +"오염도: <b>"+dirtSummaryShort()+"</b><br>"
     +"장애물: <b>"+obstacleSummary()+"</b><br>"
@@ -2786,6 +3036,10 @@ function openScenarioModal(){
 
 
 function getHomeSizeType(areaPyung){
+  const zoneCount=(activeRun && Number(activeRun.zoneCount)) || (activeRun && activeRun.home && Number(activeRun.home.zoneCount)) || 0;
+  if(zoneCount===4)return "small";
+  if(zoneCount===6)return "medium";
+  if(zoneCount===8)return "large";
   const area=Number(areaPyung||0);
   if(area<=24)return "small";
   if(area<=49)return "medium";
@@ -2798,6 +3052,8 @@ function getHomeSizeLabel(areaPyung){
   return "대형";
 }
 function getExpectedZoneCount(areaPyung){
+  if(activeRun && Number(activeRun.zoneCount))return Number(activeRun.zoneCount);
+  if(activeRun && activeRun.home && Number(activeRun.home.zoneCount))return Number(activeRun.home.zoneCount);
   const type=getHomeSizeType(areaPyung);
   if(type==="small")return 4;
   if(type==="medium")return 6;
@@ -2807,16 +3063,10 @@ function getActualZoneCount(){
   return (activeRun && activeRun.zones && activeRun.zones.length) ? activeRun.zones.length : 0;
 }
 function getDisplayZoneCount(){
-  const area=(activeRun && activeRun.areaPyung) ? activeRun.areaPyung : state.areaPyung;
-  const expected=getExpectedZoneCount(area);
   const actual=getActualZoneCount();
-
-  // 새 데이터셋은 평수 규모에 따라 4/6/8개 영역이 기준입니다.
-  // 기존 5구역 CSV가 남아 있거나 Streamlit 캐시가 섞여도 화면 표시는 평수 기준으로 자동 보정합니다.
-  if(expected && actual!==expected){
-    return expected;
-  }
-  return actual || expected;
+  if(actual)return actual;
+  const area=(activeRun && activeRun.areaPyung) ? activeRun.areaPyung : state.areaPyung;
+  return getExpectedZoneCount(area);
 }
 function getZoneByNumber(zoneNo){
   const zones=(activeRun && activeRun.zones) ? activeRun.zones : [];
@@ -3145,10 +3395,7 @@ function refreshScopeSelect(){
   const scopeSelect=$('scopeSelect');
   if(!scopeSelect)return;
 
-  const area=(activeRun && activeRun.areaPyung) ? activeRun.areaPyung : state.areaPyung;
-  const expected=getExpectedZoneCount(area);
-  const actual=(activeRun && activeRun.zones && activeRun.zones.length) ? activeRun.zones.length : expected;
-  const count=Math.max(expected, actual || 0);
+  const count=getDisplayZoneCount();
   const before=scopeSelect.value || "home";
 
   let html="<option value='home'>집 전체</option>";
