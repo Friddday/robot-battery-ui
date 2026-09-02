@@ -30,7 +30,38 @@ st.markdown(
       }
       .block-container{max-width:100%;padding:8px 4px 18px;}
       iframe{border:0!important;border-radius:28px;}
-    </style>
+    
+/* ===== Home visual adjustment: bigger station + mission moved right ===== */
+#homePage .house{
+  left:76px!important;
+  top:112px!important;
+  width:94px!important;
+  height:80px!important;
+  border-radius:38px 38px 9px 9px!important;
+  box-shadow:0 8px 14px rgba(54,36,23,.24)!important;
+}
+#homePage .house:before{
+  left:27px!important;
+  bottom:0!important;
+  width:40px!important;
+  height:44px!important;
+  border-radius:20px 20px 0 0!important;
+}
+#homePage .house:after{
+  top:13px!important;
+  left:27px!important;
+  font-size:8.5px!important;
+  letter-spacing:.2px!important;
+}
+#homePage .mission{
+  left:auto!important;
+  right:10px!important;
+  bottom:14px!important;
+  width:96px!important;
+  z-index:18!important;
+}
+
+</style>
     """,
     unsafe_allow_html=True,
 )
