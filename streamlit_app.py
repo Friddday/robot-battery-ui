@@ -3132,10 +3132,7 @@ function getMapPrepCardHtml(){
 function getLearnedMapHtml(){
   const area=(activeRun && activeRun.areaPyung) ? activeRun.areaPyung : state.areaPyung;
   const type=getHomeSizeType(area);
-  const sizeLabel=getHomeSizeLabel(area);
-  const zoneCount=getDisplayZoneCount();
   return "<div class='home-map-card'>"
-    +"<div class='home-map-head'><div class='home-map-badge'>"+sizeLabel+" · "+zoneCount+"개 영역</div></div>"
     +"<div class='home-map-img-wrap'>"+getMapSvg(type)+"</div>"
     +getDirtLegendHtml()
     +getMapRecommendationHtml()
