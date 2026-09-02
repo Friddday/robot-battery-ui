@@ -1579,6 +1579,95 @@ body,button,input,select{
 .photo-empty code{background:#fff2cf;padding:2px 6px;border-radius:6px;font-size:11px;}
 .nav-dot{display:inline-block;width:7px;height:7px;margin-left:3px;border-radius:50%;background:#ffd44f;vertical-align:middle;box-shadow:0 0 0 2px rgba(255,212,79,.25);}
 
+/* ===== Home information architecture: Map / AI preparation / Manual cleaning ===== */
+.home-section{
+  margin-bottom:10px;
+  padding:13px 11px;
+  overflow:hidden;
+}
+.home-section-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+.home-section-kicker{
+  margin-bottom:3px;
+  color:#a27145;
+  font-size:9px;
+  line-height:1;
+  font-weight:950;
+  letter-spacing:1.1px;
+}
+.home-section-title{
+  color:#4b3324;
+  font-size:16px;
+  line-height:1.25;
+  font-weight:1000;
+}
+.home-section-badge{
+  flex:0 0 auto;
+  padding:6px 9px;
+  border-radius:999px;
+  background:#f3e4c5;
+  color:#76553e;
+  font-size:10.5px;
+  line-height:1;
+  font-weight:950;
+}
+.home-section-badge.ready{background:#e7f4d9;color:#2f8b3a;}
+.home-section-badge.learning{background:#fff0ca;color:#e07c22;}
+.map-section{background:rgba(255,248,231,.98);}
+.map-section-content{width:100%;}
+.map-empty-state{
+  min-height:138px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:17px 12px;
+  border:1px dashed rgba(124,83,43,.24);
+  border-radius:15px;
+  background:linear-gradient(145deg,#fff8e6,#f4e3bf);
+  color:#7a5a3c;
+  text-align:center;
+}
+.map-empty-state.learning{border-style:solid;background:linear-gradient(145deg,#fff5d9,#f5dfae);}
+.map-empty-icon{font-size:31px;line-height:1;}
+.map-empty-state b{color:#4b3324;font-size:13px;font-weight:1000;}
+.map-empty-state span:last-child{font-size:11px;line-height:1.5;font-weight:850;}
+.map-section .home-map-card{
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+}
+.map-section .home-map-head{margin:0 0 7px;}
+.room .mode-chip{display:none!important;}
+.prep-section{margin-bottom:10px!important;}
+.prep-section .plan-head{align-items:center;}
+.prep-section .learn-panel{margin-bottom:0;}
+.direct-clean-section{
+  margin:0!important;
+  padding:13px 11px!important;
+  border-radius:17px!important;
+  background:rgba(255,248,231,.98)!important;
+  box-shadow:var(--shadow);
+}
+.direct-clean-section .home-section-kicker{margin-bottom:4px;}
+.direct-clean-section .condition-title{
+  margin-bottom:9px!important;
+  color:#4b3324!important;
+  font-size:16px!important;
+  font-weight:1000!important;
+}
+.direct-clean-section.condition-panel.manual-mode{margin-top:0!important;}
+.direct-clean-section.condition-panel.manual-mode .condition-title:before{content:none!important;}
+
 </style>
 </head>
 
@@ -1611,6 +1700,7 @@ body,button,input,select{
           <div class="wall-light"></div><div class="floor"></div>
           <div class="plant">🪴</div><div class="house"></div><div class="sofa"></div>
           <div class="speech" id="speech"><strong>배가 든든해요!</strong><br>청소를 준비할게요!</div>
+          <div class="mode-chip" id="modeChip">✨ 로보킹 맞춤 준비</div>
           <div class="rug"></div>
           <div class="clean-path"><div class="clean-fill" id="cleanFill"></div></div>
           <div class="charge-ring"></div>
@@ -1638,22 +1728,43 @@ body,button,input,select{
               <span class="reward-small">+50</span>
             </div>
           </div>
+
           <div class="effect-layer" id="effectLayer"></div>
         </div>
 
         <div class="home-dashboard">
 
-          <div class="panel plan-panel">
+          <section class="panel home-section map-section" aria-labelledby="mapSectionTitle">
+            <div class="home-section-head">
+              <div>
+                <div class="home-section-kicker">CLEANING MAP</div>
+                <div class="home-section-title" id="mapSectionTitle">🗺️ 맵</div>
+              </div>
+              <div class="home-section-badge" id="mapSectionBadge">학습 전</div>
+            </div>
+            <div class="map-section-content" id="mapSectionContent">
+              <div class="map-empty-state">
+                <span class="map-empty-icon">🏠</span>
+                <b>우리 집 맵을 준비하고 있어요</b>
+                <span>맞춤 청소 준비에서 1회차 학습을 시작하면<br>방 구조와 바닥 상태가 여기에 표시돼요.</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel plan-panel prep-section" aria-labelledby="prepSectionTitle">
             <div class="plan-head">
-              <div class="plan-title">우리 집 맞춤 청소 준비</div>
+              <div>
+                <div class="home-section-kicker">AI HOME PROFILE</div>
+                <div class="plan-title" id="prepSectionTitle">✨ 우리 집 맞춤청소 준비</div>
+              </div>
               <div class="plan-model" id="planModel">1회차 학습 전</div>
             </div>
             <div class="learn-panel" id="learnPanel">
               <div class="learn-top">
-                <div class="learn-title">처음 사용할 때는 로보킹이 집을 먼저 배워요</div>
+                <div class="learn-title" id="learnTitle">처음 사용할 때는 로보킹이 집을 먼저 배워요</div>
                 <div class="learn-pill" id="learnPill">초기 학습</div>
               </div>
-              <div class="learn-desc">처음 한 번만 집 구조와 바닥 상태를 배워요.</div>
+              <div class="learn-desc" id="learnDesc">처음 한 번만 집 구조와 바닥 상태를 배워요.</div>
               <div class="learn-progress"><div class="learn-fill" id="learnFill"></div></div>
               <div class="learn-status" id="learnStatus">1회차 학습 청소를 시작하면 로보킹이 집 구조와 구역 정보를 자동으로 기록해요.</div>
               <div class="learn-steps" id="learnSteps"></div>
@@ -1662,17 +1773,36 @@ body,button,input,select{
                 <button type="button" class="clean-execute-btn" id="cleanExecuteBtn" data-action="executeTopClean" style="display:none;">🧹 청소하기</button>
               </div>
             </div>
-            <div class="condition-panel" id="conditionPanel">
-              <div class="condition-title" id="conditionTitle">1회차 학습 청소로 우리 집 정보를 먼저 만들어요</div>
+            <div class="scope-buttons">
+              <button class="scope-btn active" id="scopeHome" data-action="selectHome">집 전체</button>
+              <button class="scope-btn" id="scopeZone1" data-action="selectZone1">1구역</button>
+              <button class="scope-btn" id="scopeZone2" data-action="selectZone2">2구역</button>
+              <button class="scope-btn" id="scopeZone3" data-action="selectZone3">3구역</button>
+              <button class="scope-btn" id="scopeZone4" data-action="selectZone4">4구역</button>
+              <button class="scope-btn" id="scopeZone5" data-action="selectZone5">5구역</button>
+            </div>
+            <div class="selected-plan">
+              <div class="plan-summary" id="planSummary">집 전체 청소 조건을 분석 중입니다.</div>
+              <div class="plan-soc">
+                <div class="plan-soc-label">충전 준비</div>
+                <div class="plan-soc-value"><span id="planTargetSoc">81</span>%</div>
+                <div class="plan-soc-sub" id="planSocSub">필요한 만큼만 충전</div>
+              </div>
+            </div>
+            <button class="start-clean-primary" id="startCleanPrimary" data-action="clean" disabled>
+              🧹 청소 미션 수행하기
+              <small id="startCleanHint">준비가 끝나면 바로 시작할 수 있어요</small>
+            </button>
+          </section>
+
+          <section class="panel condition-panel direct-clean-section" id="conditionPanel" aria-labelledby="conditionTitle">
+              <div class="home-section-kicker">MANUAL CLEANING</div>
+              <div class="condition-title" id="conditionTitle">✍️ 직접 조건 청소</div>
 
               <div id="firstLearnInputs">
                 <div class="condition-help first-learn-note compact-note">
-                  <div class="note-title">저장 항목</div>
-                  <div class="profile-mini-grid">
-                    <span>집 크기</span><span>청소 영역</span><span>면적</span>
-                    <span>바닥 타입</span><span>오염도</span><span>배터리 사용</span>
-                  </div>
-                  <div class="note-caption">처음 청소하며 우리 집 환경을 저장해요.</div>
+                  <div class="note-title">맞춤 청소 준비 후 사용할 수 있어요</div>
+                  <div class="note-caption">먼저 위의 1회차 학습을 완료하면 청소 범위·방식·강도·오늘 상태를 직접 선택할 수 있어요.</div>
                 </div>
               </div>
 
@@ -1713,28 +1843,7 @@ body,button,input,select{
               <button class="predict-btn manual-combo-btn" id="predictBtn" data-action="manualCleanAndGo">🔥 선택 조건으로 준비하고 청소하기</button>
               <div class="predict-loading" id="predictLoading">1회차 학습 청소가 끝나면 오늘 청소 준비를 할 수 있어요.</div>
               <div class="flow-guide" id="flowGuide"><span class="guide-step">현재 단계</span>1회차 학습 청소로 집 정보를 먼저 저장해 주세요.</div>
-            </div>
-            <div class="scope-buttons">
-              <button class="scope-btn active" id="scopeHome" data-action="selectHome">집 전체</button>
-              <button class="scope-btn" id="scopeZone1" data-action="selectZone1">1구역</button>
-              <button class="scope-btn" id="scopeZone2" data-action="selectZone2">2구역</button>
-              <button class="scope-btn" id="scopeZone3" data-action="selectZone3">3구역</button>
-              <button class="scope-btn" id="scopeZone4" data-action="selectZone4">4구역</button>
-              <button class="scope-btn" id="scopeZone5" data-action="selectZone5">5구역</button>
-            </div>
-            <div class="selected-plan">
-              <div class="plan-summary" id="planSummary">집 전체 청소 조건을 분석 중입니다.</div>
-              <div class="plan-soc">
-                <div class="plan-soc-label">충전 준비</div>
-                <div class="plan-soc-value"><span id="planTargetSoc">81</span>%</div>
-                <div class="plan-soc-sub" id="planSocSub">필요한 만큼만 충전</div>
-              </div>
-            </div>
-            <button class="start-clean-primary" id="startCleanPrimary" data-action="clean" disabled>
-              🧹 청소 미션 수행하기
-              <small id="startCleanHint">준비가 끝나면 바로 시작할 수 있어요</small>
-            </button>
-          </div>
+          </section>
 
           <div class="actions">
             <button class="action-btn" data-action="feed"><span class="action-icon">🥣</span>먹여주기</button>
@@ -1991,12 +2100,6 @@ const LEARNING_SOC_RATIO = 0.35;
 // 시연용: 이전에 이미 몇 번 청소한 로봇처럼 보이게 하는 누적 청소 횟수 기준값
 // (미션 "10번 청소하기"가 시연 중 첫 청소로 달성되도록 9로 둡니다)
 const DEMO_CLEAN_BASE = 9;
-
-
-function setModeChipText(text){
-  const el=$("modeChip");
-  if(el)el.textContent=text;
-}
 
 function setGuide(message,tone="normal"){
   state.userGuide=message;
@@ -2475,7 +2578,7 @@ function predictSocFromConditions(autoExecuteAfter=false){
     setGuide("아직 로보킹이 우리 집을 잘 몰라요. 먼저 1회차 학습 청소를 시작해 주세요.","warning");
     showToast("먼저 로보킹에게 우리 집을 알려주세요.");
     $("speech").innerHTML="<strong style='color:#ef8c32'>아직 학습 전이에요!</strong><br>먼저 우리 집을 알려주세요.";
-    setModeChipText("🏠 1회차 학습 필요");
+    $("modeChip").textContent="🏠 1회차 학습 필요";
     switchPage("homePage");
     return;
   }
@@ -2486,7 +2589,7 @@ function predictSocFromConditions(autoExecuteAfter=false){
   state.predicting=true;
   if(loading){loading.textContent="로보킹이 오늘 청소를 준비하고 있어요...";loading.classList.add('active');}
   $("speech").innerHTML="<strong style='color:#2f8b3a'>잠깐만요!</strong><br>오늘 청소 준비를 하고 있어요.";
-  setModeChipText("🤖 우리 집 기록으로 준비 중");
+  $("modeChip").textContent="🤖 우리 집 기록으로 준비 중";
   setGuide("오늘 상태를 보고 로보킹이 청소 준비를 하고 있어요. 잠시만 기다려 주세요.","charging");
   showToast("청소 준비 중: 오늘 상태에 맞춰 준비하고 있어요.");
 
@@ -2511,7 +2614,7 @@ function predictSocFromConditions(autoExecuteAfter=false){
     render();
     const statusText=state.soc>=state.targetSoc?"바로 청소할 수 있어요":"잠깐 충전하면 청소할 수 있어요";
     $("speech").innerHTML="<strong style='color:#2f8b3a'>준비 완료!</strong><br>"+statusText;
-    setModeChipText("✅ 청소 준비 완료 · "+state.selectedLabel);
+    $("modeChip").textContent="✅ 청소 준비 완료 · "+state.selectedLabel;
     addEvent("청소 준비 완료",state.selectedLabel+" 청소를 위해 필요한 배터리 "+state.targetSoc+"%만 준비했어요.","배터리 절약");
     setGuide(statusText.includes("바로")?"준비 완료! 바로 출동할게요.":"준비 완료! 필요한 만큼만 채우고 바로 출발할게요.", state.soc>=state.targetSoc?"done":"warning");
     showToast("청소 준비 완료! 로보킹이 오늘 청소 준비를 마쳤어요.");
@@ -2636,7 +2739,6 @@ function startFirstMapping(){
       spawnEffect("🏠",8);spawnEffect("✨",9);
       render();
       setGuide("우리 집 저장 완료! 이제 오늘 청소 조건을 고르면 로보킹이 알아서 준비해요.","done");
-      showToast("우리 집 저장 완료! 이제 오늘 청소를 준비할 수 있어요.");
       setTimeout(()=>{render();checkMissionUnlock();},350);
     }
   },260);
@@ -2659,7 +2761,7 @@ function selectScenario(scope,zoneNumber=null){
   const loading=$('predictLoading');
   if(loading)loading.textContent=state.selectedLabel+" 선택 · "+status+" · 로보킹이 다시 준비했어요.";
   $("speech").innerHTML="<strong>"+state.selectedLabel+" 선택!</strong><br>이 구역에 맞춰 다시 준비했어요.";
-  setModeChipText("✨ "+state.selectedLabel+" 청소 준비 완료");
+  $("modeChip").textContent="✨ "+state.selectedLabel+" 청소 준비 완료";
   setGuide((state.soc>=state.targetSoc)?state.selectedLabel+" 청소 준비가 끝났어요. 지금 바로 출동할 수 있어요.":state.selectedLabel+" 청소 준비가 끝났어요. 잠깐 충전하고 출발하면 좋아요.", state.soc>=state.targetSoc?"done":"warning");
   showToast(state.selectedLabel+" 청소 준비를 다시 맞췄어요.");
 }
@@ -3075,10 +3177,14 @@ function renderPlan(){
   const learnStatus=$('learnStatus');
   const learnFill=$('learnFill');
   const learnSteps=$('learnSteps');
+  const learnTitle=$('learnTitle');
+  const learnDesc=$('learnDesc');
   const firstLearnInputs=$('firstLearnInputs');
   const predictionInputs=$('predictionInputs');
   const startCleanPrimary=$('startCleanPrimary');
   const flowGuide=$('flowGuide');
+  const mapSectionContent=$('mapSectionContent');
+  const mapSectionBadge=$('mapSectionBadge');
   if(flowGuide){
     const guideText=guideForCurrentState();
     let tone=state.userGuideTone||"normal";
@@ -3090,23 +3196,42 @@ function renderPlan(){
     flowGuide.innerHTML="<span class='guide-step'>다음 안내</span>"+guideText;
   }
 
-  if(learnSteps){
+  if(mapSectionContent){
     if(state.profileReady && !state.mapping){
-      learnSteps.classList.add('map-ready');
-      learnSteps.innerHTML=getLearnedMapHtml();
+      setHtml(mapSectionContent,getLearnedMapHtml());
+      if(mapSectionBadge){
+        mapSectionBadge.textContent=getHomeSizeLabel(state.areaPyung)+' · '+getDisplayZoneCount()+'개 영역';
+        mapSectionBadge.className='home-section-badge ready';
+      }
+    }else if(state.mapping){
+      setHtml(mapSectionContent,"<div class='map-empty-state learning'><span class='map-empty-icon'>🧭</span><b>우리 집 맵을 학습 중이에요</b><span>집 구조와 바닥 상태를 기록하고 있어요.<br>학습 진행 "+state.mappingProgress+"%</span></div>");
+      if(mapSectionBadge){
+        mapSectionBadge.textContent='학습 '+state.mappingProgress+'%';
+        mapSectionBadge.className='home-section-badge learning';
+      }
     }else{
-      learnSteps.classList.remove('map-ready');
-      learnSteps.innerHTML=mappingSteps.map((s,i)=>{
-        let cls='learn-step';
-        if(state.profileReady || i<state.mappingStepIndex)cls+=' done';
-        else if(state.mapping && i===state.mappingStepIndex)cls+=' active';
-        return '<div class="'+cls+'">'+s.label+'</div>';
-      }).join('');
+      setHtml(mapSectionContent,"<div class='map-empty-state'><span class='map-empty-icon'>🏠</span><b>우리 집 맵을 준비하고 있어요</b><span>아래 맞춤 청소 준비에서 1회차 학습을 시작하면<br>방 구조와 바닥 상태가 여기에 표시돼요.</span></div>");
+      if(mapSectionBadge){
+        mapSectionBadge.textContent='학습 전';
+        mapSectionBadge.className='home-section-badge';
+      }
     }
+  }
+
+  if(learnSteps){
+    learnSteps.classList.remove('map-ready');
+    learnSteps.innerHTML=mappingSteps.map((s,i)=>{
+      let cls='learn-step';
+      if(state.profileReady || i<state.mappingStepIndex)cls+=' done';
+      else if(state.mapping && i===state.mappingStepIndex)cls+=' active';
+      return '<div class="'+cls+'">'+s.label+'</div>';
+    }).join('');
   }
   if(learnFill)learnFill.style.width=(state.profileReady?100:state.mappingProgress)+'%';
 
   if(state.mapping){
+    if(learnTitle)learnTitle.textContent="로보킹이 우리 집을 배우고 있어요";
+    if(learnDesc)learnDesc.textContent="맵·바닥 상태·배터리 사용량을 차례로 기록해요.";
     if(learnPill)learnPill.textContent="학습 중";
     if(learnStatus){
       const currentStep=mappingSteps[state.mappingStepIndex]||mappingSteps[0];
@@ -3115,11 +3240,15 @@ function renderPlan(){
     if(learnBtn){learnBtn.textContent="로보킹이 집을 배우는 중...";learnBtn.disabled=true;}
     if(conditionPanel)conditionPanel.classList.add('locked-area');
   }else if(state.profileReady){
+    if(learnTitle)learnTitle.textContent="우리 집 정보로 맞춤 청소를 준비해요";
+    if(learnDesc)learnDesc.textContent="저장된 맵과 바닥 상태를 이용해 필요한 청소만 준비해요.";
     if(learnPill)learnPill.textContent="프로필 저장됨";
     if(learnStatus)learnStatus.innerHTML="매핑 완료 · "+getHomeSizeLabel(activeRun.areaPyung)+" 집 구조 저장";
     if(learnBtn){learnBtn.textContent="🔄 학습 다시 실행";learnBtn.disabled=false;learnBtn.classList.add('ready');}
     if(conditionPanel)conditionPanel.classList.remove('locked-area');
   }else{
+    if(learnTitle)learnTitle.textContent="처음 사용할 때는 로보킹이 집을 먼저 배워요";
+    if(learnDesc)learnDesc.textContent="처음 한 번만 집 구조와 바닥 상태를 배워요.";
     if(learnPill)learnPill.textContent="초기 학습";
     if(learnStatus)learnStatus.textContent="시작 버튼을 누르면 집 정보를 저장해요.";
     if(learnBtn){learnBtn.textContent="🏠 1회차 학습 청소 시작";learnBtn.disabled=false;learnBtn.classList.remove('ready');}
@@ -3179,7 +3308,7 @@ function renderPlan(){
     conditionPanel.classList.toggle('manual-mode',state.profileReady);
   }
   if(conditionTitle){
-    conditionTitle.textContent=state.profileReady?'직접 조건 청소':'1회차 학습 준비';
+    conditionTitle.textContent='✍️ 직접 조건 청소';
   }
 
   document.querySelectorAll('.scope-btn').forEach(btn=>{
@@ -3248,43 +3377,43 @@ function renderHome(){
   if(state.chargeComplete){
     room.classList.add("celebrate");
     $("speech").innerHTML="<strong>배불러요!</strong><br>이제 청소 가능해요!";
-    setModeChipText("💖 충전 완료 · 출동 준비");
+    $("modeChip").textContent="💖 충전 완료 · 출동 준비";
     $("batteryFace").textContent="😍";$("spark").textContent="💖";
     $("batteryMessage").innerHTML="필요한 만큼 채웠어요.<br>출동 준비 완료!";
     $("timeTip").textContent=state.selectedLabel+" 청소를 시작할 수 있어요.";
   }else if(state.celebrating){
     room.classList.add("celebrate");
     $("speech").innerHTML="<strong>청소 완료!</strong><br>보상을 받았어요!";
-    setModeChipText("🏆 미션 완료 · +50 코인");
+    $("modeChip").textContent="🏆 미션 완료 · +50 코인";
     $("batteryFace").textContent="🥳";$("spark").textContent="🎉";
   }else if(state.mapping){
     room.classList.add("cleaning");
     const step=mappingSteps[state.mappingStepIndex]||mappingSteps[0];
     $("speech").innerHTML="<strong style='color:#2f8b3a'>우리 집을 배우는 중!</strong><br>"+step.label+" 중이에요.";
-    setModeChipText("🏠 학습 청소 · 배터리 "+Math.round(state.firstRunStartSoc)+"% → "+Math.round(state.soc)+"%");
+    $("modeChip").textContent="🏠 학습 청소 · 배터리 "+Math.round(state.firstRunStartSoc)+"% → "+Math.round(state.soc)+"%";
     $("batteryFace").textContent="🧭";$("spark").textContent="📡";
     $("batteryMessage").innerHTML="학습 청소 중입니다.<br>배터리가 실제로 소모돼요.";
     $("timeTip").textContent="학습 진행 "+state.mappingProgress+"% · 현재 배터리 "+Math.round(state.soc)+"%";
   }else if(state.predicting){
     $("speech").innerHTML="<strong style='color:#2f8b3a'>준비 중이에요!</strong><br>오늘 상태에 맞춰 준비하고 있어요.";
-    setModeChipText("🤖 우리 집 기록으로 준비 중");
+    $("modeChip").textContent="🤖 우리 집 기록으로 준비 중";
     $("batteryFace").textContent="🤔";$("spark").textContent="✨";
   }else if(!state.profileReady){
     $("speech").innerHTML="<strong style='color:#ef8c32'>처음 만났어요!</strong><br>1회차 청소로 우리 집을 알려주세요.";
-    setModeChipText("🏠 집 구조 학습 필요");
+    $("modeChip").textContent="🏠 집 구조 학습 필요";
     $("batteryFace").textContent="🙂";$("spark").textContent="✨";
     $("batteryMessage").innerHTML="아직 우리 집 정보를 몰라요.<br>학습 청소가 필요합니다.";
     $("timeTip").textContent="1회차 학습 후 청소 준비 가능";
   }else if(!state.predicted){
     $("speech").innerHTML="<strong>집을 배웠어요!</strong><br>이제 청소 준비를 맡겨주세요.";
-    setModeChipText("✅ 우리 집 저장 완료");
+    $("modeChip").textContent="✅ 우리 집 저장 완료";
     $("batteryFace").textContent="😊";$("spark").textContent="✨";
     $("batteryMessage").innerHTML="집 구조 학습 완료!<br>오늘 청소 준비하기를 눌러주세요.";
     $("timeTip").textContent="청소 준비 대기 중";
   }else if(state.cleaning){
     room.classList.add("cleaning");
     $("speech").innerHTML="<strong>열심히 청소 중이에요!</strong><br>진행률 "+state.progress+"%";
-    setModeChipText("🧹 "+state.selectedLabel+" 청소 중 · "+state.progress+"%");
+    $("modeChip").textContent="🧹 "+state.selectedLabel+" 청소 중 · "+state.progress+"%";
     $("batteryFace").textContent="🧹";
     $("batteryMessage").innerHTML="청소 중입니다.<br>로보킹이 청소하면서 배터리를 사용하고 있어요.";
     $("timeTip").textContent="청소 진행률 "+state.progress+"%";
@@ -3293,10 +3422,10 @@ function renderHome(){
     room.classList.add("charging");
     if(state.robotMotion==="returning"){
       $("speech").innerHTML="<strong style='color:#e48627'>스테이션으로 가는 중!</strong><br>잠깐 힘을 채우고 올게요.";
-      setModeChipText("🏠 충전 스테이션 복귀 중");
+      $("modeChip").textContent="🏠 충전 스테이션 복귀 중";
     }else{
       $("speech").innerHTML="<strong style='color:#e48627'>잠깐 쉬는 중이에요</strong><br>필요한 만큼만 충전할게요.";
-      setModeChipText("⚡ "+state.selectedLabel+" 출동 준비 중");
+      $("modeChip").textContent="⚡ "+state.selectedLabel+" 출동 준비 중";
     }
     $("batteryFace").textContent="😌";
     $("batteryMessage").innerHTML="충전 스테이션에서 쉬면서<br>필요한 만큼만 채우고 있어요.";
@@ -3305,13 +3434,13 @@ function renderHome(){
   }else if(state.soc<15){
     room.classList.add("low");
     $("speech").innerHTML="<strong style='color:#ef4e45'>배가 너무 고파요...</strong><br>충전이 필요해요.";
-    setModeChipText("⚠️ 배터리 부족");
+    $("modeChip").textContent="⚠️ 배터리 부족";
     $("batteryFace").textContent="🥴";
     $("batteryMessage").innerHTML="배터리가 부족해요.<br>먼저 충전해 주세요.";
     $("timeTip").textContent="충전 후 청소를 시작해 주세요.";
     $("spark").textContent="💦";
   }else{
-    setModeChipText("✨ 로보킹 맞춤 준비");
+    $("modeChip").textContent="✨ 로보킹 맞춤 준비";
     $("batteryFace").textContent=state.soc>90?"😮":"😊";
     $("spark").textContent="✨";
 
@@ -4011,7 +4140,7 @@ function prepareScenarioAndShow(scenario,message,tone="done"){
   render();
   const canNow=state.soc>=state.targetSoc;
   $("speech").innerHTML="<strong style='color:#2f8b3a'>준비 완료!</strong><br>"+(canNow?"바로 출동할 수 있어요.":"잠깐 충전하고 출발할게요.");
-  setModeChipText("✅ "+state.selectedLabel+" 준비 완료");
+  $("modeChip").textContent="✅ "+state.selectedLabel+" 준비 완료";
   setGuide(message,canNow?tone:"warning");
   showToast(message.replace(/<[^>]*>/g,""));
 }
@@ -4365,7 +4494,7 @@ function startCleaning(){
       spawnEffect("🎉",15);spawnEffect("⭐",9);
       render();
       $("speech").innerHTML="<strong style='color:#2f8b3a'>청소 완료!</strong><br>+50코인을 받았어요.";
-      setModeChipText("🏆 "+state.selectedLabel+" 완료 · +50코인");
+      $("modeChip").textContent="🏆 "+state.selectedLabel+" 완료 · +50코인";
       setGuide("청소 완료! 배터리를 아껴 쓰며 마무리했어요. 보상으로 +50코인과 경험치를 받았어요.","done");
       showToast("청소 완료! 로보킹이 +50코인을 가져왔어요.");
       setTimeout(()=>{state.celebrating=false;clearCleaningZoneProgress();render()},3600);
@@ -4383,7 +4512,7 @@ function chargeRobot(autoStart=false){
     state.chargeComplete=true;
     render();
     $("speech").innerHTML="<strong>배불러요!</strong><br>이제 "+state.selectedLabel+" 청소가 가능해요.";
-    setModeChipText("💖 출동 준비 완료");
+    $("modeChip").textContent="💖 출동 준비 완료";
     setGuide("이미 충분히 준비됐어요. 바로 청소를 시작할 수 있어요.","done");
     showToast("이미 충분히 준비됐어요. 바로 출동할 수 있어요.");
     setTimeout(()=>{state.chargeComplete=false;render()},2600);
@@ -4418,7 +4547,7 @@ function chargeRobot(autoStart=false){
       spawnEffect("✨",8);
       render();
       $("speech").innerHTML="<strong>배불러요!</strong><br>출동할 준비가 됐어요!";
-      setModeChipText("💖 충전 완료 · 출동 준비");
+      $("modeChip").textContent="💖 충전 완료 · 출동 준비";
       setGuide("충전 완료! 로보킹이 곧 바로 출동할게요.","done");
       showToast("충전 완료! 이제 로보킹이 출동할 수 있어요.");
       setTimeout(()=>{state.chargeComplete=false;render()},3200);
