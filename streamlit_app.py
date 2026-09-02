@@ -3088,19 +3088,35 @@ function getCleanableZones(){
   const zones=(activeRun && activeRun.zones) ? activeRun.zones : [];
   return zones.filter(z=>!blocked.includes(Number(z.zone)));
 }
+function getAllCleanableZoneNumbers(){
+  return getCleanableZones().map(z=>Number(z.zone)).filter(n=>Number.isFinite(n));
+}
 function getPlannedZoneNumbers(){
   const blocked=state.noGoZones || [];
-  if(state.cleaningZones && state.cleaningZones.length){
-    return state.cleaningZones.filter(n=>!blocked.includes(Number(n))).map(Number);
+
+  // AI 자동청소는 반드시 '금지구역을 제외한 전체 구역'입니다.
+  // 이전에 '더러운 곳만'이나 특정 구역을 눌렀던 흔적이 cleaningZones에 남아도
+  // AI 자동청소에서는 그 값을 무시합니다.
+  if(state.smartCleanMode==="auto"){
+    return getAllCleanableZoneNumbers();
   }
+
+  // 더러운 곳만은 오염도가 높은 일부 구역만 선택합니다.
   if(state.smartCleanMode==="dirty" && state.selectedDirtyZones && state.selectedDirtyZones.length){
     return state.selectedDirtyZones.filter(n=>!blocked.includes(Number(n))).map(Number);
   }
-  if(state.selectedScope==="zone" && state.selectedZone){
+
+  // 사용자가 특정 구역을 직접 선택한 경우
+  if(state.smartCleanMode==="zone" && state.selectedScope==="zone" && state.selectedZone){
     return blocked.includes(Number(state.selectedZone)) ? [] : [Number(state.selectedZone)];
   }
-  const zones=(activeRun && activeRun.zones) ? activeRun.zones : [];
-  return zones.map(z=>Number(z.zone)).filter(n=>!blocked.includes(n));
+
+  // 실제 청소 진행 중에는 시작 시 확정한 청소 구역을 사용합니다.
+  if(state.cleaningZones && state.cleaningZones.length){
+    return state.cleaningZones.filter(n=>!blocked.includes(Number(n))).map(Number);
+  }
+
+  return getAllCleanableZoneNumbers();
 }
 function getDirtyRecommendationZones(){
   const cleanable=getCleanableZones();
@@ -3354,7 +3370,7 @@ function getMapActionHtml(){
   if(state.mapMode==="noGo")hint="지도에서 <b>청소하지 않을 영역</b>을 눌러주세요.";
   else if(noGoCount>0)hint="금지구역 "+noGoCount+"곳은 빼고 준비해요.";
   else if(state.smartCleanMode==="dirty")hint="초록 테두리 영역만 골라뒀어요. 청소하기를 누르면 그곳만 청소해요.";
-  else if(state.smartCleanMode==="auto")hint="로보킹이 알아서 준비했어요.";
+  else if(state.smartCleanMode==="auto")hint="전체 영역을 모두 준비했어요. 금지구역만 빼고 청소해요.";
 
   return "<div class='map-action-row'>"
     +"<button class='map-action-btn"+(state.smartCleanMode==="auto" && state.mapMode!=="noGo"?" active":"")+"' data-action='aiAutoClean'>✨ AI 자동청소</button>"
@@ -4391,34 +4407,39 @@ function prepareScenarioAndShow(scenario,message,tone="done"){
 function aiAutoClean(){
   if(!state.profileReady){showToast("먼저 1회차 학습 청소를 시작해 주세요.");return}
   if(state.mapping||state.cleaning||state.charging){showToast("진행 중인 작업이 끝난 뒤 선택할 수 있어요.");return}
+
+  const cleanable=getCleanableZones();
+  const allZones=cleanable.map(z=>Number(z.zone));
+  if(!cleanable.length){showToast("청소할 수 있는 영역이 없어요. 금지구역을 줄여주세요.");return}
+
   state.mapMode="view";
   state.smartCleanMode="auto";
+  state.selectedScope="home";
+  state.selectedZone=null;
   state.manualReady=false;
   state.manualKey="";
   state.selectedDirtyZones=[];
   state.completedZones=[];
   state.currentCleaningZone=null;
-  state.cleaningZones=[];
+  state.cleaningZones=allZones;
 
-  const cleanable=getCleanableZones();
-  if(!cleanable.length){showToast("청소할 수 있는 영역이 없어요. 금지구역을 줄여주세요.");return}
-  state.cleaningZones=cleanable.map(z=>Number(z.zone));
-  const scenario=(state.noGoZones && state.noGoZones.length>0)
-    ? makeAggregateScenario(cleanable,"AI 자동청소","auto")
-    : Object.assign({},activeRun.home,{
-        label:"AI 자동청소",
-        scope:"home",
-        matchNote:"오늘 상태에 맞춰 로보킹이 준비",
-        matchBasis:"우리 집 매핑 정보 반영",
-        cleanModeChoice:state.cleanModeChoice,
-        cleanModeLabel:state.cleanModeLabel,
-        intensityChoice:state.intensityChoice,
-        intensityLabel:state.intensityLabel,
-        todayStateChoice:state.todayStateChoice,
-        todayStateLabel:state.todayStateLabel
-      });
+  // 핵심: AI 자동청소는 항상 전체 zone SOC 합산값을 사용합니다.
+  // 금지구역이 있으면 그 구역만 제외하고 합산합니다.
+  const scenario=makeAggregateScenario(cleanable,"AI 자동청소","auto");
+  scenario.scope="home";
+  scenario.label="AI 자동청소";
+  scenario.requiredSoc=Math.round(cleanable.reduce((sum,z)=>sum+Number(z.requiredSoc||0),0)*10)/10;
   scenario.targetSoc=targetFromRequired(scenario.requiredSoc);
-  prepareScenarioAndShow(scenario,"AI 자동청소 준비 완료! 로보킹이 알아서 청소할게요.","done");
+  scenario.matchNote=(state.noGoZones&&state.noGoZones.length)
+    ? "금지구역을 제외한 전체 청소"
+    : "전체 구역 자동청소";
+  scenario.matchBasis=allZones.length+"개 영역 모두 반영";
+
+  prepareScenarioAndShow(
+    scenario,
+    "AI 자동청소 준비 완료! "+allZones.length+"개 영역을 모두 청소할게요.",
+    "done"
+  );
 }
 function dirtyOnlyClean(){
   if(!state.profileReady){showToast("먼저 1회차 학습 청소를 시작해 주세요.");return}
@@ -4563,10 +4584,13 @@ function executeTopClean(){
 
 
 function getCleaningZonesForCurrentPlan(){
+  if(state.smartCleanMode==="auto"){
+    return getAllCleanableZoneNumbers();
+  }
   const nums=getPlannedZoneNumbers();
   if(nums.length)return nums;
   if(state.selectedScope==="zone" && state.selectedZone)return [Number(state.selectedZone)];
-  return getCleanableZones().map(z=>Number(z.zone));
+  return getAllCleanableZoneNumbers();
 }
 function updateCleaningZoneProgress(percent){
   const zones=state.cleaningZones && state.cleaningZones.length ? state.cleaningZones : getCleaningZonesForCurrentPlan();
