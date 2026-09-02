@@ -2540,6 +2540,10 @@ const state={
   currentCleaningZone:null,
   completedZones:[],
   cleanAnim:null,
+  chargePurpose:"current",
+  nextHomeReady:false,
+  nextHomeTargetSoc:0,
+  nextHomeRequiredSoc:0,
   temperature:29,health:100,heart:100,
   level:13,exp:55,coins:50,food:1,cleaning:false,charging:false,
   celebrating:false,progress:0,missionDone:false,cleanCount:0,
@@ -2921,6 +2925,7 @@ function profileResultBody(){
     +"다음 단계: <b>오늘 청소 준비하기</b>";
 }
 function startFirstMapping(){
+  state.chargePurpose='current';state.nextHomeReady=false;
   if(state.cleaning||state.charging||state.mapping){showToast("진행 중인 작업이 끝난 뒤 다시 시도해 주세요.");return}
 
   const startSoc=clamp(Math.round(Number(state.soc||0)),0,100);
@@ -3090,6 +3095,28 @@ function getCleanableZones(){
 }
 function getAllCleanableZoneNumbers(){
   return getCleanableZones().map(z=>Number(z.zone)).filter(n=>Number.isFinite(n));
+}
+function getWholeHomeZones(){
+  if(activeRun && activeRun.zones && activeRun.zones.length){
+    return activeRun.zones.slice().sort((a,b)=>Number(a.zone)-Number(b.zone));
+  }
+  return [];
+}
+function getWholeHomeRequiredSoc(){
+  // 최종 ML 구조 기준:
+  // 집 전체 필요 SOC = 소형 4개 / 중형 6개 / 대형 8개 zone의 requiredSoc 합산
+  const zones=getWholeHomeZones();
+  if(zones.length){
+    return Math.round(zones.reduce((sum,z)=>sum+Number(z.requiredSoc||0),0)*10)/10;
+  }
+  if(activeRun && activeRun.home){
+    return Math.round(Number(activeRun.home.requiredSoc||0)*10)/10;
+  }
+  return 0;
+}
+function getWholeHomeTargetSoc(){
+  // 집 전체 청소 가능하도록 필요한 SOC + 최소 잔량 15%, 최대 90% 상한 적용
+  return targetFromRequired(getWholeHomeRequiredSoc());
 }
 function getPlannedZoneNumbers(){
   const blocked=state.noGoZones || [];
@@ -3636,11 +3663,19 @@ function renderHome(){
 
   if(state.chargeComplete){
     room.classList.add("celebrate");
-    $("speech").innerHTML="<strong>배불러요!</strong><br>이제 청소 가능해요!";
-    $("modeChip").textContent="💖 충전 완료 · 출동 준비";
-    $("batteryFace").textContent="😍";$("spark").textContent="💖";
-    $("batteryMessage").innerHTML="필요한 만큼 채웠어요.<br>출동 준비 완료!";
-    $("timeTip").textContent=state.selectedLabel+" 청소를 시작할 수 있어요.";
+    if(state.chargePurpose==="nextHome"){
+      $("speech").innerHTML="<strong style='color:#2f8b3a'>다음 청소 준비 완료!</strong><br>필요한 만큼 채워뒀어요.";
+      $("modeChip").textContent="✅ 다음 전체 청소 준비 완료";
+      $("batteryFace").textContent="😊";$("spark").textContent="💖";
+      $("batteryMessage").innerHTML="다음 집 전체 청소까지<br>미리 준비해뒀어요.";
+      $("timeTip").textContent="다음 청소도 바로 시작할 수 있어요.";
+    }else{
+      $("speech").innerHTML="<strong>배불러요!</strong><br>이제 청소 가능해요!";
+      $("modeChip").textContent="💖 충전 완료 · 출동 준비";
+      $("batteryFace").textContent="😍";$("spark").textContent="💖";
+      $("batteryMessage").innerHTML="필요한 만큼 채웠어요.<br>출동 준비 완료!";
+      $("timeTip").textContent=state.selectedLabel+" 청소를 시작할 수 있어요.";
+    }
   }else if(state.celebrating){
     room.classList.add("celebrate");
     $("speech").innerHTML="<strong>청소 완료!</strong><br>보상을 받았어요!";
@@ -3681,11 +3716,21 @@ function renderHome(){
   }else if(state.charging){
     room.classList.add("charging");
     if(state.robotMotion==="returning"){
-      $("speech").innerHTML="<strong style='color:#e48627'>스테이션으로 가는 중!</strong><br>잠깐 힘을 채우고 올게요.";
-      $("modeChip").textContent="🏠 충전 스테이션 복귀 중";
+      if(state.chargePurpose==="nextHome"){
+        $("speech").innerHTML="<strong style='color:#e48627'>스테이션으로 돌아가요</strong><br>다음 청소를 미리 준비할게요.";
+        $("modeChip").textContent="🏠 다음 청소 준비 중";
+      }else{
+        $("speech").innerHTML="<strong style='color:#e48627'>스테이션으로 가는 중!</strong><br>잠깐 힘을 채우고 올게요.";
+        $("modeChip").textContent="🏠 충전 스테이션 복귀 중";
+      }
     }else{
-      $("speech").innerHTML="<strong style='color:#e48627'>잠깐 쉬는 중이에요</strong><br>필요한 만큼만 충전할게요.";
-      $("modeChip").textContent="⚡ "+state.selectedLabel+" 출동 준비 중";
+      if(state.chargePurpose==="nextHome"){
+        $("speech").innerHTML="<strong style='color:#e48627'>다음 청소 준비 중!</strong><br>필요한 만큼만 미리 채울게요.";
+        $("modeChip").textContent="⚡ 다음 전체 청소 준비 중";
+      }else{
+        $("speech").innerHTML="<strong style='color:#e48627'>잠깐 쉬는 중이에요</strong><br>필요한 만큼만 충전할게요.";
+        $("modeChip").textContent="⚡ "+state.selectedLabel+" 출동 준비 중";
+      }
     }
     $("batteryFace").textContent="😌";
     $("batteryMessage").innerHTML="충전 스테이션에서 쉬면서<br>필요한 만큼만 채우고 있어요.";
@@ -4391,6 +4436,8 @@ function makeAggregateScenario(zones,label,mode){
   };
 }
 function prepareScenarioAndShow(scenario,message,tone="done"){
+  state.chargePurpose='current';
+  state.nextHomeReady=false;
   syncScenarioToState(scenario);
   state.predicted=true;
   state.predicting=false;
@@ -4765,24 +4812,91 @@ function startCleaning(){
       $("modeChip").textContent="🏆 "+state.selectedLabel+" 완료 · +50코인";
       setGuide("청소 완료! 배터리를 아껴 쓰며 마무리했어요. 보상으로 +50코인과 경험치를 받았어요.","done");
       showToast("청소 완료! 로보킹이 +50코인을 가져왔어요.");
-      setTimeout(()=>{state.celebrating=false;clearCleaningZoneProgress();render()},3600);
+      setTimeout(()=>{
+        state.celebrating=false;
+        clearCleaningZoneProgress();
+        render();
+        // 청소가 끝나면 다음 집 전체 청소에 필요한 만큼 미리 충전합니다.
+        // 소형/중형/대형별 4/6/8개 zone의 requiredSoc 합산값을 기준으로 목표 충전량을 정합니다.
+        setTimeout(prepareNextWholeHomeCharge,350);
+      },3600);
       // [이벤트 탭 연동] 미션 달성 알림
       setTimeout(checkMissionUnlock,4200);
     }
   },320);
 }
 
-function chargeRobot(autoStart=false){
+function prepareNextWholeHomeCharge(){
+  if(state.mapping || state.cleaning || state.charging)return;
+  if(!state.profileReady || !activeRun)return;
+
+  const wholeRequired=getWholeHomeRequiredSoc();
+  if(wholeRequired<=0)return;
+
+  const wholeTarget=getWholeHomeTargetSoc();
+  const wholeZones=getWholeHomeZones();
+
+  state.nextHomeRequiredSoc=wholeRequired;
+  state.nextHomeTargetSoc=wholeTarget;
+  state.targetSoc=wholeTarget;
+  state.requiredSoc=wholeRequired;
+  state.cleaningRemainingSoc=wholeRequired;
+  state.progress=0;
+  state.selectedScope="home";
+  state.selectedZone=null;
+  state.selectedLabel="다음 전체 청소";
+  state.smartCleanMode="auto";
+  state.cleaningZones=wholeZones.map(z=>Number(z.zone));
+  state.selectedDirtyZones=[];
+  state.completedZones=[];
+  state.currentCleaningZone=null;
+  state.predicted=true;
+  state.chargePurpose="nextHome";
+
+  if(state.soc>=wholeTarget){
+    state.nextHomeReady=true;
+    state.chargeComplete=true;
+    render();
+    const msg="다음 전체 청소도 바로 할 수 있게 준비해뒀어요.";
+    const speech=$("speech");
+    if(speech)speech.innerHTML="<strong style='color:#2f8b3a'>다음 청소 준비 완료!</strong><br>필요한 만큼 채워뒀어요.";
+    const chip=$("modeChip");
+    if(chip)chip.textContent="✅ 다음 전체 청소 준비 완료";
+    setGuide(msg,"done");
+    showToast(msg);
+    setTimeout(()=>{state.chargeComplete=false;render();},2600);
+    return;
+  }
+
+  state.nextHomeReady=false;
+  setGuide("청소가 끝났어요. 다음 전체 청소를 위해 필요한 만큼 미리 충전해둘게요.","charging");
+  showToast("다음 청소를 위해 미리 힘을 채울게요.");
+  chargeRobot(false,"nextHome");
+}
+
+function chargeRobot(autoStart=false,purpose='current'){
   if(state.cleaning){showToast("청소가 끝난 후 충전할 수 있어요.");return}
   if(state.charging){showToast("이미 충전 중이에요.");return}
+  state.chargePurpose=purpose || 'current';
+  const isNextHomeCharge=state.chargePurpose==='nextHome';
   if(state.soc>=state.targetSoc){
     if(autoStart){state.robotMotion='idle';setTimeout(startCleaning,250);return}
     state.chargeComplete=true;
+    if(isNextHomeCharge)state.nextHomeReady=true;
     render();
-    $("speech").innerHTML="<strong>배불러요!</strong><br>이제 "+state.selectedLabel+" 청소가 가능해요.";
-    $("modeChip").textContent="💖 출동 준비 완료";
-    setGuide("이미 충분히 준비됐어요. 바로 청소를 시작할 수 있어요.","done");
-    showToast("이미 충분히 준비됐어요. 바로 출동할 수 있어요.");
+    const speech=$("speech");
+    const chip=$("modeChip");
+    if(isNextHomeCharge){
+      if(speech)speech.innerHTML="<strong style='color:#2f8b3a'>다음 청소 준비 완료!</strong><br>필요한 만큼 채워뒀어요.";
+      if(chip)chip.textContent="✅ 다음 전체 청소 준비 완료";
+      setGuide("다음 전체 청소도 바로 할 수 있게 준비해뒀어요.","done");
+      showToast("다음 청소 준비 완료! 필요한 만큼 채워뒀어요.");
+    }else{
+      if(speech)speech.innerHTML="<strong>배불러요!</strong><br>이제 "+state.selectedLabel+" 청소가 가능해요.";
+      if(chip)chip.textContent="💖 출동 준비 완료";
+      setGuide("이미 충분히 준비됐어요. 바로 청소를 시작할 수 있어요.","done");
+      showToast("이미 충분히 준비됐어요. 바로 출동할 수 있어요.");
+    }
     setTimeout(()=>{state.chargeComplete=false;render()},2600);
     return;
   }
@@ -4792,8 +4906,13 @@ function chargeRobot(autoStart=false){
   state.robotMotion='returning';
   state.chargeComplete=false;
   render();
-  setGuide("로보킹이 스테이션으로 돌아가고 있어요. 필요한 만큼만 충전하고 출발할게요.","charging");
-  showToast("스테이션으로 돌아가 힘을 채울게요.");
+  if(isNextHomeCharge){
+    setGuide("다음 전체 청소를 위해 로보킹이 스테이션에서 미리 힘을 채우고 있어요.","charging");
+    showToast("다음 청소를 위해 미리 충전할게요.");
+  }else{
+    setGuide("로보킹이 스테이션으로 돌아가고 있어요. 필요한 만큼만 충전하고 출발할게요.","charging");
+    showToast("스테이션으로 돌아가 힘을 채울게요.");
+  }
   setTimeout(()=>{state.robotMotion='docked';render();},950);
   setTimeout(()=>{
   const timer=setInterval(()=>{
@@ -4807,17 +4926,31 @@ function chargeRobot(autoStart=false){
       state.robotMotion='docked';
       state.temperature=29;
       state.acceptCount+=1;
+      if(isNextHomeCharge)state.nextHomeReady=true;
       // [부품케어 탭 연동] 덜 채운 충전량 누적 + 수명 보호 기록
       state.savedChargePct+=Math.max(0,100-state.targetSoc);
       state.chargeComplete=true;
-      addEvent("맞춤 충전 완료",state.selectedLabel+" 청소에 필요한 "+state.targetSoc+"%까지만 채우고 멈췄어요. 완충 대비 "+(100-state.targetSoc)+"% 덜 채워 과충전을 막았어요.","수명 보호");
+      if(isNextHomeCharge){
+        addEvent("다음 청소 준비 완료","집 전체 청소에 필요한 "+state.targetSoc+"%까지만 미리 채워뒀어요. 완충하지 않고 필요한 만큼만 준비했어요.","다음 청소 준비");
+      }else{
+        addEvent("맞춤 충전 완료",state.selectedLabel+" 청소에 필요한 "+state.targetSoc+"%까지만 채우고 멈췄어요. 완충 대비 "+(100-state.targetSoc)+"% 덜 채워 과충전을 막았어요.","수명 보호");
+      }
       spawnEffect("💖",12);
       spawnEffect("✨",8);
       render();
-      $("speech").innerHTML="<strong>배불러요!</strong><br>출동할 준비가 됐어요!";
-      $("modeChip").textContent="💖 충전 완료 · 출동 준비";
-      setGuide("충전 완료! 로보킹이 곧 바로 출동할게요.","done");
-      showToast("충전 완료! 이제 로보킹이 출동할 수 있어요.");
+      const speech=$("speech");
+      const chip=$("modeChip");
+      if(isNextHomeCharge){
+        if(speech)speech.innerHTML="<strong style='color:#2f8b3a'>다음 청소 준비 완료!</strong><br>필요한 만큼 채워뒀어요.";
+        if(chip)chip.textContent="✅ 다음 전체 청소 준비 완료";
+        setGuide("다음 전체 청소도 바로 시작할 수 있게 미리 준비해뒀어요.","done");
+        showToast("다음 청소 준비 완료! 필요한 만큼 채워뒀어요.");
+      }else{
+        if(speech)speech.innerHTML="<strong>배불러요!</strong><br>출동할 준비가 됐어요!";
+        if(chip)chip.textContent="💖 충전 완료 · 출동 준비";
+        setGuide("충전 완료! 로보킹이 곧 바로 출동할게요.","done");
+        showToast("충전 완료! 이제 로보킹이 출동할 수 있어요.");
+      }
       setTimeout(()=>{state.chargeComplete=false;render()},3200);
       if(autoStart){setTimeout(()=>{state.robotMotion='departing';render();setTimeout(()=>{state.robotMotion='idle';startCleaning();},850)},900)}
       else setTimeout(checkMissionUnlock,3600);
