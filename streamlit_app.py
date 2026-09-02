@@ -30,7 +30,38 @@ st.markdown(
       }
       .block-container{max-width:100%;padding:8px 4px 18px;}
       iframe{border:0!important;border-radius:28px;}
-    </style>
+    
+/* ===== Home visual adjustment: bigger station + mission moved right ===== */
+#homePage .house{
+  left:76px!important;
+  top:112px!important;
+  width:94px!important;
+  height:80px!important;
+  border-radius:38px 38px 9px 9px!important;
+  box-shadow:0 8px 14px rgba(54,36,23,.24)!important;
+}
+#homePage .house:before{
+  left:27px!important;
+  bottom:0!important;
+  width:40px!important;
+  height:44px!important;
+  border-radius:20px 20px 0 0!important;
+}
+#homePage .house:after{
+  top:13px!important;
+  left:27px!important;
+  font-size:8.5px!important;
+  letter-spacing:.2px!important;
+}
+#homePage .mission{
+  left:auto!important;
+  right:10px!important;
+  bottom:14px!important;
+  width:96px!important;
+  z-index:18!important;
+}
+
+</style>
     """,
     unsafe_allow_html=True,
 )
@@ -72,6 +103,7 @@ DATA_DIR = BASE_DIR / "data"
 # 예전 home_model_predictions.csv / zone_model_predictions.csv도 fallback으로 유지합니다.
 # ============================================================
 
+ML_OUTPUT_UI_PATH = DATA_DIR / "ml_output_ui.csv"
 ML_OUTPUT_PATH = DATA_DIR / "ml_output.csv"
 ML_OUTPUT_ALT_PATH = DATA_DIR / "ml_output(2).csv"
 HOME_PRED_PATH = DATA_DIR / "home_model_predictions.csv"
@@ -440,9 +472,95 @@ def _build_run_from_final_group(gid, zdf):
     }
 
 
+
+
+def _limit_final_ml_runs(ml_df, max_runs=96, per_bucket=4):
+    """최종 ML CSV는 유지하되, Streamlit 화면으로 넘길 run 수만 제한합니다.
+
+    50,000행 전체를 JS JSON으로 넣으면 HTML이 너무 커져 배포 환경에서 앱이 멈출 수 있습니다.
+    소형/중형/대형, 건식/물걸레, 충전 필요 여부가 골고루 남도록 global_run_id 단위로 샘플링합니다.
+    한 run의 zone들은 모두 같이 유지되므로 집 전체 SOC 합산 로직은 깨지지 않습니다.
+    """
+    if ml_df is None or len(ml_df) == 0 or "global_run_id" not in ml_df.columns:
+        return ml_df
+
+    df = ml_df.copy()
+    df["global_run_id"] = df["global_run_id"].astype(str)
+
+    agg = {"global_run_id": "first"}
+    for col, fn in [
+        ("area_pyung", "first"),
+        ("zone_count", "first"),
+        ("cleaning_type_code", "first"),
+        ("cleaning_type", "first"),
+        ("charge_count", "max"),
+        ("run_total_soc_pct", "first"),
+    ]:
+        if col in df.columns:
+            agg[col] = fn
+
+    run_meta = df.groupby("global_run_id", sort=False).agg(agg)
+
+    def _bucket_row(row):
+        zone_count = int(row.get("zone_count", 0) or 0)
+        if zone_count not in [4, 6, 8]:
+            area = float(row.get("area_pyung", 0) or 0)
+            zone_count = 4 if area <= 24 else (6 if area <= 49 else 8)
+
+        mop = 0
+        if "cleaning_type_code" in row.index and _is_valid(row.get("cleaning_type_code")):
+            try:
+                mop = int(round(float(row.get("cleaning_type_code"))))
+            except Exception:
+                mop = 0
+        else:
+            txt = str(row.get("cleaning_type", "")).lower()
+            mop = 1 if any(k in txt for k in ["물", "걸레", "mop", "wet"]) else 0
+
+        charge_flag = 1 if float(row.get("charge_count", 0) or 0) > 0 else 0
+        return f"{zone_count}_{mop}_{charge_flag}"
+
+    run_meta["_bucket"] = run_meta.apply(_bucket_row, axis=1)
+
+    selected_ids = []
+    for _, part in run_meta.groupby("_bucket", sort=True):
+        if "run_total_soc_pct" in part.columns:
+            part = part.sort_values("run_total_soc_pct")
+        else:
+            part = part.sort_index()
+
+        if len(part) <= per_bucket:
+            chosen = part.index.tolist()
+        else:
+            positions = [round(i * (len(part) - 1) / (per_bucket - 1)) for i in range(per_bucket)]
+            chosen = part.iloc[positions].index.tolist()
+        selected_ids.extend(chosen)
+
+    selected_ids = list(dict.fromkeys(map(str, selected_ids)))
+    if len(selected_ids) > max_runs:
+        selected_ids = selected_ids[:max_runs]
+
+    limited = df[df["global_run_id"].isin(selected_ids)].copy()
+
+    if "zone_count" in df.columns:
+        present = set(limited["zone_count"].dropna().astype(int).unique().tolist())
+        source_counts = set(df["zone_count"].dropna().astype(int).unique().tolist())
+        needed = [z for z in [4, 6, 8] if z not in present and z in source_counts]
+        if needed:
+            extra_ids = []
+            for zc in needed:
+                candidates = df[df["zone_count"].astype(int) == zc]["global_run_id"].drop_duplicates().astype(str).tolist()
+                if candidates:
+                    extra_ids.append(candidates[0])
+            limited = df[df["global_run_id"].isin(selected_ids + extra_ids)].copy()
+
+    return limited
+
+
 def make_prediction_payload_from_final_ml(ml_df):
     runs = []
     if ml_df is not None and len(ml_df) > 0 and "global_run_id" in ml_df.columns:
+        ml_df = _limit_final_ml_runs(ml_df)
         ml_df = ml_df.copy()
         ml_df["global_run_id"] = ml_df["global_run_id"].astype(str)
         for gid, zdf in ml_df.groupby("global_run_id", sort=False):
@@ -643,7 +761,7 @@ def make_prediction_payload(home_df, zone_df):
     }
 
 
-ml_output_path = _first_existing_csv([ML_OUTPUT_PATH, ML_OUTPUT_ALT_PATH])
+ml_output_path = _first_existing_csv([ML_OUTPUT_UI_PATH, ML_OUTPUT_PATH, ML_OUTPUT_ALT_PATH])
 ml_output_df = load_prediction_csv(str(ml_output_path)) if ml_output_path else None
 
 if ml_output_df is not None:
@@ -1918,6 +2036,37 @@ body,button,input,select{
 .direct-clean-section.condition-panel.manual-mode{margin-top:0!important;}
 .direct-clean-section.condition-panel.manual-mode .condition-title:before{content:none!important;}
 
+
+/* ===== Home visual adjustment: bigger station + mission moved right ===== */
+#homePage .house{
+  left:76px!important;
+  top:112px!important;
+  width:94px!important;
+  height:80px!important;
+  border-radius:38px 38px 9px 9px!important;
+  box-shadow:0 8px 14px rgba(54,36,23,.24)!important;
+}
+#homePage .house:before{
+  left:27px!important;
+  bottom:0!important;
+  width:40px!important;
+  height:44px!important;
+  border-radius:20px 20px 0 0!important;
+}
+#homePage .house:after{
+  top:13px!important;
+  left:27px!important;
+  font-size:8.5px!important;
+  letter-spacing:.2px!important;
+}
+#homePage .mission{
+  left:auto!important;
+  right:10px!important;
+  bottom:14px!important;
+  width:96px!important;
+  z-index:18!important;
+}
+
 </style>
 </head>
 
@@ -2350,6 +2499,11 @@ const LEARNING_SOC_RATIO = 0.35;
 // 시연용: 이전에 이미 몇 번 청소한 로봇처럼 보이게 하는 누적 청소 횟수 기준값
 // (미션 "10번 청소하기"가 시연 중 첫 청소로 달성되도록 9로 둡니다)
 const DEMO_CLEAN_BASE = 9;
+
+function setModeChipText(text){
+  const el=$("modeChip");
+  if(el)el.textContent=text;
+}
 
 function setGuide(message,tone="normal"){
   state.userGuide=message;
@@ -2832,7 +2986,7 @@ function predictSocFromConditions(autoExecuteAfter=false){
     setGuide("아직 로보킹이 우리 집을 잘 몰라요. 먼저 1회차 학습 청소를 시작해 주세요.","warning");
     showToast("먼저 로보킹에게 우리 집을 알려주세요.");
     $("speech").innerHTML="<strong style='color:#ef8c32'>아직 학습 전이에요!</strong><br>먼저 우리 집을 알려주세요.";
-    $("modeChip").textContent="🏠 1회차 학습 필요";
+    setModeChipText("🏠 1회차 학습 필요");
     switchPage("homePage");
     return;
   }
@@ -2843,7 +2997,7 @@ function predictSocFromConditions(autoExecuteAfter=false){
   state.predicting=true;
   if(loading){loading.textContent="로보킹이 오늘 청소를 준비하고 있어요...";loading.classList.add('active');}
   $("speech").innerHTML="<strong style='color:#2f8b3a'>잠깐만요!</strong><br>오늘 청소 준비를 하고 있어요.";
-  $("modeChip").textContent="🤖 우리 집 기록으로 준비 중";
+  setModeChipText("🤖 우리 집 기록으로 준비 중");
   setGuide("오늘 상태를 보고 로보킹이 청소 준비를 하고 있어요. 잠시만 기다려 주세요.","charging");
   showToast("청소 준비 중: 오늘 상태에 맞춰 준비하고 있어요.");
 
@@ -2868,7 +3022,7 @@ function predictSocFromConditions(autoExecuteAfter=false){
     render();
     const statusText=state.soc>=state.targetSoc?"바로 청소할 수 있어요":"잠깐 충전하면 청소할 수 있어요";
     $("speech").innerHTML="<strong style='color:#2f8b3a'>준비 완료!</strong><br>"+statusText;
-    $("modeChip").textContent="✅ 청소 준비 완료 · "+state.selectedLabel;
+    setModeChipText("✅ 청소 준비 완료 · "+state.selectedLabel);
     addEvent("청소 준비 완료",state.selectedLabel+" 청소를 위해 필요한 배터리 "+state.targetSoc+"%만 준비했어요.","배터리 절약");
     setGuide(statusText.includes("바로")?"준비 완료! 바로 출동할게요.":"준비 완료! 필요한 만큼만 채우고 바로 출발할게요.", state.soc>=state.targetSoc?"done":"warning");
     showToast("청소 준비 완료! 로보킹이 오늘 청소 준비를 마쳤어요.");
@@ -3016,7 +3170,7 @@ function selectScenario(scope,zoneNumber=null){
   const loading=$('predictLoading');
   if(loading)loading.textContent=state.selectedLabel+" 선택 · "+status+" · 로보킹이 다시 준비했어요.";
   $("speech").innerHTML="<strong>"+state.selectedLabel+" 선택!</strong><br>이 구역에 맞춰 다시 준비했어요.";
-  $("modeChip").textContent="✨ "+state.selectedLabel+" 청소 준비 완료";
+  setModeChipText("✨ "+state.selectedLabel+" 청소 준비 완료");
   setGuide((state.soc>=state.targetSoc)?state.selectedLabel+" 청소 준비가 끝났어요. 지금 바로 출동할 수 있어요.":state.selectedLabel+" 청소 준비가 끝났어요. 잠깐 충전하고 출발하면 좋아요.", state.soc>=state.targetSoc?"done":"warning");
   showToast(state.selectedLabel+" 청소 준비를 다시 맞췄어요.");
 }
@@ -3665,13 +3819,13 @@ function renderHome(){
     room.classList.add("celebrate");
     if(state.chargePurpose==="nextHome"){
       $("speech").innerHTML="<strong style='color:#2f8b3a'>다음 청소 준비 완료!</strong><br>필요한 만큼 채워뒀어요.";
-      $("modeChip").textContent="✅ 다음 전체 청소 준비 완료";
+      setModeChipText("✅ 다음 전체 청소 준비 완료");
       $("batteryFace").textContent="😊";$("spark").textContent="💖";
       $("batteryMessage").innerHTML="다음 집 전체 청소까지<br>미리 준비해뒀어요.";
       $("timeTip").textContent="다음 청소도 바로 시작할 수 있어요.";
     }else{
       $("speech").innerHTML="<strong>배불러요!</strong><br>이제 청소 가능해요!";
-      $("modeChip").textContent="💖 충전 완료 · 출동 준비";
+      setModeChipText("💖 충전 완료 · 출동 준비");
       $("batteryFace").textContent="😍";$("spark").textContent="💖";
       $("batteryMessage").innerHTML="필요한 만큼 채웠어요.<br>출동 준비 완료!";
       $("timeTip").textContent=state.selectedLabel+" 청소를 시작할 수 있어요.";
@@ -3679,36 +3833,36 @@ function renderHome(){
   }else if(state.celebrating){
     room.classList.add("celebrate");
     $("speech").innerHTML="<strong>청소 완료!</strong><br>보상을 받았어요!";
-    $("modeChip").textContent="🏆 미션 완료 · +50 코인";
+    setModeChipText("🏆 미션 완료 · +50 코인");
     $("batteryFace").textContent="🥳";$("spark").textContent="🎉";
   }else if(state.mapping){
     room.classList.add("cleaning");
     const step=mappingSteps[state.mappingStepIndex]||mappingSteps[0];
     $("speech").innerHTML="<strong style='color:#2f8b3a'>우리 집을 배우는 중!</strong><br>"+step.label+" 중이에요.";
-    $("modeChip").textContent="🏠 학습 청소 · 배터리 "+Math.round(state.firstRunStartSoc)+"% → "+Math.round(state.soc)+"%";
+    setModeChipText("🏠 학습 청소 · 배터리 "+Math.round(state.firstRunStartSoc)+"% → "+Math.round(state.soc)+"%");
     $("batteryFace").textContent="🧭";$("spark").textContent="📡";
     $("batteryMessage").innerHTML="학습 청소 중입니다.<br>배터리가 실제로 소모돼요.";
     $("timeTip").textContent="학습 진행 "+state.mappingProgress+"% · 현재 배터리 "+Math.round(state.soc)+"%";
   }else if(state.predicting){
     $("speech").innerHTML="<strong style='color:#2f8b3a'>준비 중이에요!</strong><br>오늘 상태에 맞춰 준비하고 있어요.";
-    $("modeChip").textContent="🤖 우리 집 기록으로 준비 중";
+    setModeChipText("🤖 우리 집 기록으로 준비 중");
     $("batteryFace").textContent="🤔";$("spark").textContent="✨";
   }else if(!state.profileReady){
     $("speech").innerHTML="<strong style='color:#ef8c32'>처음 만났어요!</strong><br>1회차 청소로 우리 집을 알려주세요.";
-    $("modeChip").textContent="🏠 집 구조 학습 필요";
+    setModeChipText("🏠 집 구조 학습 필요");
     $("batteryFace").textContent="🙂";$("spark").textContent="✨";
     $("batteryMessage").innerHTML="아직 우리 집 정보를 몰라요.<br>학습 청소가 필요합니다.";
     $("timeTip").textContent="1회차 학습 후 청소 준비 가능";
   }else if(!state.predicted){
     $("speech").innerHTML="<strong>집을 배웠어요!</strong><br>이제 청소 준비를 맡겨주세요.";
-    $("modeChip").textContent="✅ 우리 집 저장 완료";
+    setModeChipText("✅ 우리 집 저장 완료");
     $("batteryFace").textContent="😊";$("spark").textContent="✨";
     $("batteryMessage").innerHTML="집 구조 학습 완료!<br>오늘 청소 준비하기를 눌러주세요.";
     $("timeTip").textContent="청소 준비 대기 중";
   }else if(state.cleaning){
     room.classList.add("cleaning");
     $("speech").innerHTML="<strong>열심히 청소 중이에요!</strong><br>진행률 "+state.progress+"%";
-    $("modeChip").textContent="🧹 "+state.selectedLabel+" 청소 중 · "+state.progress+"%";
+    setModeChipText("🧹 "+state.selectedLabel+" 청소 중 · "+state.progress+"%");
     $("batteryFace").textContent="🧹";
     $("batteryMessage").innerHTML="청소 중입니다.<br>로보킹이 청소하면서 배터리를 사용하고 있어요.";
     $("timeTip").textContent="청소 진행률 "+state.progress+"%";
@@ -3718,18 +3872,18 @@ function renderHome(){
     if(state.robotMotion==="returning"){
       if(state.chargePurpose==="nextHome"){
         $("speech").innerHTML="<strong style='color:#e48627'>스테이션으로 돌아가요</strong><br>다음 청소를 미리 준비할게요.";
-        $("modeChip").textContent="🏠 다음 청소 준비 중";
+        setModeChipText("🏠 다음 청소 준비 중");
       }else{
         $("speech").innerHTML="<strong style='color:#e48627'>스테이션으로 가는 중!</strong><br>잠깐 힘을 채우고 올게요.";
-        $("modeChip").textContent="🏠 충전 스테이션 복귀 중";
+        setModeChipText("🏠 충전 스테이션 복귀 중");
       }
     }else{
       if(state.chargePurpose==="nextHome"){
         $("speech").innerHTML="<strong style='color:#e48627'>다음 청소 준비 중!</strong><br>필요한 만큼만 미리 채울게요.";
-        $("modeChip").textContent="⚡ 다음 전체 청소 준비 중";
+        setModeChipText("⚡ 다음 전체 청소 준비 중");
       }else{
         $("speech").innerHTML="<strong style='color:#e48627'>잠깐 쉬는 중이에요</strong><br>필요한 만큼만 충전할게요.";
-        $("modeChip").textContent="⚡ "+state.selectedLabel+" 출동 준비 중";
+        setModeChipText("⚡ "+state.selectedLabel+" 출동 준비 중");
       }
     }
     $("batteryFace").textContent="😌";
@@ -3739,13 +3893,13 @@ function renderHome(){
   }else if(state.soc<15){
     room.classList.add("low");
     $("speech").innerHTML="<strong style='color:#ef4e45'>배가 너무 고파요...</strong><br>충전이 필요해요.";
-    $("modeChip").textContent="⚠️ 배터리 부족";
+    setModeChipText("⚠️ 배터리 부족");
     $("batteryFace").textContent="🥴";
     $("batteryMessage").innerHTML="배터리가 부족해요.<br>먼저 충전해 주세요.";
     $("timeTip").textContent="충전 후 청소를 시작해 주세요.";
     $("spark").textContent="💦";
   }else{
-    $("modeChip").textContent="✨ 로보킹 맞춤 준비";
+    setModeChipText("✨ 로보킹 맞춤 준비");
     $("batteryFace").textContent=state.soc>90?"😮":"😊";
     $("spark").textContent="✨";
 
@@ -4447,7 +4601,7 @@ function prepareScenarioAndShow(scenario,message,tone="done"){
   render();
   const canNow=state.soc>=state.targetSoc;
   $("speech").innerHTML="<strong style='color:#2f8b3a'>준비 완료!</strong><br>"+(canNow?"바로 출동할 수 있어요.":"잠깐 충전하고 출발할게요.");
-  $("modeChip").textContent="✅ "+state.selectedLabel+" 준비 완료";
+  setModeChipText("✅ "+state.selectedLabel+" 준비 완료");
   setGuide(message,canNow?tone:"warning");
   showToast(message.replace(/<[^>]*>/g,""));
 }
@@ -4809,7 +4963,7 @@ function startCleaning(){
       spawnEffect("🎉",15);spawnEffect("⭐",9);
       render();
       $("speech").innerHTML="<strong style='color:#2f8b3a'>청소 완료!</strong><br>+50코인을 받았어요.";
-      $("modeChip").textContent="🏆 "+state.selectedLabel+" 완료 · +50코인";
+      setModeChipText("🏆 "+state.selectedLabel+" 완료 · +50코인");
       setGuide("청소 완료! 배터리를 아껴 쓰며 마무리했어요. 보상으로 +50코인과 경험치를 받았어요.","done");
       showToast("청소 완료! 로보킹이 +50코인을 가져왔어요.");
       setTimeout(()=>{
