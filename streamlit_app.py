@@ -76,7 +76,7 @@ st.markdown(
 # assets/photos/        → 4번째 탭 "사진첩"에 표시되는 반려동물 사진 (png/jpg/jpeg/gif/webp)
 # assets/lost_items/    → 4번째 탭 "오늘의 발견"의 분실물 사진 (없으면 이모지로 표시)
 # 각 폴더에 선택적으로 captions.json 을 두면 파일명별 제목/장소/시간/설명을 지정할 수 있습니다.
-#   { "cat1.jpg": {"title": "낮잠 자는 콩이", "place": "거실 소파", "time": "오늘 오후 1:20", "note": "햇살 아래에서 낮잠 중"} }
+#   { "dog1.jpg": {"title": "로보킹이 만난 강아지", "place": "거실", "time": "오늘 오후", "note": "청소 중 기록"} }
 # captions.json 이 없으면 파일명(확장자 제외)이 제목으로 사용됩니다.
 # 사진은 한 장당 1MB 이하로 줄여두면 로딩이 빠릅니다.
 # ============================================================
@@ -153,7 +153,21 @@ def load_image_folder(folder_str: str, signature: str):
             continue
         mime = mimetypes.guess_type(p.name)[0] or "image/jpeg"
         data = base64.b64encode(raw).decode("ascii")
-        meta = captions.get(p.name) or captions.get(p.stem) or {}
+        default_photo_meta = {
+            "dog1.jpg": {
+                "title": "로보킹이 만난 강아지",
+                "place": "거실",
+                "time": "오늘 오후",
+                "note": "청소 중 거실에서 쉬고 있던 강아지를 로보킹이 기록했어요.",
+            },
+            "dog2.jpg": {
+                "title": "강아지의 하루 기록",
+                "place": "침실",
+                "time": "오늘 오전",
+                "note": "로보킹이 청소하면서 반려동물의 모습을 사진첩에 남겼어요.",
+            },
+        }
+        meta = captions.get(p.name) or captions.get(p.stem) or default_photo_meta.get(p.name.lower()) or {}
         if not isinstance(meta, dict):
             meta = {"title": str(meta)}
         items.append({
@@ -2395,7 +2409,7 @@ body,button,input,select{
           </div>
           <div class="photo-grid" id="photoGrid"></div>
           <div class="panel photo-empty" id="photoEmpty" style="display:none;">
-            지금은 예시 사진이에요.<br>실제 사진을 넣으려면 앱 폴더의 <code>assets/photos/</code> 안에 사진 파일을 넣어주세요.
+            지금은 예시 사진이에요.<br>실제 사진을 넣으려면 <code>assets/photos/dog1.jpg</code>, <code>assets/photos/dog2.jpg</code>를 넣어주세요.
           </div>
         </div>
       </section>
@@ -4139,10 +4153,8 @@ lostImages.slice(defaultLostItems.length).forEach((img,i)=>{
   lostItems.push({id:"lx"+i,emoji:"📦",src:img.src,title:img.title||"청소 중 발견",desc:img.note||"청소 중 바닥에서 발견했어요.",place:img.place||"거실",spot:"",time:img.time||"오늘",found:false});
 });
 const demoPhotos=[
-  {emoji:"🐱",title:"소파 위에서 낮잠",place:"거실",time:"오늘 오후 1:20",note:"햇살 아래에서 곤히 자고 있어요."},
-  {emoji:"🐶",title:"창밖 구경 중",place:"거실",time:"오늘 오전 11:05",note:"밖에 지나가는 새를 한참 봤어요."},
-  {emoji:"🐾",title:"현관 앞 기다리기",place:"현관",time:"어제 오후 6:40",note:"퇴근 시간이 가까워지면 여기서 기다려요."},
-  {emoji:"🐈",title:"침대 밑 탐험",place:"침실",time:"어제 오후 3:12",note:"로보킹과 마주쳐서 잠깐 놀랐어요."}
+  {emoji:"🐶",title:"로보킹이 만난 강아지",place:"거실",time:"오늘 오후",note:"청소 중 거실에서 쉬고 있던 강아지를 로보킹이 기록했어요."},
+  {emoji:"🐕",title:"강아지의 하루 기록",place:"침실",time:"오늘 오전",note:"로보킹이 청소하면서 반려동물의 모습을 사진첩에 남겼어요."}
 ];
 const realPhotos=(mediaData&&mediaData.photos)||[];
 const photos=realPhotos.length?realPhotos:demoPhotos;
