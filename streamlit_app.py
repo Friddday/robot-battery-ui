@@ -1912,6 +1912,8 @@ body,button,input,select{
 .found-map{flex:1;min-height:150px;border-radius:12px;overflow:hidden;background:#fbf1de;border:1px solid rgba(124,83,43,.12);}
 .found-map svg{width:100%;height:100%;display:block;}
 .fm-room{fill:#f6e9d2;stroke:#c9ad82;stroke-width:2;}
+.fm-room-active{fill:#fff3cf;}
+.fm-focus{fill:none;stroke:#ef8c32;stroke-width:3;stroke-dasharray:5 4;}
 .fm-label{fill:#7a5a3c;font-size:11px;font-weight:900;text-anchor:middle;}
 .fm-pin{animation:float 1.6s ease-in-out infinite;}
 .found-list{margin-top:9px;padding:13px 12px;}
@@ -4160,19 +4162,54 @@ const realPhotos=(mediaData&&mediaData.photos)||[];
 const photos=realPhotos.length?realPhotos:demoPhotos;
 const usingDemoPhotos=!realPhotos.length;
 
-const foundMapSpots={"거실":[122,58],"현관":[179,112],"침실":[34,40],"주방":[34,112],"다용도":[179,40]};
+function normalizeFoundPlace(v){
+  return String(v||"").replace(/\s+/g,"").trim();
+}
+function foundMapLabelSize(label,w,h){
+  const len=String(label||"").length;
+  let size=11.5;
+  if(len>=4)size=10;
+  if(len>=5)size=9.2;
+  if(w<60)size=Math.min(size,9.8);
+  if(h<40)size=Math.min(size,9.3);
+  return size;
+}
+function findFoundMapRoom(place){
+  const rooms=(currentMapLayout().rooms||[]).slice();
+  if(!rooms.length)return null;
+  const key=normalizeFoundPlace(place);
+  let room=rooms.find(r=>normalizeFoundPlace(r[6])===key);
+  if(room)return room;
+  if(key==="침실"){
+    room=rooms.find(r=>normalizeFoundPlace(r[6]).startsWith("침실"));
+    if(room)return room;
+  }
+  room=rooms.find(r=>normalizeFoundPlace(r[6]).includes(key) || key.includes(normalizeFoundPlace(r[6])));
+  return room||rooms[0];
+}
 function foundMapSvg(item){
-  const spot=foundMapSpots[item.place]||foundMapSpots["거실"];
-  const px=spot[0],py=spot[1];
-  return "<svg viewBox='0 0 200 150' role='img' aria-label='발견 위치 지도'>"
-    +"<rect class='fm-room' x='5' y='5' width='58' height='68' rx='8'/><text class='fm-label' x='34' y='44'>침실</text>"
-    +"<rect class='fm-room' x='5' y='78' width='58' height='67' rx='8'/><text class='fm-label' x='34' y='116'>주방</text>"
-    +"<rect class='fm-room' x='68' y='5' width='90' height='140' rx='8'/><text class='fm-label' x='113' y='130'>거실</text>"
-    +"<rect x='80' y='28' width='62' height='26' rx='9' fill='#c9ad82' opacity='.75'/><rect x='88' y='72' width='46' height='20' rx='5' fill='#e5cfa8'/>"
-    +"<rect class='fm-room' x='163' y='5' width='32' height='68' rx='8'/><text class='fm-label' x='179' y='44' style='font-size:9px'>다용도</text>"
-    +"<rect class='fm-room' x='163' y='78' width='32' height='67' rx='8'/><text class='fm-label' x='179' y='116'>현관</text>"
+  const lay=currentMapLayout();
+  const rooms=(lay.rooms||[]).slice();
+  if(!rooms.length)return "<svg viewBox='0 0 200 150' role='img' aria-label='발견 위치 지도'></svg>";
+  const target=findFoundMapRoom(item&&item.place);
+  const px=target ? (target[0]+target[2]/2) : 100;
+  const py=target ? (target[1]+Math.max(18,target[3]*0.45)) : 75;
+  let roomMarkup="";
+  rooms.forEach(r=>{
+    const x=r[0],y=r[1],w=r[2],h=r[3],rad=Math.min(Number(r[4]||8),10),label=String(r[6]||"영역");
+    const fontSize=foundMapLabelSize(label,w,h);
+    const selected=target && Number(target[5])===Number(r[5]);
+    roomMarkup += "<rect class='fm-room"+(selected?" fm-room-active":"")+"' x='"+x+"' y='"+y+"' width='"+w+"' height='"+h+"' rx='"+rad+"'/>";
+    roomMarkup += "<text class='fm-label' x='"+(x+w/2)+"' y='"+(y+h/2+fontSize*0.3)+"' style='font-size:"+fontSize+"px'>"+esc(label)+"</text>";
+  });
+  if(target){
+    roomMarkup += "<rect class='fm-focus' x='"+target[0]+"' y='"+target[1]+"' width='"+target[2]+"' height='"+target[3]+"' rx='"+Math.min(Number(target[4]||8),10)+"'/>";
+  }
+  return "<svg viewBox='"+lay.viewBox+"' role='img' aria-label='발견 위치 지도'>"
+    +"<rect x='2' y='2' width='242' height='168' rx='16' fill='#f6ead0' opacity='.55'></rect>"
+    +roomMarkup
     +"<g class='fm-pin'><path d='M"+px+" "+(py+14)+" C"+(px-13)+" "+(py-2)+", "+(px-13)+" "+(py-14)+", "+px+" "+(py-14)+" C"+(px+13)+" "+(py-14)+", "+(px+13)+" "+(py-2)+", "+px+" "+(py+14)+" Z' fill='#ef8c32' stroke='#fff' stroke-width='2'/>"
-    +"<circle cx='"+px+"' cy='"+(py-5)+"' r='7' fill='#fff'/><text x='"+px+"' y='"+(py-1.5)+"' text-anchor='middle' style='font-size:9px'>🤖</text></g></svg>";
+    +"<circle cx='"+px+"' cy='"+(py-5)+"' r='7' fill='#fff'/><text x='"+px+"' y='"+(py-1.5)+"' text-anchor='middle' style='font-size:9px'>📍</text></g></svg>";
 }
 function renderFound(){
   const today=lostItems[0];
