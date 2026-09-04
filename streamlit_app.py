@@ -161,6 +161,18 @@ def load_image_folder(folder_str: str, signature: str):
                 "time": "오늘 오전 11:05",
                 "note": "안방에서 강아지가 로보킹에게 관심을 보여서 살포시 찍어봤어요.",
             },
+            "dog1_jpg": {
+                "title": "로보킹이 신기한 강아지",
+                "place": "안방",
+                "time": "오늘 오전 11:05",
+                "note": "안방에서 강아지가 로보킹에게 관심을 보여서 살포시 찍어봤어요.",
+            },
+            "dog1_jpg.jpg": {
+                "title": "로보킹이 신기한 강아지",
+                "place": "안방",
+                "time": "오늘 오전 11:05",
+                "note": "안방에서 강아지가 로보킹에게 관심을 보여서 살포시 찍어봤어요.",
+            },
             "dog2.jpg": {
                 "title": "강아지의 하루 기록",
                 "place": "침실",
@@ -186,7 +198,12 @@ def load_image_folder(folder_str: str, signature: str):
                 "note": "안방에서 편안히 쉬고 있는 모습을 로보킹이 살포시 담았어요.",
             },
         }
-        meta = captions.get(p.name) or captions.get(p.stem) or default_photo_meta.get(p.name.lower()) or {}
+        default_meta = default_photo_meta.get(p.name.lower()) or default_photo_meta.get(p.stem.lower()) or {}
+        # dog1/dog2/dog3는 시연 문구가 고정되어야 해서 기본 문구를 우선 적용합니다.
+        if p.name.lower() in default_photo_meta or p.stem.lower() in default_photo_meta:
+            meta = default_meta
+        else:
+            meta = captions.get(p.name) or captions.get(p.stem) or default_meta or {}
         if not isinstance(meta, dict):
             meta = {"title": str(meta)}
         items.append({
@@ -921,7 +938,13 @@ button,input{font-family:inherit} button{cursor:pointer}
 
 /* Reward */
 .level-panel{padding:17px 15px;text-align:center;background:linear-gradient(145deg,#fff3cc,#ffd98a)}.level-robot{font-size:72px;animation:float 2s ease-in-out infinite}.level-number{margin-top:5px;font-size:25px;font-weight:900}.level-track{height:11px;margin:12px 10px 5px;overflow:hidden;border-radius:10px;background:rgba(126,85,39,.18)}.level-fill{width:55%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff7f35,#ffd244)}.level-caption{font-size:9px;font-weight:900}
-.reward-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.reward-card{min-height:125px;padding:14px;border:1px solid rgba(136,87,40,.14);border-radius:16px;background:rgba(255,248,231,.97);box-shadow:var(--shadow);text-align:center}.reward-icon{font-size:38px}.reward-title{margin-top:7px;font-size:11px;font-weight:900}.reward-desc{margin-top:4px;color:#775943;font-size:8px;line-height:1.4;font-weight:800}.reward-btn{width:100%;margin-top:9px;padding:8px;border:0;border-radius:10px;background:#f0dfbc;color:#5c422f;font-size:9px;font-weight:900}
+.reward-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px;align-items:stretch}
+.reward-card{min-height:176px;padding:14px;border:1px solid rgba(136,87,40,.14);border-radius:16px;background:rgba(255,248,231,.97);box-shadow:var(--shadow);text-align:center;display:flex;flex-direction:column;align-items:center}
+.reward-icon{font-size:38px;line-height:1}
+.reward-title{margin-top:7px;font-size:11px;font-weight:900;min-height:15px;display:flex;align-items:center;justify-content:center}
+.reward-desc{margin-top:4px;color:#775943;font-size:8px;line-height:1.4;font-weight:800;min-height:24px;display:flex;align-items:flex-start;justify-content:center}
+.reward-status{min-height:15px;margin-top:4px;font-size:8.5px;font-weight:950;color:#2f8b3a;display:flex;align-items:center;justify-content:center}
+.reward-btn{width:100%;margin-top:auto;padding:8px;border:0;border-radius:10px;background:#f0dfbc;color:#5c422f;font-size:9px;font-weight:900;min-height:33px}
 
 /* Modal */
 .modal{position:absolute;z-index:200;inset:0;display:none;align-items:center;justify-content:center;padding:30px;background:rgba(45,33,23,.62);backdrop-filter:blur(4px)}.modal.show{display:flex}.modal-card{width:100%;padding:19px;border-radius:20px;background:#fff8e8;box-shadow:0 18px 45px rgba(28,19,12,.38);animation:popup .18s ease-out}.modal-title{font-size:18px;font-weight:900}.modal-body{margin:13px 0 17px;color:#6c513c;font-size:12px;line-height:1.65;font-weight:700}.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.modal-btn{width:100%;padding:11px;border:0;border-radius:12px;font-weight:900}.modal-secondary{background:#efe1c8;color:#5c422f}.modal-primary{background:#ef8c32;color:#fff}.modal-actions.single{grid-template-columns:1fr}.modal-actions.single .modal-secondary{display:none}
