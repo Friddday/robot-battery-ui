@@ -76,7 +76,7 @@ st.markdown(
 # assets/photos/        → 4번째 탭 "사진첩"에 표시되는 반려동물 사진 (png/jpg/jpeg/gif/webp)
 # assets/lost_items/    → 4번째 탭 "오늘의 발견"의 분실물 사진 (없으면 이모지로 표시)
 # 각 폴더에 선택적으로 captions.json 을 두면 파일명별 제목/장소/시간/설명을 지정할 수 있습니다.
-#   { "dog1.jpg": {"title": "로보킹이 만난 강아지", "place": "거실", "time": "오늘 오후", "note": "청소 중 기록"} }
+#   { "dog3_jpg": {"title": "안방에서 쉬는 중", "place": "안방", "time": "오늘 오후", "note": "로보킹이 살포시 담은 사진"} }
 # captions.json 이 없으면 파일명(확장자 제외)이 제목으로 사용됩니다.
 # 사진은 한 장당 1MB 이하로 줄여두면 로딩이 빠릅니다.
 # ============================================================
@@ -116,6 +116,7 @@ LOST_DIR = ASSET_DIR / "lost_items"
 CURRENT_SOC = 80
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+IMAGE_NAME_ALLOWLIST = {"dog3_jpg"}
 
 
 def _folder_signature(folder: Path):
@@ -145,7 +146,7 @@ def load_image_folder(folder_str: str, signature: str):
         except Exception:
             captions = {}
     for p in sorted(folder.iterdir()):
-        if p.suffix.lower() not in IMAGE_EXTS:
+        if p.suffix.lower() not in IMAGE_EXTS and p.name.lower() not in IMAGE_NAME_ALLOWLIST:
             continue
         try:
             raw = p.read_bytes()
@@ -155,16 +156,34 @@ def load_image_folder(folder_str: str, signature: str):
         data = base64.b64encode(raw).decode("ascii")
         default_photo_meta = {
             "dog1.jpg": {
-                "title": "로보킹이 만난 강아지",
-                "place": "거실",
-                "time": "오늘 오후",
-                "note": "청소 중 거실에서 쉬고 있던 강아지를 로보킹이 기록했어요.",
+                "title": "로보킹이 신기한 강아지",
+                "place": "안방",
+                "time": "오늘 오전 11:05",
+                "note": "안방에서 강아지가 로보킹에게 관심을 보여서 살포시 찍어봤어요.",
             },
             "dog2.jpg": {
                 "title": "강아지의 하루 기록",
                 "place": "침실",
                 "time": "오늘 오전",
                 "note": "로보킹이 청소하면서 반려동물의 모습을 사진첩에 남겼어요.",
+            },
+            "dog3.jpg": {
+                "title": "안방에서 쉬는 중",
+                "place": "안방",
+                "time": "오늘 오후",
+                "note": "안방에서 편안히 쉬고 있는 모습을 로보킹이 살포시 담았어요.",
+            },
+            "dog3_jpg.jpg": {
+                "title": "안방에서 쉬는 중",
+                "place": "안방",
+                "time": "오늘 오후",
+                "note": "안방에서 편안히 쉬고 있는 모습을 로보킹이 살포시 담았어요.",
+            },
+            "dog3_jpg": {
+                "title": "안방에서 쉬는 중",
+                "place": "안방",
+                "time": "오늘 오후",
+                "note": "안방에서 편안히 쉬고 있는 모습을 로보킹이 살포시 담았어요.",
             },
         }
         meta = captions.get(p.name) or captions.get(p.stem) or default_photo_meta.get(p.name.lower()) or {}
@@ -1953,6 +1972,8 @@ body,button,input,select{
 .photo-info .p-count b{display:block;font-size:20px;color:#ef573f;line-height:1;margin-bottom:2px;}
 .photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .photo-tile{position:relative;border-radius:16px;overflow:hidden;background:#f5eddb;box-shadow:var(--shadow);cursor:pointer;aspect-ratio:1/1;}
+.photo-tile.wide{grid-column:1 / -1;aspect-ratio:2.12/1;}
+.photo-tile.wide img{object-fit:cover;}
 .photo-tile img{width:100%;height:100%;object-fit:cover;display:block;}
 .photo-tile .ph-emoji{width:100%;height:100%;display:grid;place-items:center;font-size:56px;background:linear-gradient(145deg,#f6e3ba,#fff7e4);}
 .photo-cap{position:absolute;left:0;right:0;bottom:0;padding:16px 9px 8px;background:linear-gradient(180deg,transparent,rgba(45,33,23,.74));color:#fff;font-size:11px;font-weight:950;line-height:1.3;}
@@ -2411,7 +2432,7 @@ body,button,input,select{
           </div>
           <div class="photo-grid" id="photoGrid"></div>
           <div class="panel photo-empty" id="photoEmpty" style="display:none;">
-            지금은 예시 사진이에요.<br>실제 사진을 넣으려면 <code>assets/photos/dog1.jpg</code>, <code>assets/photos/dog2.jpg</code>를 넣어주세요.
+            지금은 예시 사진이에요.<br>실제 사진을 넣으려면 <code>assets/photos/dog1.jpg</code>, <code>dog2.jpg</code>, <code>dog3_jpg</code>를 넣어주세요.
           </div>
         </div>
       </section>
@@ -4155,15 +4176,24 @@ lostImages.slice(defaultLostItems.length).forEach((img,i)=>{
   lostItems.push({id:"lx"+i,emoji:"📦",src:img.src,title:img.title||"청소 중 발견",desc:img.note||"청소 중 바닥에서 발견했어요.",place:img.place||"거실",spot:"",time:img.time||"오늘",found:false});
 });
 const demoPhotos=[
-  {emoji:"🐶",title:"로보킹이 만난 강아지",place:"거실",time:"오늘 오후",note:"청소 중 거실에서 쉬고 있던 강아지를 로보킹이 기록했어요."},
-  {emoji:"🐕",title:"강아지의 하루 기록",place:"침실",time:"오늘 오전",note:"로보킹이 청소하면서 반려동물의 모습을 사진첩에 남겼어요."}
+  {emoji:"🐶",title:"로보킹이 신기한 강아지",place:"안방",time:"오늘 오전 11:05",note:"안방에서 강아지가 로보킹에게 관심을 보여서 살포시 찍어봤어요."},
+  {emoji:"🐕",title:"강아지의 하루 기록",place:"침실",time:"오늘 오전",note:"로보킹이 청소하면서 반려동물의 모습을 사진첩에 남겼어요."},
+  {emoji:"🐾",title:"안방에서 쉬는 중",place:"안방",time:"오늘 오후",note:"안방에서 편안히 쉬고 있는 모습을 로보킹이 살포시 담았어요.",wide:true}
 ];
-const realPhotos=(mediaData&&mediaData.photos)||[];
+const realPhotos=((mediaData&&mediaData.photos)||[]).map(p=>{
+  const name=String(p.name||"").toLowerCase();
+  if(name==="dog3_jpg" || name==="dog3.jpg" || name==="dog3_jpg.jpg" || String(p.title||"").includes("안방에서 쉬는 중")){
+    p.wide=true;
+  }
+  return p;
+});
 const photos=realPhotos.length?realPhotos:demoPhotos;
 const usingDemoPhotos=!realPhotos.length;
 
 function normalizeFoundPlace(v){
-  return String(v||"").replace(/\s+/g,"").trim();
+  const s=String(v||"").replace(/\s+/g,"").trim();
+  if(s==="안방")return "침실";
+  return s;
 }
 function foundMapLabelSize(label,w,h){
   const len=String(label||"").length;
@@ -4304,7 +4334,7 @@ function renderPhotos(){
   if(!grid)return;
   if(count)count.textContent=photos.length;
   if(empty)empty.style.display=usingDemoPhotos?"block":"none";
-  grid.innerHTML=photos.map((p,i)=>"<div class='photo-tile' data-action='photoOpen' data-idx='"+i+"'>"
+  grid.innerHTML=photos.map((p,i)=>"<div class='photo-tile"+(p.wide?" wide":"")+"' data-action='photoOpen' data-idx='"+i+"'>"
     +(p.src?"<img src='"+p.src+"' alt='' loading='lazy'>":"<div class='ph-emoji'>"+(p.emoji||"🐾")+"</div>")
     +"<div class='photo-cap'>"+esc(p.title)+"<small>"+esc([p.place,p.time].filter(Boolean).join(" · "))+"</small></div></div>").join("");
 }
